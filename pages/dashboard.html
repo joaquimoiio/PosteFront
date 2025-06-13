@@ -1,0 +1,179 @@
+<div class="dashboard-page">
+    <div class="page-header">
+        <h2>📊 Dashboard - Visão Geral</h2>
+        <p>Resumo das vendas, despesas e distribuição de lucros</p>
+    </div>
+
+    <!-- Seção de Resumo das Vendas -->
+    <section class="dashboard-section">
+        <div class="section-header">
+            <h3>📈 Resumo das Vendas</h3>
+            <button class="btn btn-secondary btn-small" onclick="refreshDashboard()">
+                🔄 Atualizar
+            </button>
+        </div>
+        
+        <div id="resumo-loading" class="loading-section">
+            <div class="spinner"></div>
+            <p>Carregando dados...</p>
+        </div>
+
+        <div id="resumo-content" class="cards-grid" style="display: none;">
+            <div class="metric-card">
+                <div class="card-icon">💰</div>
+                <div class="card-content">
+                    <h4>Total Venda Postes</h4>
+                    <div class="metric-value" id="total-venda-postes">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="card-icon">🚚</div>
+                <div class="card-content">
+                    <h4>Total Frete Eletrons</h4>
+                    <div class="metric-value" id="total-frete">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="card-icon">💼</div>
+                <div class="card-content">
+                    <h4>Total Comissão</h4>
+                    <div class="metric-value" id="total-comissao">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="card-icon">📈</div>
+                <div class="card-content">
+                    <h4>Valor Total Informado</h4>
+                    <div class="metric-value" id="valor-total-informado">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="metric-card expense-card">
+                <div class="card-icon">👥</div>
+                <div class="card-content">
+                    <h4>Despesas Funcionário</h4>
+                    <div class="metric-value" id="despesas-funcionario">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="metric-card expense-card">
+                <div class="card-icon">📋</div>
+                <div class="card-content">
+                    <h4>Outras Despesas</h4>
+                    <div class="metric-value" id="outras-despesas">R$ 0,00</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção de Distribuição de Lucros -->
+    <section class="dashboard-section profit-section">
+        <div class="section-header">
+            <h3>💰 Distribuição de Lucros</h3>
+        </div>
+
+        <div id="lucro-content" class="cards-grid" style="display: none;">
+            <div class="profit-card total-profit">
+                <div class="card-icon">💎</div>
+                <div class="card-content">
+                    <h4>Lucro Total</h4>
+                    <div class="metric-value" id="lucro-total">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="profit-card partner-card">
+                <div class="card-icon">👤</div>
+                <div class="card-content">
+                    <h4>Parte do Cícero (50%)</h4>
+                    <div class="metric-value" id="parte-cicero">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="profit-card partner-card">
+                <div class="card-icon">👥</div>
+                <div class="card-content">
+                    <h4>Guilherme</h4>
+                    <div class="metric-value" id="parte-guilherme">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="profit-card partner-card">
+                <div class="card-icon">👥</div>
+                <div class="card-content">
+                    <h4>Jefferson</h4>
+                    <div class="metric-value" id="parte-jefferson">R$ 0,00</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção de Estatísticas Rápidas -->
+    <section class="dashboard-section">
+        <div class="section-header">
+            <h3>📊 Estatísticas Rápidas</h3>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" id="total-vendas">0</div>
+                <div class="stat-label">Total de Vendas</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="total-itens-vendidos">0</div>
+                <div class="stat-label">Itens Vendidos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="total-postes-cadastrados">0</div>
+                <div class="stat-label">Postes Cadastrados</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="total-despesas-periodo">0</div>
+                <div class="stat-label">Despesas do Período</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção de Ações Rápidas -->
+    <section class="dashboard-section">
+        <div class="section-header">
+            <h3>⚡ Ações Rápidas</h3>
+        </div>
+
+        <div class="cards-grid">
+            <div class="metric-card" style="cursor: pointer;" onclick="navigationManager.navigateTo('vendas')">
+                <div class="card-icon">➕</div>
+                <div class="card-content">
+                    <h4>Nova Venda</h4>
+                    <p style="margin: 0; color: #64748b;">Cadastrar nova venda</p>
+                </div>
+            </div>
+
+            <div class="metric-card" style="cursor: pointer;" onclick="navigationManager.navigateTo('despesas')">
+                <div class="card-icon">💸</div>
+                <div class="card-content">
+                    <h4>Nova Despesa</h4>
+                    <p style="margin: 0; color: #64748b;">Registrar despesa</p>
+                </div>
+            </div>
+
+            <div class="metric-card" style="cursor: pointer;" onclick="navigationManager.navigateTo('postes')">
+                <div class="card-icon">⚡</div>
+                <div class="card-content">
+                    <h4>Gerenciar Postes</h4>
+                    <p style="margin: 0; color: #64748b;">Cadastrar/editar postes</p>
+                </div>
+            </div>
+
+            <div class="metric-card" style="cursor: pointer;" onclick="exportarRelatorio()">
+                <div class="card-icon">📊</div>
+                <div class="card-content">
+                    <h4>Exportar Relatório</h4>
+                    <p style="margin: 0; color: #64748b;">Baixar dados em CSV</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

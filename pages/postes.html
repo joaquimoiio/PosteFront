@@ -1,0 +1,303 @@
+<div class="postes-page">
+    <div class="page-header">
+        <h2>⚡ Gerenciamento de Postes</h2>
+        <p>Cadastre, edite e gerencie os postes disponíveis para venda</p>
+    </div>
+
+    <!-- Novo Poste -->
+    <section class="form-section">
+        <div class="section-header">
+            <h3>➕ Novo Poste</h3>
+        </div>
+
+        <form id="poste-form" class="form-container">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="poste-codigo">Código do Poste</label>
+                    <input type="text" id="poste-codigo" required placeholder="Ex: 4199, 91450">
+                </div>
+
+                <div class="form-group">
+                    <label for="poste-preco">Preço</label>
+                    <div class="input-with-icon">
+                        <span class="input-icon">💰</span>
+                        <input type="number" step="0.01" id="poste-preco" required placeholder="0,00" min="0">
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="poste-descricao">Descrição</label>
+                    <input type="text" id="poste-descricao" required placeholder="Ex: Kit Poste 7m 1 Cx Mono Saída Aérea">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-icon">💾</span>
+                    Salvar Poste
+                </button>
+                <button type="reset" class="btn btn-secondary">
+                    <span class="btn-icon">🔄</span>
+                    Limpar
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Estatísticas dos Postes -->
+    <section class="summary-section">
+        <div class="section-header">
+            <h3>📊 Estatísticas dos Postes</h3>
+        </div>
+
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h4>Total de Postes</h4>
+                <div class="summary-value" id="total-postes">0</div>
+            </div>
+
+            <div class="summary-card">
+                <h4>Postes Ativos</h4>
+                <div class="summary-value" id="postes-ativos">0</div>
+            </div>
+
+            <div class="summary-card">
+                <h4>Preço Médio</h4>
+                <div class="summary-value" id="preco-medio">R$ 0,00</div>
+            </div>
+
+            <div class="summary-card">
+                <h4>Mais Vendido</h4>
+                <div class="summary-value" id="mais-vendido">-</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filtros -->
+    <section class="table-section">
+        <div class="section-header">
+            <h3>🔍 Filtros e Busca</h3>
+        </div>
+        
+        <div class="table-filters">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label for="filtro-status">Status</label>
+                    <select id="filtro-status">
+                        <option value="">Todos</option>
+                        <option value="true">Ativos</option>
+                        <option value="false">Inativos</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-codigo">Código</label>
+                    <input type="text" id="filtro-codigo" placeholder="Buscar por código...">
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-descricao">Descrição</label>
+                    <input type="text" id="filtro-descricao" placeholder="Buscar por descrição...">
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-preco-min">Preço Mínimo</label>
+                    <input type="number" step="0.01" id="filtro-preco-min" placeholder="0,00">
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-preco-max">Preço Máximo</label>
+                    <input type="number" step="0.01" id="filtro-preco-max" placeholder="0,00">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lista de Postes -->
+    <section class="table-section">
+        <div class="section-header">
+            <h3>⚡ Lista de Postes</h3>
+            <div class="section-actions">
+                <button class="btn btn-secondary btn-small" onclick="loadPostes()">
+                    <span class="btn-icon">🔄</span>
+                    Atualizar
+                </button>
+                <button class="btn btn-secondary btn-small" onclick="exportarPostes()">
+                    <span class="btn-icon">📊</span>
+                    Exportar
+                </button>
+                <button class="btn btn-secondary btn-small" onclick="limparFiltros()">
+                    <span class="btn-icon">🧹</span>
+                    Limpar Filtros
+                </button>
+                <button class="btn btn-success btn-small" onclick="ativarTodos()">
+                    <span class="btn-icon">✅</span>
+                    Ativar Todos
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="postes-table" class="data-table">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="codigo">Código</th>
+                        <th class="sortable" data-sort="descricao">Descrição</th>
+                        <th class="sortable" data-sort="preco">Preço</th>
+                        <th class="sortable" data-sort="ativo">Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="5" class="empty-table">
+                            <div class="empty-table-icon">⚡</div>
+                            <p>Nenhum poste encontrado</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Ações em Lote -->
+    <section class="form-section">
+        <div class="section-header">
+            <h3>🔧 Ações em Lote</h3>
+        </div>
+
+        <div class="form-container">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="acao-lote">Ação</label>
+                    <select id="acao-lote">
+                        <option value="">Selecione uma ação</option>
+                        <option value="ativar">Ativar Selecionados</option>
+                        <option value="inativar">Inativar Selecionados</option>
+                        <option value="ajustar-preco">Ajustar Preços</option>
+                        <option value="excluir">Excluir Selecionados</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="ajuste-preco-container" style="display: none;">
+                    <label for="percentual-ajuste">Percentual de Ajuste (%)</label>
+                    <input type="number" id="percentual-ajuste" placeholder="Ex: 10 para +10%, -5 para -5%">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-primary" onclick="executarAcaoLote()">
+                    <span class="btn-icon">⚡</span>
+                    Executar Ação
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="selecionarTodos()">
+                    <span class="btn-icon">☑️</span>
+                    Selecionar Todos
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="deselecionarTodos()">
+                    <span class="btn-icon">☐</span>
+                    Desmarcar Todos
+                </button>
+            </div>
+
+            <div id="itens-selecionados" style="margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: none;">
+                <strong>Itens selecionados: <span id="contador-selecionados">0</span></strong>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Modal de Edição de Poste -->
+<div id="edit-poste-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Editar Poste</h3>
+            <span class="close" onclick="closeModal('edit-poste-modal')">&times;</span>
+        </div>
+        <form id="edit-poste-form">
+            <div style="padding: 20px 30px;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="edit-poste-codigo">Código</label>
+                        <input type="text" id="edit-poste-codigo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-poste-preco">Preço</label>
+                        <input type="number" step="0.01" id="edit-poste-preco" required min="0">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="edit-poste-descricao">Descrição</label>
+                        <input type="text" id="edit-poste-descricao" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-poste-ativo">Status</label>
+                        <select id="edit-poste-ativo" required>
+                            <option value="true">Ativo</option>
+                            <option value="false">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-icon">💾</span>
+                    Salvar Alterações
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('edit-poste-modal')">
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div id="delete-poste-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3>🗑️ Confirmar Exclusão</h3>
+            <span class="close" onclick="closeModal('delete-poste-modal')">&times;</span>
+        </div>
+        <div style="padding: 20px 30px;">
+            <p>Tem certeza que deseja excluir este poste?</p>
+            <p><strong id="poste-para-excluir"></strong></p>
+            <p style="color: #dc2626; font-size: 0.9rem; margin-top: 15px;">
+                ⚠️ Esta ação não pode ser desfeita. O poste será marcado como inativo.
+            </p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-danger" onclick="confirmarExclusaoPoste()">
+                <span class="btn-icon">🗑️</span>
+                Inativar
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="closeModal('delete-poste-modal')">
+                Cancelar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Ações em Lote -->
+<div id="lote-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🔧 Confirmar Ação em Lote</h3>
+            <span class="close" onclick="closeModal('lote-modal')">&times;</span>
+        </div>
+        <div style="padding: 20px 30px;">
+            <p>Você está prestes a executar a seguinte ação:</p>
+            <p><strong id="descricao-acao-lote"></strong></p>
+            <p>Em <strong id="quantidade-itens-lote">0</strong> itens selecionados.</p>
+            <div id="preview-acao-lote" style="margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 8px;"></div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-primary" onclick="confirmarAcaoLote()">
+                <span class="btn-icon">✅</span>
+                Confirmar
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="closeModal('lote-modal')">
+                Cancelar
+            </button>
+        </div>
+    </div>
+</div>
