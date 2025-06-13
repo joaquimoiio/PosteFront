@@ -1,567 +1,170 @@
-// JavaScript do Dashboard
+// Dashboard.js - Versão Refatorada e Simplificada
 let dashboardData = {
     resumo: null,
-    estatisticas: null
+    loading: false
 };
 
-// Função de inicialização da página
+// Inicialização da página
 window.initDashboardPage = async function() {
     console.log('🎯 Inicializando Dashboard...');
     
     try {
-        await loadDashboard();
-        await loadEstatisticas();
+        showLoading(true);
+        await loadDashboardData();
         console.log('✅ Dashboard carregado com sucesso');
     } catch (error) {
         console.error('❌ Erro ao carregar dashboard:', error);
-        showAlert('Erro ao carregar dados do dashboard', 'error');
+        showError('Erro ao carregar dados do dashboard');
+    } finally {
+        showLoading(false);
     }
 };
 
-// Carregar dados do dashboard
-async function loadDashboard() {
-    const resumoLoading = document.getElementById('resumo-loading');
-    const resumoContent = document.getElementById('resumo-content');
-    const lucroContent = document.getElementById('lucro-content');
-    
-    if (!resumoLoading || !resumoContent || !lucroContent) {
-        console.warn('Elementos do dashboard não encontrados');
-        return;
-    }
-    
+// Carregar todos os dados do dashboard
+async function loadDashboardData() {
     try {
-        resumoLoading.style.display = 'flex';
-        resumoContent.style.display = 'none';
-        lucroContent.style.display = 'none';
-        
-        // Buscar resumo das vendas
-        const resumo = await VendaService.getResumo();
-        dashboardData.resumo = resumo;
-        
-        // Atualizar interface
-        updateResumoCards(resumo);
-        updateLucroCards(resumo);
-        
-        // Mostrar conteúdo
-        resumoLoading.style.display = 'none';
-        resumoContent.style.display = 'grid';
-        lucroContent.style.display = 'grid';
-        
-    } catch (error) {
-        console.error('Erro ao carregar resumo:', error);
-        resumoLoading.innerHTML = `
-            <div style="text-align: center; color: #dc2626;">
-                ❌ Erro ao carregar dados<br>
-                <button class="btn btn-secondary btn-small" onclick="loadDashboard()" style="margin-top: 10px;">
-                    Tentar Novamente
-                </button>
-            </div>
-        `;
-        throw error;
-    }
-}
-
-// Atualizar cards do resumo
-function updateResumoCards(resumo) {
-    const elements = {
-        'total-venda-postes': resumo.totalVendaPostes,
-        'total-frete': resumo.totalFreteEletrons,
-        'valor-total-informado': resumo.valorTotalVendas,
-        'total-valor-extra': resumo.totalValorExtra,
-        'despesas-funcionario': resumo.despesasFuncionario,
-        'outras-despesas': resumo.outrasDespesas
-    };
-    
-    Object.entries(elements).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = Utils.formatCurrency(value);
-            
-            // Animação de contagem
-            animateValue(element, 0, value || 0, 1000);
-        }
-    });
-}
-
-// Atualizar cards do lucro
-function updateLucroCards(resumo) {
-    const elements = {
-        'lucro-total': resumo.lucro,
-        'parte-cicero': resumo.parteCicero,
-        'parte-guilherme': resumo.parteGuilherme,
-        'parte-jefferson': resumo.parteJefferson
-    };
-    
-    Object.entries(elements).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = Utils.formatCurrency(value);
-            
-            // Cor baseada no valor
-            const card = element.closest('.profit-card');
-            if (card && value < 0) {
-                card.style.borderColor = '#dc2626';
-                element.style.color = '#dc2626';
-            } else if (card) {
-                card.style.borderColor = '#059669';
-                element.style.color = '#059669';
-            }
-            
-            // Animação de contagem
-            animateValue(element, 0, value || 0, 1000);
-        }
-    });
-}
-
-// Carregar estatísticas
-async function loadEstatisticas() {
-    try {
-        // Carregar dados paralelos
-        const [vendas, postes, despesas] = await Promise.all([
+        // Buscar dados em paralelo
+        const [resumo, vendas, postes, despesas] = await Promise.all([
+            VendaService.getResumo(),
             VendaService.getAll().catch(() => []),
             PosteService.getAll().catch(() => []),
             DespesaService.getAll().catch(() => [])
         ]);
-        
-        // Calcular estatísticas
-        const estatisticas = {
-            totalVendas: vendas.length,
-            totalItensVendidos: vendas.reduce((sum, venda) => sum + (venda.quantidade || 0), 0),
-            totalPostesCadastrados: postes.filter(p => p.ativo).length,
-            totalDespesasPeriodo: despesas.length
-        };
-        
-        dashboardData.estatisticas = estatisticas;
-        
+
+        dashboardData.resumo = resumo;
+
         // Atualizar interface
-        updateEstatisticasCards(estatisticas);
+        updateResumoCards(resumo);
+        updateEstatisticas(vendas, postes, despesas);
         
     } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error);
-        // Não falha silenciosamente, mas não quebra o dashboard
+        console.error('Erro ao carregar dados:', error);
+        throw error;
     }
 }
 
-// Atualizar cards de estatísticas
-function updateEstatisticasCards(stats) {
-    const elements = {
-        'total-vendas': stats.totalVendas,
-        'total-itens-vendidos': stats.totalItensVendidos,
-        'total-postes-cadastrados': stats.totalPostesCadastrados,
-        'total-despesas-periodo': stats.totalDespesasPeriodo
-    };
-    
-    Object.entries(elements).forEach(([id, value]) => {
-        const element = document.getElementById(id);
+// Atualizar cards de resumo
+function updateResumoCards(resumo) {
+    const cards = [
+        { id: 'total-venda-postes', value: resumo.totalVendaPostes },
+        { id: 'total-frete', value: resumo.totalFreteEletrons },
+        { id: 'valor-total-vendas', value: resumo.valorTotalVendas },
+        { id: 'total-valor-extra', value: resumo.totalValorExtra },
+        { id: 'despesas-funcionario', value: resumo.despesasFuncionario },
+        { id: 'outras-despesas', value: resumo.outrasDespesas },
+        { id: 'total-despesas', value: resumo.totalDespesas },
+        { id: 'lucro-total', value: resumo.lucro },
+        { id: 'parte-cicero', value: resumo.parteCicero },
+        { id: 'parte-guilherme', value: resumo.parteGuilherme },
+        { id: 'parte-jefferson', value: resumo.parteJefferson }
+    ];
+
+    cards.forEach(card => {
+        const element = document.getElementById(card.id);
         if (element) {
-            // Animação de contagem
-            animateValue(element, 0, value || 0, 1500, false);
-        }
-    });
-}
-
-// Função para animar valores
-function animateValue(element, start, end, duration, isCurrency = true) {
-    const startTime = performance.now();
-    
-    function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        // Easing function
-        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-        const currentValue = start + (end - start) * easeOutQuart;
-        
-        if (isCurrency) {
-            element.textContent = Utils.formatCurrency(currentValue);
-        } else {
-            element.textContent = Math.round(currentValue).toLocaleString('pt-BR');
-        }
-        
-        if (progress < 1) {
-            requestAnimationFrame(update);
-        } else {
-            // Garantir valor final exato
-            if (isCurrency) {
-                element.textContent = Utils.formatCurrency(end);
-            } else {
-                element.textContent = Math.round(end).toLocaleString('pt-BR');
-            }
-        }
-    }
-    
-    requestAnimationFrame(update);
-}
-
-// Refresh do dashboard
-window.refreshDashboard = async function() {
-    console.log('🔄 Atualizando dashboard...');
-    
-    try {
-        await loadDashboard();
-        await loadEstatisticas();
-        showAlert('Dashboard atualizado com sucesso!', 'success');
-    } catch (error) {
-        console.error('Erro ao atualizar dashboard:', error);
-        showAlert('Erro ao atualizar dashboard', 'error');
-    }
-};
-
-// Exportar relatório
-window.exportarRelatorio = async function() {
-    console.log('📊 Exportando relatório...');
-    
-    try {
-        if (!dashboardData.resumo) {
-            await loadDashboard();
-        }
-        
-        const resumo = dashboardData.resumo;
-        const dataAtual = new Date().toLocaleString('pt-BR');
-        
-        const relatorio = {
-            'Data do Relatório': dataAtual,
-            'Total Venda Postes': Utils.formatCurrency(resumo.totalVendaPostes),
-            'Total Frete Eletrons': Utils.formatCurrency(resumo.totalFreteEletrons),
-            'Total Valor de Vendas': Utils.formatCurrency(resumo.valorTotalVendas),
-            'Total Valor Extra': Utils.formatCurrency(resumo.totalValorExtra),
-            'Despesas Funcionário': Utils.formatCurrency(resumo.despesasFuncionario),
-            'Outras Despesas': Utils.formatCurrency(resumo.outrasDespesas),
-            'Total Despesas': Utils.formatCurrency(resumo.totalDespesas),
-            'Lucro Total': Utils.formatCurrency(resumo.lucro),
-            'Parte Cícero': Utils.formatCurrency(resumo.parteCicero),
-            'Parte Guilherme': Utils.formatCurrency(resumo.parteGuilherme),
-            'Parte Jefferson': Utils.formatCurrency(resumo.parteJefferson)
-        };
-        
-        // Converter para array para CSV
-        const csvData = [relatorio];
-        
-        // Exportar
-        Utils.exportToCSV(csvData, `relatorio_vendas_${new Date().toISOString().split('T')[0]}`);
-        
-    } catch (error) {
-        console.error('Erro ao exportar relatório:', error);
-        showAlert('Erro ao exportar relatório', 'error');
-    }
-};
-
-// Auto-refresh do dashboard a cada 5 minutos
-let dashboardInterval;
-
-function startDashboardAutoRefresh() {
-    // Limpar interval anterior se existir
-    if (dashboardInterval) {
-        clearInterval(dashboardInterval);
-    }
-    
-    // Configurar novo interval
-    dashboardInterval = setInterval(async () => {
-        try {
-            await loadDashboard();
-            console.log('🔄 Dashboard atualizado automaticamente');
-        } catch (error) {
-            console.warn('Erro no auto-refresh do dashboard:', error);
-        }
-    }, 5 * 60 * 1000); // 5 minutos
-}
-
-function stopDashboardAutoRefresh() {
-    if (dashboardInterval) {
-        clearInterval(dashboardInterval);
-        dashboardInterval = null;
-    }
-}
-
-// Iniciar auto-refresh quando a página carregar
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.location.hash === '#dashboard' || AppState.currentPage === 'dashboard') {
-        startDashboardAutoRefresh();
-    }
-});
-
-// Parar auto-refresh quando sair da página
-window.addEventListener('beforeunload', () => {
-    stopDashboardAutoRefresh();
-});
-
-// Função para detectar mudança de página e controlar auto-refresh
-const originalNavigateTo = window.navigationManager?.navigateTo;
-if (originalNavigateTo) {
-    window.navigationManager.navigateTo = function(page, addToHistory) {
-        if (page === 'dashboard') {
-            startDashboardAutoRefresh();
-        } else {
-            stopDashboardAutoRefresh();
-        }
-        return originalNavigateTo.call(this, page, addToHistory);
-    };
-}
-
-// Funções de utilidade para o dashboard
-const DashboardUtils = {
-    // Calcular variação percentual
-    calculatePercentageChange(current, previous) {
-        if (!previous || previous === 0) return 0;
-        return ((current - previous) / previous) * 100;
-    },
-    
-    // Formatar variação
-    formatVariation(variation) {
-        const symbol = variation >= 0 ? '+' : '';
-        const color = variation >= 0 ? '#059669' : '#dc2626';
-        return `<span style="color: ${color};">${symbol}${variation.toFixed(1)}%</span>`;
-    },
-    
-    // Obter status do lucro
-    getLucroStatus(lucro) {
-        if (lucro > 0) return { status: 'positivo', icon: '📈', color: '#059669' };
-        if (lucro < 0) return { status: 'negativo', icon: '📉', color: '#dc2626' };
-        return { status: 'neutro', icon: '➖', color: '#6b7280' };
-    }
-};
-
-// Exportar funções para uso global
-window.DashboardUtils = DashboardUtils;
-
-// Atualizar cards do lucro
-function updateLucroCards(resumo) {
-    const elements = {
-        'lucro-total': resumo.lucro,
-        'parte-cicero': resumo.parteCicero,
-        'parte-guilherme': resumo.parteGuilherme,
-        'parte-jefferson': resumo.parteJefferson
-    };
-    
-    Object.entries(elements).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = Utils.formatCurrency(value);
+            element.textContent = Utils.formatCurrency(card.value || 0);
             
-            // Cor baseada no valor
-            const card = element.closest('.profit-card');
-            if (card && value < 0) {
-                card.style.borderColor = '#dc2626';
+            // Adicionar cor para valores negativos
+            if (card.value < 0) {
                 element.style.color = '#dc2626';
-            } else if (card) {
-                card.style.borderColor = '#059669';
+            } else if (card.id.includes('lucro') || card.id.includes('parte')) {
                 element.style.color = '#059669';
             }
-            
-            // Animação de contagem
-            animateValue(element, 0, value || 0, 1000);
         }
     });
 }
 
-// Carregar estatísticas
-async function loadEstatisticas() {
-    try {
-        // Carregar dados paralelos
-        const [vendas, postes, despesas, itens] = await Promise.all([
-            VendaService.getAll().catch(() => []),
-            PosteService.getAll().catch(() => []),
-            DespesaService.getAll().catch(() => []),
-            ItemVendaService.getAll().catch(() => [])
-        ]);
-        
-        // Calcular estatísticas
-        const estatisticas = {
-            totalVendas: vendas.length,
-            totalItensVendidos: itens.reduce((sum, item) => sum + (item.quantidade || 0), 0),
-            totalPostesCadastrados: postes.filter(p => p.ativo).length,
-            totalDespesasPeriodo: despesas.length
-        };
-        
-        dashboardData.estatisticas = estatisticas;
-        
-        // Atualizar interface
-        updateEstatisticasCards(estatisticas);
-        
-    } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error);
-        // Não falha silenciosamente, mas não quebra o dashboard
-    }
-}
-
-// Atualizar cards de estatísticas
-function updateEstatisticasCards(stats) {
-    const elements = {
-        'total-vendas': stats.totalVendas,
-        'total-itens-vendidos': stats.totalItensVendidos,
-        'total-postes-cadastrados': stats.totalPostesCadastrados,
-        'total-despesas-periodo': stats.totalDespesasPeriodo
+// Atualizar estatísticas
+function updateEstatisticas(vendas, postes, despesas) {
+    const stats = {
+        'total-vendas': vendas.length,
+        'total-postes': postes.filter(p => p.ativo).length,
+        'total-despesas': despesas.length,
+        'ticket-medio': vendas.length > 0 ? 
+            vendas.reduce((sum, v) => sum + (v.valorTotalInformado || 0), 0) / vendas.length : 0
     };
-    
-    Object.entries(elements).forEach(([id, value]) => {
+
+    Object.entries(stats).forEach(([id, value]) => {
         const element = document.getElementById(id);
         if (element) {
-            // Animação de contagem
-            animateValue(element, 0, value || 0, 1500, false);
+            if (id === 'ticket-medio') {
+                element.textContent = Utils.formatCurrency(value);
+            } else {
+                element.textContent = value.toString();
+            }
         }
     });
 }
 
-// Função para animar valores
-function animateValue(element, start, end, duration, isCurrency = true) {
-    const startTime = performance.now();
+// Mostrar loading
+function showLoading(show) {
+    const loadingElement = document.getElementById('dashboard-loading');
+    const contentElement = document.getElementById('dashboard-content');
     
-    function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        // Easing function
-        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-        const currentValue = start + (end - start) * easeOutQuart;
-        
-        if (isCurrency) {
-            element.textContent = Utils.formatCurrency(currentValue);
-        } else {
-            element.textContent = Math.round(currentValue).toLocaleString('pt-BR');
-        }
-        
-        if (progress < 1) {
-            requestAnimationFrame(update);
-        } else {
-            // Garantir valor final exato
-            if (isCurrency) {
-                element.textContent = Utils.formatCurrency(end);
-            } else {
-                element.textContent = Math.round(end).toLocaleString('pt-BR');
-            }
-        }
+    if (loadingElement && contentElement) {
+        loadingElement.style.display = show ? 'flex' : 'none';
+        contentElement.style.display = show ? 'none' : 'block';
     }
-    
-    requestAnimationFrame(update);
+}
+
+// Mostrar erro
+function showError(message) {
+    const errorElement = document.getElementById('dashboard-error');
+    if (errorElement) {
+        errorElement.style.display = 'block';
+        errorElement.querySelector('.error-message').textContent = message;
+    }
 }
 
 // Refresh do dashboard
 window.refreshDashboard = async function() {
     console.log('🔄 Atualizando dashboard...');
-    
-    try {
-        await loadDashboard();
-        await loadEstatisticas();
-        showAlert('Dashboard atualizado com sucesso!', 'success');
-    } catch (error) {
-        console.error('Erro ao atualizar dashboard:', error);
-        showAlert('Erro ao atualizar dashboard', 'error');
-    }
+    await initDashboardPage();
+    showAlert('Dashboard atualizado!', 'success');
 };
 
 // Exportar relatório
-window.exportarRelatorio = async function() {
-    console.log('📊 Exportando relatório...');
-    
-    try {
-        if (!dashboardData.resumo) {
-            await loadDashboard();
-        }
-        
-        const resumo = dashboardData.resumo;
-        const dataAtual = new Date().toLocaleString('pt-BR');
-        
-        const relatorio = {
-            'Data do Relatório': dataAtual,
-            'Total Venda Postes': Utils.formatCurrency(resumo.totalVendaPostes),
-            'Total Frete Eletrons': Utils.formatCurrency(resumo.totalFreteEletrons),
-            'Total Comissão': Utils.formatCurrency(resumo.totalComissao),
-            'Valor Total Informado': Utils.formatCurrency(resumo.valorTotalInformado),
-            'Despesas Funcionário': Utils.formatCurrency(resumo.despesasFuncionario),
-            'Outras Despesas': Utils.formatCurrency(resumo.outrasDespesas),
-            'Total Despesas': Utils.formatCurrency(resumo.totalDespesas),
-            'Lucro Total': Utils.formatCurrency(resumo.lucro),
-            'Parte Cícero': Utils.formatCurrency(resumo.parteCicero),
-            'Parte Guilherme': Utils.formatCurrency(resumo.parteGuilherme),
-            'Parte Jefferson': Utils.formatCurrency(resumo.parteJefferson)
-        };
-        
-        // Converter para array para CSV
-        const csvData = [relatorio];
-        
-        // Exportar
-        Utils.exportToCSV(csvData, `relatorio_vendas_${new Date().toISOString().split('T')[0]}`);
-        
-    } catch (error) {
-        console.error('Erro ao exportar relatório:', error);
-        showAlert('Erro ao exportar relatório', 'error');
+window.exportarRelatorio = function() {
+    if (!dashboardData.resumo) {
+        showAlert('Dados não carregados', 'warning');
+        return;
     }
+
+    const resumo = dashboardData.resumo;
+    const relatorio = [
+        {
+            'Métrica': 'Total Venda Postes',
+            'Valor': resumo.totalVendaPostes || 0
+        },
+        {
+            'Métrica': 'Total Frete Eletrons',
+            'Valor': resumo.totalFreteEletrons || 0
+        },
+        {
+            'Métrica': 'Valor Total Vendas',
+            'Valor': resumo.valorTotalVendas || 0
+        },
+        {
+            'Métrica': 'Total Despesas',
+            'Valor': resumo.totalDespesas || 0
+        },
+        {
+            'Métrica': 'Lucro Total',
+            'Valor': resumo.lucro || 0
+        },
+        {
+            'Métrica': 'Parte Cícero',
+            'Valor': resumo.parteCicero || 0
+        },
+        {
+            'Métrica': 'Parte Guilherme',
+            'Valor': resumo.parteGuilherme || 0
+        },
+        {
+            'Métrica': 'Parte Jefferson',
+            'Valor': resumo.parteJefferson || 0
+        }
+    ];
+
+    Utils.exportToCSV(relatorio, `relatorio_${new Date().toISOString().split('T')[0]}`);
 };
-
-// Auto-refresh do dashboard a cada 5 minutos
-let dashboardInterval;
-
-function startDashboardAutoRefresh() {
-    // Limpar interval anterior se existir
-    if (dashboardInterval) {
-        clearInterval(dashboardInterval);
-    }
-    
-    // Configurar novo interval
-    dashboardInterval = setInterval(async () => {
-        try {
-            await loadDashboard();
-            console.log('🔄 Dashboard atualizado automaticamente');
-        } catch (error) {
-            console.warn('Erro no auto-refresh do dashboard:', error);
-        }
-    }, 5 * 60 * 1000); // 5 minutos
-}
-
-function stopDashboardAutoRefresh() {
-    if (dashboardInterval) {
-        clearInterval(dashboardInterval);
-        dashboardInterval = null;
-    }
-}
-
-// Iniciar auto-refresh quando a página carregar
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.location.hash === '#dashboard' || AppState.currentPage === 'dashboard') {
-        startDashboardAutoRefresh();
-    }
-});
-
-// Parar auto-refresh quando sair da página
-window.addEventListener('beforeunload', () => {
-    stopDashboardAutoRefresh();
-});
-
-// Função para detectar mudança de página e controlar auto-refresh
-const originalNavigateTo = window.navigationManager?.navigateTo;
-if (originalNavigateTo) {
-    window.navigationManager.navigateTo = function(page, addToHistory) {
-        if (page === 'dashboard') {
-            startDashboardAutoRefresh();
-        } else {
-            stopDashboardAutoRefresh();
-        }
-        return originalNavigateTo.call(this, page, addToHistory);
-    };
-}
-
-// Funções de utilidade para o dashboard
-const DashboardUtils = {
-    // Calcular variação percentual
-    calculatePercentageChange(current, previous) {
-        if (!previous || previous === 0) return 0;
-        return ((current - previous) / previous) * 100;
-    },
-    
-    // Formatar variação
-    formatVariation(variation) {
-        const symbol = variation >= 0 ? '+' : '';
-        const color = variation >= 0 ? '#059669' : '#dc2626';
-        return `<span style="color: ${color};">${symbol}${variation.toFixed(1)}%</span>`;
-    },
-    
-    // Obter status do lucro
-    getLucroStatus(lucro) {
-        if (lucro > 0) return { status: 'positivo', icon: '📈', color: '#059669' };
-        if (lucro < 0) return { status: 'negativo', icon: '📉', color: '#dc2626' };
-        return { status: 'neutro', icon: '➖', color: '#6b7280' };
-    }
-};
-
-// Exportar funções para uso global
-window.DashboardUtils = DashboardUtils;
