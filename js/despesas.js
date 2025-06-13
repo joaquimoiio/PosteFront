@@ -1,9 +1,8 @@
-// JavaScript da página de Despesas
+// JavaScript da página de Despesas - Versão Simplificada
 let despesasData = {
     despesas: [],
     filteredDespesas: [],
     currentEditId: null,
-    currentDeleteId: null,
     filters: {
         tipo: '',
         dataInicio: '',
@@ -42,9 +41,6 @@ function setupEventListeners() {
     if (editForm) {
         editForm.addEventListener('submit', handleEditSubmit);
     }
-    
-    // Configurar ordenação da tabela
-    setupTableSorting();
 }
 
 // Configurar filtros
@@ -67,6 +63,42 @@ function setupFilters() {
     });
 }
 
+// Aplicar filtros
+function applyFilters() {
+    const { tipo, dataInicio, dataFim, descricao } = despesasData.filters;
+    
+    let filtered = [...despesasData.despesas];
+    
+    // Filtro por tipo
+    if (tipo) {
+        filtered = filtered.filter(d => d.tipo === tipo);
+    }
+    
+    // Filtro por data início
+    if (dataInicio) {
+        const dataInicioObj = new Date(dataInicio);
+        filtered = filtered.filter(d => new Date(d.dataDespesa) >= dataInicioObj);
+    }
+    
+    // Filtro por data fim
+    if (dataFim) {
+        const dataFimObj = new Date(dataFim);
+        dataFimObj.setHours(23, 59, 59, 999); // Incluir o dia inteiro
+        filtered = filtered.filter(d => new Date(d.dataDespesa) <= dataFimObj);
+    }
+    
+    // Filtro por descrição
+    if (descricao) {
+        const searchTerm = descricao.toLowerCase();
+        filtered = filtered.filter(d => 
+            d.descricao.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    despesasData.filteredDespesas = filtered;
+    displayDespesas(filtered);
+}
+
 // Carregar despesas
 async function loadDespesas() {
     try {
@@ -74,7 +106,6 @@ async function loadDespesas() {
         despesasData.despesas = despesas;
         despesasData.filteredDespesas = [...despesas];
         displayDespesas(despesas);
-        updateEstatisticas(despesas);
     } catch (error) {
         console.error('Erro ao carregar despesas:', error);
         displayDespesasError();
@@ -190,125 +221,6 @@ function displayDespesasError() {
     }
 }
 
-// Atualizar estatísticas
-function updateEstatisticas(despesas) {
-    const totalFuncionario = despesas
-        .filter(d => d.tipo === 'FUNCIONARIO')
-        .reduce((sum, d) => sum + (d.valor || 0), 0);
-        
-    const totalOutras = despesas
-        .filter(d => d.tipo === 'OUTRAS')
-        .reduce((sum, d) => sum + (d.valor || 0), 0);
-        
-    const totalGeral = totalFuncionario + totalOutras;
-    
-    const percentualFuncionario = totalGeral > 0 ? (totalFuncionario / totalGeral) * 100 : 0;
-    const percentualOutras = totalGeral > 0 ? (totalOutras / totalGeral) * 100 : 0;
-    
-    const ticketMedio = despesas.length > 0 ? totalGeral / despesas.length : 0;
-    
-    // Atualizar elementos
-    const stats = {
-        'percentual-funcionario': percentualFuncionario.toFixed(1) + '%',
-        'percentual-outras': percentualOutras.toFixed(1) + '%',
-        'quantidade-despesas': despesas.length.toString(),
-        'ticket-medio': Utils.formatCurrency(ticketMedio)
-    };
-    
-    Object.entries(stats).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-        }
-    });
-}
-
-// Aplicar filtros
-function applyFilters() {
-    const { tipo, dataInicio, dataFim, descricao } = despesasData.filters;
-    
-    let filtered = [...despesasData.despesas];
-    
-    // Filtro por tipo
-    if (tipo) {
-        filtered = filtered.filter(d => d.tipo === tipo);
-    }
-    
-    // Filtro por data início
-    if (dataInicio) {
-        const dataInicioObj = new Date(dataInicio);
-        filtered = filtered.filter(d => new Date(d.dataDespesa) >= dataInicioObj);
-    }
-    
-    // Filtro por data fim
-    if (dataFim) {
-        const dataFimObj = new Date(dataFim);
-        dataFimObj.setHours(23, 59, 59, 999); // Incluir o dia inteiro
-        filtered = filtered.filter(d => new Date(d.dataDespesa) <= dataFimObj);
-    }
-    
-    // Filtro por descrição
-    if (descricao) {
-        const searchTerm = descricao.toLowerCase();
-        filtered = filtered.filter(d => 
-            d.descricao.toLowerCase().includes(searchTerm)
-        );
-    }
-    
-    despesasData.filteredDespesas = filtered;
-    displayDespesas(filtered);
-    updateEstatisticas(filtered);
-}
-
-// Configurar ordenação da tabela
-function setupTableSorting() {
-    const headers = document.querySelectorAll('#despesas-table th.sortable');
-    
-    headers.forEach(header => {
-        header.addEventListener('click', () => {
-            const sortKey = header.dataset.sort;
-            sortTable(sortKey, header);
-        });
-    });
-}
-
-// Ordenar tabela
-function sortTable(key, headerElement) {
-    const isAscending = !headerElement.classList.contains('asc');
-    
-    // Remover classes de ordenação de todos os headers
-    document.querySelectorAll('#despesas-table th.sortable').forEach(h => {
-        h.classList.remove('asc', 'desc');
-    });
-    
-    // Adicionar classe ao header atual
-    headerElement.classList.add(isAscending ? 'asc' : 'desc');
-    
-    // Ordenar dados
-    despesasData.filteredDespesas.sort((a, b) => {
-        let valueA = a[key];
-        let valueB = b[key];
-        
-        // Tratar diferentes tipos de dados
-        if (key === 'dataDespesa') {
-            valueA = new Date(valueA);
-            valueB = new Date(valueB);
-        } else if (key === 'valor') {
-            valueA = parseFloat(valueA) || 0;
-            valueB = parseFloat(valueB) || 0;
-        } else if (typeof valueA === 'string') {
-            valueA = valueA.toLowerCase();
-            valueB = valueB.toLowerCase();
-        }
-        
-        if (valueA < valueB) return isAscending ? -1 : 1;
-        if (valueA > valueB) return isAscending ? 1 : -1;
-        return 0;
-    });
-    
-    displayDespesas(despesasData.filteredDespesas);
-}
-
 // Handler do formulário de nova despesa
 async function handleDespesaSubmit(e) {
     e.preventDefault();
@@ -320,7 +232,7 @@ async function handleDespesaSubmit(e) {
     };
     
     // Validação
-    const erros = DespesasUtils.validarDespesa(formData);
+    const erros = validarDespesa(formData);
     if (erros.length > 0) {
         showAlert(erros.join(', '), 'warning');
         return;
@@ -354,7 +266,7 @@ async function handleEditSubmit(e) {
     };
     
     // Validação
-    const erros = DespesasUtils.validarDespesa(formData);
+    const erros = validarDespesa(formData);
     if (erros.length > 0) {
         showAlert(erros.join(', '), 'warning');
         return;
@@ -404,32 +316,17 @@ window.editDespesa = async function(id) {
 };
 
 // Função de exclusão
-window.deleteDespesa = function(id) {
-    const despesa = despesasData.despesas.find(d => d.id === id);
+window.deleteDespesa = async function(id) {
+    const confirmed = await Utils.confirm(
+        'Tem certeza que deseja excluir esta despesa?',
+        'Confirmar Exclusão'
+    );
     
-    if (!despesa) {
-        showAlert('Despesa não encontrada', 'error');
-        return;
-    }
+    if (!confirmed) return;
     
-    // Preencher modal de confirmação
-    document.getElementById('despesa-para-excluir').textContent = 
-        `${despesa.descricao} - ${Utils.formatCurrency(despesa.valor)}`;
-    
-    despesasData.currentDeleteId = id;
-    
-    // Abrir modal de confirmação
-    document.getElementById('delete-despesa-modal').style.display = 'block';
-};
-
-// Confirmar exclusão
-window.confirmarExclusao = async function() {
     try {
-        await DespesaService.delete(despesasData.currentDeleteId);
+        await DespesaService.delete(id);
         showAlert('Despesa excluída com sucesso!', 'success');
-        
-        // Fechar modal
-        closeModal('delete-despesa-modal');
         
         // Recarregar dados
         await loadDespesas();
@@ -440,6 +337,25 @@ window.confirmarExclusao = async function() {
         showAlert('Erro ao excluir despesa', 'error');
     }
 };
+
+// Validar dados de despesa
+function validarDespesa(dados) {
+    const erros = [];
+    
+    if (!dados.descricao || dados.descricao.trim().length < 3) {
+        erros.push('Descrição deve ter pelo menos 3 caracteres');
+    }
+    
+    if (!dados.valor || dados.valor <= 0) {
+        erros.push('Valor deve ser maior que zero');
+    }
+    
+    if (!dados.tipo || !['FUNCIONARIO', 'OUTRAS'].includes(dados.tipo)) {
+        erros.push('Tipo de despesa inválido');
+    }
+    
+    return erros;
+}
 
 // Funções auxiliares
 window.exportarDespesas = function() {
@@ -493,55 +409,5 @@ window.scrollToForm = function() {
     }
 };
 
-// Utilitários específicos para despesas
-const DespesasUtils = {
-    // Validar dados de despesa
-    validarDespesa(dados) {
-        const erros = [];
-        
-        if (!dados.descricao || dados.descricao.trim().length < 3) {
-            erros.push('Descrição deve ter pelo menos 3 caracteres');
-        }
-        
-        if (!dados.valor || dados.valor <= 0) {
-            erros.push('Valor deve ser maior que zero');
-        }
-        
-        if (!dados.tipo || !['FUNCIONARIO', 'OUTRAS'].includes(dados.tipo)) {
-            erros.push('Tipo de despesa inválido');
-        }
-        
-        return erros;
-    },
-    
-    // Calcular estatísticas por período
-    calcularEstatisticasPeriodo(despesas, dias = 30) {
-        const dataLimite = new Date();
-        dataLimite.setDate(dataLimite.getDate() - dias);
-        
-        const despesasPeriodo = despesas.filter(d => 
-            new Date(d.dataDespesa) >= dataLimite
-        );
-        
-        return {
-            quantidade: despesasPeriodo.length,
-            total: despesasPeriodo.reduce((sum, d) => sum + (d.valor || 0), 0),
-            media: despesasPeriodo.length > 0 ? 
-                   despesasPeriodo.reduce((sum, d) => sum + (d.valor || 0), 0) / despesasPeriodo.length : 0
-        };
-    },
-    
-    // Agrupar despesas por tipo
-    agruparPorTipo(despesas) {
-        return despesas.reduce((grupos, despesa) => {
-            if (!grupos[despesa.tipo]) {
-                grupos[despesa.tipo] = [];
-            }
-            grupos[despesa.tipo].push(despesa);
-            return grupos;
-        }, {});
-    }
-};
-
-// Exportar utilitários
-window.DespesasUtils = DespesasUtils;
+// Recarregar despesas
+window.loadDespesas = loadDespesas;

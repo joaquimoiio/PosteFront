@@ -7,20 +7,14 @@
     <!-- Seção de Resumo das Vendas -->
     <section class="dashboard-section">
         <div class="section-header">
-            <h3>📊 Resumo das Vendas</h3>
-            <button class="btn btn-secondary btn-small" onclick="loadDashboard()">
+            <h3>📊 Resumo Financeiro</h3>
+            <button class="btn btn-secondary btn-small" onclick="refreshDashboard()">
                 🔄 Atualizar
             </button>
         </div>
         
-        <div id="resumo-loading" class="loading-section">
-            <div class="spinner"></div>
-            <p>Carregando dados...</p>
-        </div>
-
-        <div id="resumo-content" class="cards-grid" style="display: none;">
+        <div class="cards-grid">
             <div class="metric-card">
-                <div class="card-icon">💰</div>
                 <div class="card-content">
                     <h4>Total Venda Postes</h4>
                     <div class="metric-value" id="total-venda-postes">R$ 0,00</div>
@@ -28,7 +22,6 @@
             </div>
 
             <div class="metric-card">
-                <div class="card-icon">🚚</div>
                 <div class="card-content">
                     <h4>Total Frete Eletrons</h4>
                     <div class="metric-value" id="total-frete">R$ 0,00</div>
@@ -36,34 +29,16 @@
             </div>
 
             <div class="metric-card">
-                <div class="card-icon">📈</div>
                 <div class="card-content">
                     <h4>Total Valor de Vendas</h4>
-                    <div class="metric-value" id="valor-total-informado">R$ 0,00</div>
+                    <div class="metric-value" id="valor-total-vendas">R$ 0,00</div>
                 </div>
             </div>
 
             <div class="metric-card expense-card">
-                <div class="card-icon">💸</div>
                 <div class="card-content">
-                    <h4>Total Valor Extra</h4>
-                    <div class="metric-value" id="total-valor-extra">R$ 0,00</div>
-                </div>
-            </div>
-
-            <div class="metric-card expense-card">
-                <div class="card-icon">👥</div>
-                <div class="card-content">
-                    <h4>Despesas Funcionário</h4>
-                    <div class="metric-value" id="despesas-funcionario">R$ 0,00</div>
-                </div>
-            </div>
-
-            <div class="metric-card expense-card">
-                <div class="card-icon">📋</div>
-                <div class="card-content">
-                    <h4>Outras Despesas</h4>
-                    <div class="metric-value" id="outras-despesas">R$ 0,00</div>
+                    <h4>Total Despesas</h4>
+                    <div class="metric-value" id="total-despesas">R$ 0,00</div>
                 </div>
             </div>
         </div>
@@ -75,35 +50,31 @@
             <h3>💰 Distribuição de Lucros</h3>
         </div>
 
-        <div id="lucro-content" class="cards-grid" style="display: none;">
+        <div class="cards-grid">
             <div class="profit-card total-profit">
-                <div class="card-icon">💎</div>
                 <div class="card-content">
                     <h4>Lucro Total</h4>
                     <div class="metric-value" id="lucro-total">R$ 0,00</div>
                 </div>
             </div>
 
-            <div class="profit-card partner-card">
-                <div class="card-icon">👤</div>
+            <div class="profit-card">
                 <div class="card-content">
                     <h4>Parte do Cícero (50%)</h4>
                     <div class="metric-value" id="parte-cicero">R$ 0,00</div>
                 </div>
             </div>
 
-            <div class="profit-card partner-card">
-                <div class="card-icon">👥</div>
+            <div class="profit-card">
                 <div class="card-content">
-                    <h4>Guilherme</h4>
+                    <h4>Parte do Guilherme (25%)</h4>
                     <div class="metric-value" id="parte-guilherme">R$ 0,00</div>
                 </div>
             </div>
 
-            <div class="profit-card partner-card">
-                <div class="card-icon">👥</div>
+            <div class="profit-card">
                 <div class="card-content">
-                    <h4>Jefferson</h4>
+                    <h4>Parte do Jefferson (25%)</h4>
                     <div class="metric-value" id="parte-jefferson">R$ 0,00</div>
                 </div>
             </div>
@@ -113,7 +84,7 @@
     <!-- Seção de Estatísticas Rápidas -->
     <section class="dashboard-section">
         <div class="section-header">
-            <h3>📊 Estatísticas Rápidas</h3>
+            <h3>📊 Estatísticas</h3>
         </div>
 
         <div class="stats-grid">
@@ -122,19 +93,17 @@
                 <div class="stat-label">Total de Vendas</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number" id="total-itens-vendidos">0</div>
-                <div class="stat-label">Itens Vendidos</div>
+                <div class="stat-number" id="total-postes">0</div>
+                <div class="stat-label">Postes Ativos</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number" id="total-postes-cadastrados">0</div>
-                <div class="stat-label">Postes Cadastrados</div>
+                <div class="stat-number" id="total-despesas-count">0</div>
+                <div class="stat-label">Total Despesas</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number" id="total-despesas-mes">0</div>
-                <div class="stat-label">Despesas do Mês</div>
+                <div class="stat-number" id="ticket-medio">R$ 0,00</div>
+                <div class="stat-label">Ticket Médio</div>
             </div>
         </div>
     </section>
 </div>
-
-<script src="js/dashboard.js"></script>

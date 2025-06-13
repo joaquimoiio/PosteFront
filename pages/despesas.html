@@ -103,6 +103,13 @@
                     <label for="filtro-descricao">Descrição</label>
                     <input type="text" id="filtro-descricao" placeholder="Buscar por descrição...">
                 </div>
+
+                <div class="filter-group">
+                    <button class="btn btn-secondary btn-small" onclick="limparFiltros()">
+                        <span class="btn-icon">🧹</span>
+                        Limpar Filtros
+                    </button>
+                </div>
             </div>
         </div>
     </section>
@@ -119,10 +126,6 @@
                 <button class="btn btn-secondary btn-small" onclick="exportarDespesas()">
                     <span class="btn-icon">📊</span>
                     Exportar
-                </button>
-                <button class="btn btn-secondary btn-small" onclick="limparFiltros()">
-                    <span class="btn-icon">🧹</span>
-                    Limpar Filtros
                 </button>
             </div>
         </div>
@@ -149,32 +152,6 @@
             </table>
         </div>
     </section>
-
-    <!-- Gráfico de Despesas por Tipo -->
-    <section class="dashboard-section">
-        <div class="section-header">
-            <h3>📈 Distribuição de Despesas</h3>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-item">
-                <div class="stat-number" id="percentual-funcionario">0%</div>
-                <div class="stat-label">Despesas Funcionário</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" id="percentual-outras">0%</div>
-                <div class="stat-label">Outras Despesas</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" id="quantidade-despesas">0</div>
-                <div class="stat-label">Total de Registros</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" id="ticket-medio">R$ 0,00</div>
-                <div class="stat-label">Ticket Médio</div>
-            </div>
-        </div>
-    </section>
 </div>
 
 <!-- Modal de Edição de Despesa -->
@@ -185,7 +162,7 @@
             <span class="close" onclick="closeModal('edit-despesa-modal')">&times;</span>
         </div>
         <form id="edit-despesa-form">
-            <div style="padding: 20px 30px;">
+            <div style="padding: 20px;">
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="edit-despesa-descricao">Descrição</label>
@@ -207,38 +184,12 @@
             <div class="modal-actions">
                 <button type="submit" class="btn btn-primary">
                     <span class="btn-icon">💾</span>
-                    Salvar Alterações
+                    Salvar
                 </button>
                 <button type="button" class="btn btn-secondary" onclick="closeModal('edit-despesa-modal')">
                     Cancelar
                 </button>
             </div>
         </form>
-    </div>
-</div>
-
-<!-- Modal de Confirmação de Exclusão -->
-<div id="delete-despesa-modal" class="modal">
-    <div class="modal-content" style="max-width: 400px;">
-        <div class="modal-header">
-            <h3>🗑️ Confirmar Exclusão</h3>
-            <span class="close" onclick="closeModal('delete-despesa-modal')">&times;</span>
-        </div>
-        <div style="padding: 20px 30px;">
-            <p>Tem certeza que deseja excluir esta despesa?</p>
-            <p><strong id="despesa-para-excluir"></strong></p>
-            <p style="color: #dc2626; font-size: 0.9rem; margin-top: 15px;">
-                ⚠️ Esta ação não pode ser desfeita e pode afetar os cálculos de lucro.
-            </p>
-        </div>
-        <div class="modal-actions">
-            <button type="button" class="btn btn-danger" onclick="confirmarExclusao()">
-                <span class="btn-icon">🗑️</span>
-                Excluir
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="closeModal('delete-despesa-modal')">
-                Cancelar
-            </button>
-        </div>
     </div>
 </div>

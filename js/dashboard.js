@@ -1,4 +1,4 @@
-// Dashboard.js - Versão Refatorada e Simplificada
+// Dashboard.js - Versão Simplificada
 let dashboardData = {
     resumo: null,
     loading: false
@@ -9,14 +9,11 @@ window.initDashboardPage = async function() {
     console.log('🎯 Inicializando Dashboard...');
     
     try {
-        showLoading(true);
         await loadDashboardData();
         console.log('✅ Dashboard carregado com sucesso');
     } catch (error) {
         console.error('❌ Erro ao carregar dashboard:', error);
-        showError('Erro ao carregar dados do dashboard');
-    } finally {
-        showLoading(false);
+        showAlert('Erro ao carregar dados do dashboard', 'error');
     }
 };
 
@@ -49,9 +46,6 @@ function updateResumoCards(resumo) {
         { id: 'total-venda-postes', value: resumo.totalVendaPostes },
         { id: 'total-frete', value: resumo.totalFreteEletrons },
         { id: 'valor-total-vendas', value: resumo.valorTotalVendas },
-        { id: 'total-valor-extra', value: resumo.totalValorExtra },
-        { id: 'despesas-funcionario', value: resumo.despesasFuncionario },
-        { id: 'outras-despesas', value: resumo.outrasDespesas },
         { id: 'total-despesas', value: resumo.totalDespesas },
         { id: 'lucro-total', value: resumo.lucro },
         { id: 'parte-cicero', value: resumo.parteCicero },
@@ -79,7 +73,7 @@ function updateEstatisticas(vendas, postes, despesas) {
     const stats = {
         'total-vendas': vendas.length,
         'total-postes': postes.filter(p => p.ativo).length,
-        'total-despesas': despesas.length,
+        'total-despesas-count': despesas.length,
         'ticket-medio': vendas.length > 0 ? 
             vendas.reduce((sum, v) => sum + (v.valorTotalInformado || 0), 0) / vendas.length : 0
     };
@@ -96,75 +90,9 @@ function updateEstatisticas(vendas, postes, despesas) {
     });
 }
 
-// Mostrar loading
-function showLoading(show) {
-    const loadingElement = document.getElementById('dashboard-loading');
-    const contentElement = document.getElementById('dashboard-content');
-    
-    if (loadingElement && contentElement) {
-        loadingElement.style.display = show ? 'flex' : 'none';
-        contentElement.style.display = show ? 'none' : 'block';
-    }
-}
-
-// Mostrar erro
-function showError(message) {
-    const errorElement = document.getElementById('dashboard-error');
-    if (errorElement) {
-        errorElement.style.display = 'block';
-        errorElement.querySelector('.error-message').textContent = message;
-    }
-}
-
 // Refresh do dashboard
 window.refreshDashboard = async function() {
     console.log('🔄 Atualizando dashboard...');
     await initDashboardPage();
     showAlert('Dashboard atualizado!', 'success');
-};
-
-// Exportar relatório
-window.exportarRelatorio = function() {
-    if (!dashboardData.resumo) {
-        showAlert('Dados não carregados', 'warning');
-        return;
-    }
-
-    const resumo = dashboardData.resumo;
-    const relatorio = [
-        {
-            'Métrica': 'Total Venda Postes',
-            'Valor': resumo.totalVendaPostes || 0
-        },
-        {
-            'Métrica': 'Total Frete Eletrons',
-            'Valor': resumo.totalFreteEletrons || 0
-        },
-        {
-            'Métrica': 'Valor Total Vendas',
-            'Valor': resumo.valorTotalVendas || 0
-        },
-        {
-            'Métrica': 'Total Despesas',
-            'Valor': resumo.totalDespesas || 0
-        },
-        {
-            'Métrica': 'Lucro Total',
-            'Valor': resumo.lucro || 0
-        },
-        {
-            'Métrica': 'Parte Cícero',
-            'Valor': resumo.parteCicero || 0
-        },
-        {
-            'Métrica': 'Parte Guilherme',
-            'Valor': resumo.parteGuilherme || 0
-        },
-        {
-            'Métrica': 'Parte Jefferson',
-            'Valor': resumo.parteJefferson || 0
-        }
-    ];
-
-    Utils.exportToCSV(relatorio, `relatorio_${new Date().toISOString().split('T')[0]}`);
 };
