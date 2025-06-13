@@ -1,14 +1,14 @@
 <div class="dashboard-page">
     <div class="page-header">
-        <h2>📊 Dashboard - Visão Geral</h2>
+        <h2>Dashboard - Visão Geral</h2>
         <p>Resumo das vendas, despesas e distribuição de lucros</p>
     </div>
 
     <!-- Seção de Resumo das Vendas -->
     <section class="dashboard-section">
         <div class="section-header">
-            <h3>📈 Resumo das Vendas</h3>
-            <button class="btn btn-secondary btn-small" onclick="refreshDashboard()">
+            <h3>📊 Resumo das Vendas</h3>
+            <button class="btn btn-secondary btn-small" onclick="loadDashboard()">
                 🔄 Atualizar
             </button>
         </div>
@@ -36,18 +36,18 @@
             </div>
 
             <div class="metric-card">
-                <div class="card-icon">💼</div>
+                <div class="card-icon">📈</div>
                 <div class="card-content">
-                    <h4>Total Comissão</h4>
-                    <div class="metric-value" id="total-comissao">R$ 0,00</div>
+                    <h4>Total Valor de Vendas</h4>
+                    <div class="metric-value" id="valor-total-informado">R$ 0,00</div>
                 </div>
             </div>
 
-            <div class="metric-card">
-                <div class="card-icon">📈</div>
+            <div class="metric-card expense-card">
+                <div class="card-icon">💸</div>
                 <div class="card-content">
-                    <h4>Valor Total Informado</h4>
-                    <div class="metric-value" id="valor-total-informado">R$ 0,00</div>
+                    <h4>Total Valor Extra</h4>
+                    <div class="metric-value" id="total-valor-extra">R$ 0,00</div>
                 </div>
             </div>
 
@@ -130,50 +130,11 @@
                 <div class="stat-label">Postes Cadastrados</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number" id="total-despesas-periodo">0</div>
-                <div class="stat-label">Despesas do Período</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Seção de Ações Rápidas -->
-    <section class="dashboard-section">
-        <div class="section-header">
-            <h3>⚡ Ações Rápidas</h3>
-        </div>
-
-        <div class="cards-grid">
-            <div class="metric-card" style="cursor: pointer;" onclick="navigationManager.navigateTo('vendas')">
-                <div class="card-icon">➕</div>
-                <div class="card-content">
-                    <h4>Nova Venda</h4>
-                    <p style="margin: 0; color: #64748b;">Cadastrar nova venda</p>
-                </div>
-            </div>
-
-            <div class="metric-card" style="cursor: pointer;" onclick="navigationManager.navigateTo('despesas')">
-                <div class="card-icon">💸</div>
-                <div class="card-content">
-                    <h4>Nova Despesa</h4>
-                    <p style="margin: 0; color: #64748b;">Registrar despesa</p>
-                </div>
-            </div>
-
-            <div class="metric-card" style="cursor: pointer;" onclick="navigationManager.navigateTo('postes')">
-                <div class="card-icon">⚡</div>
-                <div class="card-content">
-                    <h4>Gerenciar Postes</h4>
-                    <p style="margin: 0; color: #64748b;">Cadastrar/editar postes</p>
-                </div>
-            </div>
-
-            <div class="metric-card" style="cursor: pointer;" onclick="exportarRelatorio()">
-                <div class="card-icon">📊</div>
-                <div class="card-content">
-                    <h4>Exportar Relatório</h4>
-                    <p style="margin: 0; color: #64748b;">Baixar dados em CSV</p>
-                </div>
+                <div class="stat-number" id="total-despesas-mes">0</div>
+                <div class="stat-label">Despesas do Mês</div>
             </div>
         </div>
     </section>
 </div>
+
+<script src="js/dashboard.js"></script>
