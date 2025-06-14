@@ -12,7 +12,12 @@ const Utils = {
 
     // Formatação de moeda
     formatCurrency(value) {
-        return APIUtils.formatCurrency(value);
+        if (value == null || isNaN(value)) return 'R$ 0,00';
+        
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
     },
 
     // Formatação de percentual
@@ -23,12 +28,69 @@ const Utils = {
 
     // Formatação de data
     formatDate(dateString) {
-        return APIUtils.formatDate(dateString);
+        if (!dateString) return '-';
+        
+        const date = new Date(dateString);
+        return date.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     },
 
     // Formatação de data simples
     formatDateSimple(dateString) {
-        return APIUtils.formatDateSimple(dateString);
+        if (!dateString) return '-';
+        
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR');
+    },
+
+    // Cálculos de Lucro - Lógica Principal
+    calcularLucros(resumoBasico) {
+        const {
+            totalVendaPostes,    // Custo dos postes
+            valorTotalVendas,    // Valor que foi vendido
+            despesasFuncionario,
+            outrasDespesas
+        } = resumoBasico;
+
+        // Lucro bruto = Valor vendido - Custo dos postes - Outras despesas
+        const lucroBruto = valorTotalVendas - totalVendaPostes - outrasDespesas;
+        
+        // Divisão inicial: 50% para cada lado
+        const metadeCicero = lucroBruto / 2;
+        const metadeGuilhermeJefferson = lucroBruto / 2;
+        
+        // Da parte do Guilherme e Jefferson, descontar despesas de funcionário
+        const parteGuilhermeJeffersonLiquida = metadeGuilhermeJefferson - despesasFuncionario;
+        
+        // Dividir entre Guilherme e Jefferson
+        const parteGuilherme = parteGuilhermeJeffersonLiquida / 2;
+        const parteJefferson = parteGuilhermeJeffersonLiquida / 2;
+        
+        // Lucro total considerando todas as despesas
+        const lucroTotal = lucroBruto - despesasFuncionario;
+
+        return {
+            lucroTotal,
+            parteCicero: metadeCicero,
+            parteGuilherme,
+            parteJefferson,
+            lucroBruto,
+            detalhes: {
+                valorVendido: valorTotalVendas,
+                custoPostes: totalVendaPostes,
+                outrasDespesas,
+                despesasFuncionario,
+                lucroBruto,
+                metadeCicero,
+                metadeGuilhermeJefferson,
+                parteGuilhermeJeffersonLiquida
+            }
+        };
     },
 
     // Validação de email
@@ -265,7 +327,15 @@ const Utils = {
 
     // Debounce
     debounce(func, wait) {
-        return APIUtils.debounce(func, wait);
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     },
 
     // Throttle

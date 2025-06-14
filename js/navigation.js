@@ -1,9 +1,12 @@
-// Gerenciador de Navegação
+// Adição no arquivo js/navigation.js - Seção para melhorar lifecycle do dashboard
+
+// Gerenciador de Navegação - Versão Melhorada para Dashboard
 class NavigationManager {
     constructor() {
         this.currentPage = 'dashboard';
         this.pageHistory = [];
         this.maxHistorySize = 10;
+        this.pageCleanupFunctions = new Map(); // Armazenar funções de cleanup por página
         
         this.init();
     }
@@ -56,6 +59,11 @@ class NavigationManager {
                 this.loadPageContent(e.state.page, false);
             }
         });
+
+        // Detectar mudanças de visibilidade da página
+        document.addEventListener('visibilitychange', () => {
+            this.handleVisibilityChange();
+        });
     }
 
     loadInitialPage() {
@@ -71,18 +79,72 @@ class NavigationManager {
     }
 
     async navigateTo(page, addToHistory = true) {
-        if (this.currentPage === page) return;
+        if (this.currentPage === page) {
+            // Mesmo se for a mesma página, recarregar dados se for dashboard
+            if (page === 'dashboard' && window.refreshDashboard) {
+                console.log('🔄 Mesma página dashboard - forçando refresh...');
+                window.refreshDashboard();
+            }
+            return;
+        }
 
-        console.log(`🧭 Navegando para: ${page}`);
+        console.log(`🧭 Navegando de ${this.currentPage} para: ${page}`);
 
         try {
             // Verificar se pode sair da página atual
             if (await this.canLeavePage()) {
+                // IMPORTANTE: Limpar página anterior antes de carregar nova
+                await this.cleanupCurrentPage();
+                
                 await this.loadPageContent(page, addToHistory);
             }
         } catch (error) {
             console.error('Erro na navegação:', error);
             showAlert('Erro ao navegar para a página', 'error');
+        }
+    }
+
+    // NOVA: Função para limpar a página atual
+    async cleanupCurrentPage() {
+        const currentPage = this.currentPage;
+        
+        console.log(`🧹 Limpando página: ${currentPage}`);
+        
+        // Executar função de cleanup específica da página se existir
+        if (currentPage === 'dashboard' && window.cleanupDashboard) {
+            try {
+                window.cleanupDashboard();
+                console.log('✅ Dashboard cleanup executado');
+            } catch (error) {
+                console.error('❌ Erro no cleanup do dashboard:', error);
+            }
+        }
+        
+        // Limpar qualquer timer ou evento global da página anterior
+        this.clearPageTimers();
+    }
+
+    // NOVA: Limpar timers e eventos globais
+    clearPageTimers() {
+        // Limpar todos os intervalos ativos (números altos para garantir limpeza)
+        for (let i = 1; i < 1000; i++) {
+            clearInterval(i);
+            clearTimeout(i);
+        }
+    }
+
+    // NOVA: Gerenciar visibilidade da página
+    handleVisibilityChange() {
+        if (!document.hidden && this.currentPage === 'dashboard') {
+            // Página ficou visível e estamos no dashboard
+            console.log('👁️ Dashboard ficou visível - carregando dados...');
+            if (window.loadDashboardData || window.refreshDashboard) {
+                setTimeout(() => {
+                    if (window.refreshDashboard) {
+                        window.refreshDashboard();
+                    }
+                }, 500); // Pequeno delay para garantir que a página está totalmente carregada
+            }
         }
     }
 
@@ -128,7 +190,7 @@ class NavigationManager {
             // Carregar conteúdo
             await this.loadPage(page);
 
-            // Atualizar estado
+            // Atualizar estado DEPOIS de carregar com sucesso
             this.currentPage = page;
 
             console.log(`✅ Navegação para ${page} concluída`);
@@ -173,7 +235,7 @@ class NavigationManager {
         // Carregar novo script
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = `js/${page}.js`;
+            script.src = `js/${page}.js?t=${Date.now()}`; // Cache bust para garantir script fresco
             script.className = 'page-script';
             script.onload = resolve;
             script.onerror = () => {
@@ -188,6 +250,7 @@ class NavigationManager {
         // Executar função de inicialização se existir
         const initFunction = window[`init${Utils.capitalize(page)}Page`];
         if (typeof initFunction === 'function') {
+            console.log(`🚀 Inicializando página: ${page}`);
             await initFunction();
         }
 
@@ -199,6 +262,11 @@ class NavigationManager {
 
         // Configurar tooltips
         this.setupTooltips();
+
+        // LOG ESPECIAL PARA DASHBOARD
+        if (page === 'dashboard') {
+            console.log('📊 Dashboard inicializado - dados sempre frescos!');
+        }
     }
 
     setupInputMasks() {
@@ -385,3 +453,5 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+console.log('🧭 Navigation.js carregado com melhorias para dashboard');

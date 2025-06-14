@@ -1,10 +1,10 @@
 <div class="vendas-page">
     <div class="page-header">
         <h2>📋 Gerenciamento de Vendas</h2>
-        <p>Cadastre vendas completas e acompanhe o histórico</p>
+        <p>Cadastre vendas, extras e vendas livres</p>
     </div>
 
-    <!-- Nova Venda - Formulário Completo -->
+    <!-- Nova Venda - Formulário com tipos -->
     <section class="form-section">
         <div class="section-header">
             <h3>➕ Nova Venda</h3>
@@ -13,33 +13,107 @@
         <form id="venda-form" class="form-container">
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="venda-poste">Poste</label>
-                    <select id="venda-poste" required>
-                        <option value="">Selecione um poste</option>
+                    <label for="venda-tipo">Tipo de Venda</label>
+                    <select id="venda-tipo" required>
+                        <option value="">Selecione o tipo</option>
+                        <option value="E">📈 E - Extra</option>
+                        <option value="V">🛒 V - Venda Normal</option>
+                        <option value="L">🆓 L - Venda Livre</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="venda-quantidade">Quantidade</label>
-                    <input type="number" id="venda-quantidade" min="1" value="1" required>
+                    <label for="venda-data">Data da Venda</label>
+                    <input type="datetime-local" id="venda-data" required>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label for="venda-frete">Frete Eletrons</label>
-                    <div class="input-with-icon">
-                        <span class="input-icon">🚚</span>
-                        <input type="number" step="0.01" id="venda-frete" placeholder="0,00" min="0" value="0">
+            <!-- Campos condicionais baseados no tipo -->
+            
+            <!-- Campos para Tipo E (Extra) -->
+            <div id="campos-tipo-e" class="form-section" style="display: none;">
+                <h4>📈 Venda Extra</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="venda-valor-extra">Valor Extra</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">💰</span>
+                            <input type="number" step="0.01" id="venda-valor-extra" placeholder="0,00" min="0">
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label for="venda-valor-total">Valor Total da Venda</label>
-                    <div class="input-with-icon">
-                        <span class="input-icon">💰</span>
-                        <input type="number" step="0.01" id="venda-valor-total" required placeholder="0,00" min="0">
+            <!-- Campos para Tipo V (Venda Normal) -->
+            <div id="campos-tipo-v" class="form-section" style="display: none;">
+                <h4>🛒 Venda Normal</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="venda-poste-v">Poste</label>
+                        <select id="venda-poste-v">
+                            <option value="">Selecione um poste</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="venda-quantidade-v">Quantidade</label>
+                        <input type="number" id="venda-quantidade-v" min="1" value="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="venda-frete-v">Frete Eletrons</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">🚚</span>
+                            <input type="number" step="0.01" id="venda-frete-v" placeholder="0,00" min="0" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="venda-valor-total-v">Valor de Venda</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">💰</span>
+                            <input type="number" step="0.01" id="venda-valor-total-v" placeholder="0,00" min="0">
+                        </div>
                     </div>
                 </div>
+            </div>
 
+            <!-- Campos para Tipo L (Venda Livre) -->
+            <div id="campos-tipo-l" class="form-section" style="display: none;">
+                <h4>🆓 Venda Livre</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="venda-poste-l">Poste (apenas referência)</label>
+                        <select id="venda-poste-l">
+                            <option value="">Selecione um poste</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="venda-quantidade-l">Quantidade</label>
+                        <input type="number" id="venda-quantidade-l" min="1" value="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="venda-frete-l">Frete Eletrons</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">🚚</span>
+                            <input type="number" step="0.01" id="venda-frete-l" placeholder="0,00" min="0" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="venda-valor-total-l">Valor de Venda</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">💰</span>
+                            <input type="number" step="0.01" id="venda-valor-total-l" placeholder="0,00" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observações (comum para todos os tipos) -->
+            <div class="form-grid">
                 <div class="form-group full-width">
                     <label for="venda-observacoes">Observações</label>
                     <textarea id="venda-observacoes" rows="2" placeholder="Observações sobre a venda..."></textarea>
@@ -57,6 +131,73 @@
                 </button>
             </div>
         </form>
+    </section>
+
+    <!-- Resumo por Tipo de Venda -->
+    <section class="summary-section">
+        <div class="section-header">
+            <h3>📊 Resumo por Tipo</h3>
+        </div>
+
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h4>Vendas Extras (E)</h4>
+                <div class="summary-value" id="total-vendas-e">0</div>
+            </div>
+
+            <div class="summary-card">
+                <h4>Vendas Normais (V)</h4>
+                <div class="summary-value" id="total-vendas-v">0</div>
+            </div>
+
+            <div class="summary-card">
+                <h4>Vendas Livres (L)</h4>
+                <div class="summary-value" id="total-vendas-l">0</div>
+            </div>
+
+            <div class="summary-card">
+                <h4>Total de Vendas</h4>
+                <div class="summary-value" id="total-vendas-geral">0</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filtros -->
+    <section class="table-section">
+        <div class="section-header">
+            <h3>🔍 Filtros</h3>
+        </div>
+        
+        <div class="table-filters">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label for="filtro-tipo-venda">Tipo de Venda</label>
+                    <select id="filtro-tipo-venda">
+                        <option value="">Todos os tipos</option>
+                        <option value="E">Extra (E)</option>
+                        <option value="V">Venda Normal (V)</option>
+                        <option value="L">Venda Livre (L)</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-data-inicio">Data Início</label>
+                    <input type="date" id="filtro-data-inicio">
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-data-fim">Data Fim</label>
+                    <input type="date" id="filtro-data-fim">
+                </div>
+
+                <div class="filter-group">
+                    <button class="btn btn-secondary btn-small" onclick="limparFiltros()">
+                        <span class="btn-icon">🧹</span>
+                        Limpar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- Lista de Vendas -->
@@ -80,16 +221,17 @@
                 <thead>
                     <tr>
                         <th class="sortable" data-sort="dataVenda">Data</th>
-                        <th>Poste</th>
-                        <th>Frete Eletrons</th>
-                        <th>Valor Total</th>
+                        <th>Tipo</th>
+                        <th>Poste/Descrição</th>
+                        <th>Frete</th>
+                        <th>Valor</th>
                         <th>Observações</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td colspan="6" class="empty-table">
+                        <td colspan="7" class="empty-table">
                             <div class="empty-table-icon">📋</div>
                             <p>Nenhuma venda encontrada</p>
                         </td>
@@ -111,12 +253,24 @@
             <div style="padding: 20px;">
                 <div class="form-grid">
                     <div class="form-group">
+                        <label for="edit-tipo-venda">Tipo de Venda</label>
+                        <select id="edit-tipo-venda" disabled>
+                            <option value="E">Extra (E)</option>
+                            <option value="V">Venda Normal (V)</option>
+                            <option value="L">Venda Livre (L)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="edit-frete-group">
                         <label for="edit-frete-eletrons">Frete Eletrons</label>
                         <input type="number" step="0.01" id="edit-frete-eletrons" min="0">
                     </div>
-                    <div class="form-group">
-                        <label for="edit-valor-total">Valor Total</label>
+                    <div class="form-group" id="edit-valor-group">
+                        <label for="edit-valor-total">Valor</label>
                         <input type="number" step="0.01" id="edit-valor-total" min="0">
+                    </div>
+                    <div class="form-group" id="edit-extra-group" style="display: none;">
+                        <label for="edit-valor-extra">Valor Extra</label>
+                        <input type="number" step="0.01" id="edit-valor-extra" min="0">
                     </div>
                     <div class="form-group full-width">
                         <label for="edit-observacoes">Observações</label>
