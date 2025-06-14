@@ -1,7 +1,9 @@
-// Dashboard.js - Versão completa com cálculos no frontend (E, V, L)
+// Dashboard.js - Versão corrigida e completa
 let dashboardData = {
     resumo: null,
     despesas: [],
+    vendas: [],
+    postes: [],
     loading: false
 };
 
@@ -21,24 +23,57 @@ window.initDashboardPage = async function() {
 // Carregar todos os dados do dashboard
 async function loadDashboardData() {
     try {
+        console.log('📡 Carregando dados do dashboard...');
+        
         // Buscar dados em paralelo
         const [resumoBasico, despesas, vendas, postes] = await Promise.all([
-            VendaService.getResumo(),
-            DespesaService.getAll().catch(() => []),
-            VendaService.getAll().catch(() => []),
-            PosteService.getAll().catch(() => [])
+            VendaService.getResumo().catch(err => {
+                console.warn('Erro ao carregar resumo:', err);
+                return {};
+            }),
+            DespesaService.getAll().catch(err => {
+                console.warn('Erro ao carregar despesas:', err);
+                return [];
+            }),
+            VendaService.getAll().catch(err => {
+                console.warn('Erro ao carregar vendas:', err);
+                return [];
+            }),
+            PosteService.getAll().catch(err => {
+                console.warn('Erro ao carregar postes:', err);
+                return [];
+            })
         ]);
 
         dashboardData.resumo = resumoBasico;
         dashboardData.despesas = despesas;
+        dashboardData.vendas = vendas;
+        dashboardData.postes = postes;
 
-        console.log('📊 Dados carregados:', { resumoBasico, despesas });
+        console.log('📊 Dados carregados:', { 
+            resumoBasico, 
+            despesas: despesas.length, 
+            vendas: vendas.length,
+            postes: postes.length
+        });
 
         // CALCULAR LUCROS NO FRONTEND
         const lucrosCalculados = Utils.calcularLucros(resumoBasico, despesas);
 
-        // Atualizar cards de resumo
+        // Atualizar interface
+        updateResumoCards(resumoBasico, lucrosCalculados);
+        updateEstatisticas(vendas, postes, despesas);
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        throw error;
+    }
+}
+
+// Atualizar cards de resumo
 function updateResumoCards(resumoBasico, lucros) {
+    console.log('📊 Atualizando cards de resumo...');
+    
     // Cards de valores básicos
     const cards = [
         { id: 'total-venda-postes', value: lucros.totalVendaPostes },
@@ -64,6 +99,8 @@ function updateResumoCards(resumoBasico, lucros) {
             } else if (card.id.includes('contribuicoes')) {
                 element.style.color = '#f59e0b';
             }
+        } else {
+            console.warn(`Elemento não encontrado: ${card.id}`);
         }
     });
 
@@ -88,10 +125,14 @@ function updateResumoCards(resumoBasico, lucros) {
         margemElement.textContent = `${margemLucro.toFixed(1)}%`;
         margemElement.style.color = margemLucro >= 0 ? '#059669' : '#dc2626';
     }
+    
+    console.log('✅ Cards de resumo atualizados');
 }
 
 // Atualizar estatísticas
 function updateEstatisticas(vendas, postes, despesas) {
+    console.log('📈 Atualizando estatísticas...');
+    
     // Usar dados do resumo se estiverem disponíveis
     let vendasE, vendasV, vendasL;
     
@@ -142,6 +183,8 @@ function updateEstatisticas(vendas, postes, despesas) {
             element.textContent = value.toString();
         }
     });
+    
+    console.log('✅ Estatísticas atualizadas');
 }
 
 // Função para mostrar detalhes do cálculo
@@ -154,7 +197,7 @@ window.mostrarDetalhesCalculo = function() {
     const lucros = Utils.calcularLucros(dashboardData.resumo, dashboardData.despesas);
     
     const detalhes = `
-DETALHES DO CÁLCULO DE LUCROS (ATUALIZADO):
+DETALHES DO CÁLCULO DE LUCROS:
 
 1. Vendas Normais (Tipo V):
    - Custo dos postes: ${Utils.formatCurrency(lucros.totalVendaPostes)}
@@ -178,7 +221,7 @@ DETALHES DO CÁLCULO DE LUCROS (ATUALIZADO):
    - Jefferson (25%): ${Utils.formatCurrency(lucros.parteJefferson)}
    - Lucro total: ${Utils.formatCurrency(lucros.lucroTotal)}
 
-NOVA LÓGICA:
+LÓGICA ATUALIZADA:
 - Tipo E: Contribui diretamente para o lucro
 - Tipo V: Valor vendido - Custo do poste (SEM frete)
 - Tipo L: Apenas o frete contribui para o lucro (SEM valor de venda)
@@ -193,7 +236,7 @@ async function updateDashboardRealTime() {
         console.log('🔄 Atualizando dados em tempo real...');
         
         const [resumoBasico, despesas] = await Promise.all([
-            VendaService.getResumo(),
+            VendaService.getResumo().catch(() => ({})),
             DespesaService.getAll().catch(() => [])
         ]);
 
@@ -216,7 +259,7 @@ window.refreshDashboard = async function() {
     
     try {
         showLoading(true);
-        await initDashboardPage();
+        await loadDashboardData();
         showAlert('Dashboard atualizado!', 'success');
     } catch (error) {
         console.error('Erro ao atualizar dashboard:', error);
@@ -226,7 +269,7 @@ window.refreshDashboard = async function() {
     }
 };
 
-// Função para mostrar loading (se necessário)
+// Função para mostrar loading
 function showLoading(show) {
     const loadingOverlay = document.getElementById('loading-overlay');
     if (loadingOverlay) {
@@ -245,6 +288,8 @@ window.cleanupDashboard = function() {
     dashboardData = {
         resumo: null,
         despesas: [],
+        vendas: [],
+        postes: [],
         loading: false
     };
 };
@@ -344,17 +389,85 @@ window.resetDashboard = async function() {
     }
 };
 
-// Inicializar auto-refresh quando a página carregar (opcional)
-// setupAutoRefresh();
+// Função para verificar se há dados carregados
+function hasDataLoaded() {
+    return dashboardData.resumo && 
+           dashboardData.despesas && 
+           dashboardData.vendas && 
+           dashboardData.postes;
+}
 
-console.log('✅ dashboard.js carregado completamente com tipos E, V, L'); interface
-        updateResumoCards(resumoBasico, lucrosCalculados);
-        updateEstatisticas(vendas, postes, despesas);
-        
-    } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        throw error;
+// Função para mostrar estado de loading nos elementos
+function showElementLoading(elementId, show = true) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        if (show) {
+            element.textContent = '...';
+            element.style.color = '#6b7280';
+        } else {
+            element.style.color = '';
+        }
     }
 }
 
-// Atualizar
+// Função para inicializar loading em todos os elementos
+function initializeLoadingState() {
+    const elementIds = [
+        'total-venda-postes', 'valor-total-vendas', 'total-contribuicoes-extras',
+        'total-despesas', 'lucro-total', 'parte-cicero', 'parte-guilherme',
+        'parte-jefferson', 'total-extras-e', 'total-frete-loja',
+        'vendas-tipo-e', 'vendas-tipo-v', 'vendas-tipo-l',
+        'total-vendas', 'total-postes', 'total-despesas-count', 'ticket-medio', 'margem-lucro'
+    ];
+    
+    elementIds.forEach(id => showElementLoading(id, true));
+}
+
+// Função para tentar recarregar dados em caso de erro
+async function retryLoadData() {
+    try {
+        console.log('🔄 Tentando recarregar dados...');
+        await loadDashboardData();
+        showAlert('Dados recarregados com sucesso!', 'success');
+    } catch (error) {
+        console.error('Erro ao recarregar dados:', error);
+        showAlert('Falha ao recarregar dados. Tente novamente.', 'error');
+    }
+}
+
+// Função para validar dados antes de calcular
+function validateDataBeforeCalculation() {
+    if (!dashboardData.resumo) {
+        console.warn('⚠️ Resumo não carregado');
+        return false;
+    }
+    
+    if (!Array.isArray(dashboardData.despesas)) {
+        console.warn('⚠️ Despesas não carregadas');
+        return false;
+    }
+    
+    return true;
+}
+
+// Função para mostrar estado de erro
+function showErrorState(message = 'Erro ao carregar dados') {
+    const errorElements = [
+        'total-venda-postes', 'valor-total-vendas', 'lucro-total'
+    ];
+    
+    errorElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = 'Erro';
+            element.style.color = '#dc2626';
+        }
+    });
+    
+    showAlert(message, 'error');
+}
+
+// Auto-inicialização opcional
+// setupAutoRefresh();
+
+console.log('✅ dashboard.js carregado completamente - versão corrigida');

@@ -48,7 +48,7 @@ const Utils = {
         return date.toLocaleDateString('pt-BR');
     },
 
-    // NOVA LÓGICA DE CÁLCULO DE LUCROS - FRONTEND (ATUALIZADA)
+    // LÓGICA DE CÁLCULO DE LUCROS - CORRIGIDA
     calcularLucros(resumoBasico, despesas) {
         console.log('🔢 Iniciando cálculo de lucros no frontend...');
         console.log('Dados recebidos:', { resumoBasico, despesas });
@@ -59,16 +59,18 @@ const Utils = {
             valorTotalVendas = 0,      // Valor total arrecadado das vendas (tipo V)
             valorTotalExtras = 0,      // Valores dos tipos E
             totalFreteEletrons = 0     // Frete do tipo L (Venda Loja)
-        } = resumoBasico;
+        } = resumoBasico || {};
 
         // Separar despesas por tipo
         const despesasFuncionario = despesas
-            .filter(d => d.tipo === 'FUNCIONARIO')
-            .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0);
+            ? despesas.filter(d => d.tipo === 'FUNCIONARIO')
+                     .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0)
+            : 0;
             
         const outrasDespesas = despesas
-            .filter(d => d.tipo === 'OUTRAS')
-            .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0);
+            ? despesas.filter(d => d.tipo === 'OUTRAS')
+                     .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0)
+            : 0;
 
         console.log('Despesas calculadas:', { despesasFuncionario, outrasDespesas });
 
@@ -86,7 +88,7 @@ const Utils = {
         console.log('Lucro bruto (antes de despesas funcionário):', lucroBruto);
 
         // 4. Divisão inicial: 50% para cada lado
-        const metadeCicero = lubroBruto / 2;
+        const metadeCicero = lucroBruto / 2;
         const metadeGuilhermeJefferson = lucroBruto / 2;
         
         console.log('Divisão 50/50:', { metadeCicero, metadeGuilhermeJefferson });
@@ -255,6 +257,7 @@ const Utils = {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = filename;
+        link.href = url;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -344,6 +347,8 @@ const Utils = {
             const modal = document.createElement('div');
             modal.className = 'modal';
             modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
             
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 400px;">
