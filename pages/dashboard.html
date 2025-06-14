@@ -27,7 +27,7 @@
 
             <div class="metric-card">
                 <div class="card-content">
-                    <h4>🆓 Vendas Livres (L)</h4>
+                    <h4>🏪 Vendas Loja (L)</h4>
                     <div class="metric-value" id="vendas-tipo-l">0</div>
                 </div>
             </div>
@@ -41,33 +41,54 @@
         </div>
     </section>
 
-    <!-- Seção de Resumo Financeiro -->
+    <!-- Seção de Valores por Tipo -->
     <section class="dashboard-section">
         <div class="section-header">
-            <h3>💰 Resumo Financeiro</h3>
-            <button class="btn btn-secondary btn-small" onclick="refreshDashboard()">
-                🔄 Atualizar
-            </button>
+            <h3>💰 Valores por Tipo</h3>
         </div>
         
         <div class="cards-grid">
             <div class="metric-card">
                 <div class="card-content">
-                    <h4>Total Venda Postes (V)</h4>
+                    <h4>Valores Extras (E)</h4>
+                    <div class="metric-value" id="total-extras-e">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="card-content">
+                    <h4>Frete Loja (L)</h4>
+                    <div class="metric-value" id="total-frete-loja">R$ 0,00</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção de Resumo Financeiro -->
+    <section class="dashboard-section">
+        <div class="section-header">
+            <h3>💰 Resumo Financeiro</h3>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary btn-small" onclick="mostrarDetalhesCalculo()">
+                    📋 Ver Detalhes
+                </button>
+                <button class="btn btn-secondary btn-small" onclick="refreshDashboard()">
+                    🔄 Atualizar
+                </button>
+            </div>
+        </div>
+        
+        <div class="cards-grid">
+            <div class="metric-card">
+                <div class="card-content">
+                    <h4>Total Custo Postes (V)</h4>
                     <div class="metric-value" id="total-venda-postes">R$ 0,00</div>
                 </div>
             </div>
 
             <div class="metric-card">
                 <div class="card-content">
-                    <h4>Total Frete Eletrons</h4>
-                    <div class="metric-value" id="total-frete">R$ 0,00</div>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <div class="card-content">
-                    <h4>Total Valor de Vendas (V)</h4>
+                    <h4>Total Arrecadado (V)</h4>
                     <div class="metric-value" id="valor-total-vendas">R$ 0,00</div>
                 </div>
             </div>
@@ -92,7 +113,7 @@
     <section class="dashboard-section profit-section">
         <div class="section-header">
             <h3>💎 Distribuição de Lucros</h3>
-            <small style="color: #64748b;">Cálculo: (Valor Postes V - Valor Vendas V) + Contribuições E + L - Despesas</small>
+            <small style="color: #64748b;">Cálculo: (Lucro V + E + Frete L - Outras Despesas) ÷ 2 - Desp. Funcionário só para G&J</small>
         </div>
 
         <div class="cards-grid">
@@ -166,12 +187,12 @@
             
             <div style="background: white; padding: 16px; border-radius: 6px; border-left: 3px solid #3b82f6;">
                 <h4 style="color: #3b82f6; margin-bottom: 8px;">🛒 Tipo V - Venda Normal</h4>
-                <p style="font-size: 0.9rem; color: #6b7280;">Vendas normais com postes. O valor do poste é fixo e usado no cálculo do lucro. Inclui frete Eletrons.</p>
+                <p style="font-size: 0.9rem; color: #6b7280;">Vendas normais com postes. O valor do poste é fixo e usado no cálculo do lucro. SEM frete Eletrons.</p>
             </div>
             
             <div style="background: white; padding: 16px; border-radius: 6px; border-left: 3px solid #059669;">
-                <h4 style="color: #059669; margin-bottom: 8px;">🆓 Tipo L - Venda Livre</h4>
-                <p style="font-size: 0.9rem; color: #6b7280;">Vendas livres onde o valor do poste não é considerado no cálculo. O valor de venda contribui diretamente para o lucro.</p>
+                <h4 style="color: #059669; margin-bottom: 8px;">🏪 Tipo L - Venda Loja</h4>
+                <p style="font-size: 0.9rem; color: #6b7280;">Vendas de loja onde apenas o frete contribui para o lucro. Poste é apenas referência, SEM valor de venda.</p>
             </div>
         </div>
     </section>

@@ -48,49 +48,113 @@ const Utils = {
         return date.toLocaleDateString('pt-BR');
     },
 
-    // Cálculos de Lucro - Lógica Principal
-    calcularLucros(resumoBasico) {
+    // NOVA LÓGICA DE CÁLCULO DE LUCROS - FRONTEND (ATUALIZADA)
+    calcularLucros(resumoBasico, despesas) {
+        console.log('🔢 Iniciando cálculo de lucros no frontend...');
+        console.log('Dados recebidos:', { resumoBasico, despesas });
+
+        // Extrair dados do resumo com valores padrão
         const {
-            totalVendaPostes,    // Custo dos postes
-            valorTotalVendas,    // Valor que foi vendido
-            despesasFuncionario,
-            outrasDespesas
+            totalVendaPostes = 0,      // Custo total dos postes vendidos (tipo V)
+            valorTotalVendas = 0,      // Valor total arrecadado das vendas (tipo V)
+            valorTotalExtras = 0,      // Valores dos tipos E
+            totalFreteEletrons = 0     // Frete do tipo L (Venda Loja)
         } = resumoBasico;
 
-        // Lucro bruto = Valor vendido - Custo dos postes - Outras despesas
-        const lucroBruto = valorTotalVendas - totalVendaPostes - outrasDespesas;
-        
-        // Divisão inicial: 50% para cada lado
-        const metadeCicero = lucroBruto / 2;
+        // Separar despesas por tipo
+        const despesasFuncionario = despesas
+            .filter(d => d.tipo === 'FUNCIONARIO')
+            .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0);
+            
+        const outrasDespesas = despesas
+            .filter(d => d.tipo === 'OUTRAS')
+            .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0);
+
+        console.log('Despesas calculadas:', { despesasFuncionario, outrasDespesas });
+
+        // LÓGICA PRINCIPAL DE CÁLCULO:
+        // 1. Lucro das vendas normais (V): Valor vendido - Custo dos postes
+        const lucroVendasNormais = parseFloat(valorTotalVendas) - parseFloat(totalVendaPostes);
+        console.log('Lucro vendas normais (V):', lucroVendasNormais);
+
+        // 2. Somar todas as contribuições extras (E + Frete L)
+        const totalContribuicoesExtras = parseFloat(valorTotalExtras) + parseFloat(totalFreteEletrons);
+        console.log('Total contribuições extras (E + Frete L):', totalContribuicoesExtras);
+
+        // 3. Lucro bruto = Lucro vendas normais + Contribuições extras - Outras despesas
+        const lucroBruto = lucroVendasNormais + totalContribuicoesExtras - outrasDespesas;
+        console.log('Lucro bruto (antes de despesas funcionário):', lucroBruto);
+
+        // 4. Divisão inicial: 50% para cada lado
+        const metadeCicero = lubroBruto / 2;
         const metadeGuilhermeJefferson = lucroBruto / 2;
         
-        // Da parte do Guilherme e Jefferson, descontar despesas de funcionário
+        console.log('Divisão 50/50:', { metadeCicero, metadeGuilhermeJefferson });
+
+        // 5. Da parte do Guilherme e Jefferson, descontar despesas de funcionário
         const parteGuilhermeJeffersonLiquida = metadeGuilhermeJefferson - despesasFuncionario;
         
-        // Dividir entre Guilherme e Jefferson
+        console.log('Parte G&J após despesas funcionário:', parteGuilhermeJeffersonLiquida);
+
+        // 6. Dividir entre Guilherme e Jefferson (25% cada do total)
         const parteGuilherme = parteGuilhermeJeffersonLiquida / 2;
         const parteJefferson = parteGuilhermeJeffersonLiquida / 2;
-        
-        // Lucro total considerando todas as despesas
+
+        // 7. Lucro total final considerando todas as despesas
         const lucroTotal = lucroBruto - despesasFuncionario;
 
-        return {
+        const resultado = {
+            // Valores base
+            totalVendaPostes: parseFloat(totalVendaPostes) || 0,
+            valorTotalVendas: parseFloat(valorTotalVendas) || 0,
+            totalContribuicoesExtras,
+            despesasFuncionario,
+            outrasDespesas,
+            
+            // Lucros calculados
+            lucroVendasNormais,
+            lucroBruto,
             lucroTotal,
+            
+            // Distribuição
             parteCicero: metadeCicero,
             parteGuilherme,
             parteJefferson,
-            lucroBruto,
+            
+            // Valores por tipo (apenas E e L agora)
+            valorTotalExtras: parseFloat(valorTotalExtras) || 0,
+            totalFreteEletrons: parseFloat(totalFreteEletrons) || 0,
+            
+            // Detalhes para debug
             detalhes: {
-                valorVendido: valorTotalVendas,
-                custoPostes: totalVendaPostes,
-                outrasDespesas,
-                despesasFuncionario,
-                lucroBruto,
                 metadeCicero,
                 metadeGuilhermeJefferson,
-                parteGuilhermeJeffersonLiquida
+                parteGuilhermeJeffersonLiquida,
+                calculoCorreto: `
+                NOVA LÓGICA:
+                - Tipo E (Extra): Contribui diretamente para o lucro
+                - Tipo V (Venda Normal): Valor vendido - Custo do poste (SEM frete)
+                - Tipo L (Venda Loja): Apenas o frete contribui para o lucro
+                
+                Exemplo: 
+                Venda V: R$ 1.800 vendido, custo R$ 800 = R$ 1.000 lucro
+                Extra E: R$ 200
+                Frete L: R$ 150
+                Outras despesas: R$ 50
+                Despesa funcionário: R$ 100
+                
+                Cálculo:
+                Lucro bruto: 1.000 + 200 + 150 - 50 = R$ 1.300
+                Divisão 50/50: Cícero R$ 650, G&J R$ 650
+                G&J - despesa funcionário: R$ 650 - R$ 100 = R$ 550
+                Guilherme: R$ 275, Jefferson: R$ 275
+                Lucro total: R$ 1.200
+                `
             }
         };
+
+        console.log('✅ Resultado final do cálculo:', resultado);
+        return resultado;
     },
 
     // Validação de email
@@ -190,7 +254,6 @@ const Utils = {
         const blob = new Blob([data], { type });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = url;
         link.download = filename;
         document.body.appendChild(link);
         link.click();

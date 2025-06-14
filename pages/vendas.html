@@ -1,7 +1,7 @@
 <div class="vendas-page">
     <div class="page-header">
         <h2>📋 Gerenciamento de Vendas</h2>
-        <p>Cadastre vendas, extras e vendas livres</p>
+        <p>Cadastre vendas normais, extras e vendas de loja</p>
     </div>
 
     <!-- Nova Venda - Formulário com tipos -->
@@ -18,7 +18,7 @@
                         <option value="">Selecione o tipo</option>
                         <option value="E">📈 E - Extra</option>
                         <option value="V">🛒 V - Venda Normal</option>
-                        <option value="L">🆓 L - Venda Livre</option>
+                        <option value="L">🏪 L - Venda Loja</option>
                     </select>
                 </div>
 
@@ -61,14 +61,6 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="venda-frete-v">Frete Eletrons</label>
-                        <div class="input-with-icon">
-                            <span class="input-icon">🚚</span>
-                            <input type="number" step="0.01" id="venda-frete-v" placeholder="0,00" min="0" value="0">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
                         <label for="venda-valor-total-v">Valor de Venda</label>
                         <div class="input-with-icon">
                             <span class="input-icon">💰</span>
@@ -78,12 +70,12 @@
                 </div>
             </div>
 
-            <!-- Campos para Tipo L (Venda Livre) -->
+            <!-- Campos para Tipo L (Venda Loja) -->
             <div id="campos-tipo-l" class="form-section" style="display: none;">
-                <h4>🆓 Venda Livre</h4>
+                <h4>🏪 Venda Loja</h4>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="venda-poste-l">Poste (apenas referência)</label>
+                        <label for="venda-poste-l">Poste (referência)</label>
                         <select id="venda-poste-l">
                             <option value="">Selecione um poste</option>
                         </select>
@@ -99,14 +91,6 @@
                         <div class="input-with-icon">
                             <span class="input-icon">🚚</span>
                             <input type="number" step="0.01" id="venda-frete-l" placeholder="0,00" min="0" value="0">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="venda-valor-total-l">Valor de Venda</label>
-                        <div class="input-with-icon">
-                            <span class="input-icon">💰</span>
-                            <input type="number" step="0.01" id="venda-valor-total-l" placeholder="0,00" min="0">
                         </div>
                     </div>
                 </div>
@@ -151,7 +135,7 @@
             </div>
 
             <div class="summary-card">
-                <h4>Vendas Livres (L)</h4>
+                <h4>Vendas Loja (L)</h4>
                 <div class="summary-value" id="total-vendas-l">0</div>
             </div>
 
@@ -176,7 +160,7 @@
                         <option value="">Todos os tipos</option>
                         <option value="E">Extra (E)</option>
                         <option value="V">Venda Normal (V)</option>
-                        <option value="L">Venda Livre (L)</option>
+                        <option value="L">Venda Loja (L)</option>
                     </select>
                 </div>
 
@@ -257,7 +241,7 @@
                         <select id="edit-tipo-venda" disabled>
                             <option value="E">Extra (E)</option>
                             <option value="V">Venda Normal (V)</option>
-                            <option value="L">Venda Livre (L)</option>
+                            <option value="L">Venda Loja (L)</option>
                         </select>
                     </div>
                     <div class="form-group" id="edit-frete-group">
@@ -265,7 +249,7 @@
                         <input type="number" step="0.01" id="edit-frete-eletrons" min="0">
                     </div>
                     <div class="form-group" id="edit-valor-group">
-                        <label for="edit-valor-total">Valor</label>
+                        <label for="edit-valor-total">Valor de Venda</label>
                         <input type="number" step="0.01" id="edit-valor-total" min="0">
                     </div>
                     <div class="form-group" id="edit-extra-group" style="display: none;">

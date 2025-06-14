@@ -1,4 +1,4 @@
-// JavaScript da página de Vendas - Versão atualizada com tipos E, V, L
+// JavaScript da página de Vendas - Versão completa com tipos E, V, L
 let vendasData = {
     vendas: [],
     postes: [],
@@ -24,7 +24,10 @@ window.initVendasPage = async function() {
         // Definir data atual no campo de data
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('venda-data').value = now.toISOString().slice(0, 16);
+        const dataInput = document.getElementById('venda-data');
+        if (dataInput) {
+            dataInput.value = now.toISOString().slice(0, 16);
+        }
         
         console.log('✅ Página de Vendas carregada com sucesso');
     } catch (error) {
@@ -115,6 +118,7 @@ async function loadVendas() {
         const vendas = await VendaService.getAll();
         vendasData.vendas = vendas;
         displayVendas(vendas);
+        console.log('📋 Vendas carregadas:', vendas.length);
     } catch (error) {
         console.error('Erro ao carregar vendas:', error);
         displayVendasError();
@@ -127,7 +131,7 @@ async function loadPostes() {
         const postes = await PosteService.getActive();
         vendasData.postes = postes;
         
-        // Atualizar selects de postes
+        // Atualizar selects de postes (V e L)
         const selectsPoste = ['venda-poste-v', 'venda-poste-l'];
         selectsPoste.forEach(selectId => {
             const selectPoste = document.getElementById(selectId);
@@ -143,6 +147,7 @@ async function loadPostes() {
             }
         });
         
+        console.log('⚡ Postes carregados:', postes.length);
     } catch (error) {
         console.error('Erro ao carregar postes:', error);
     }
@@ -188,13 +193,20 @@ function handleTipoVendaChange(e) {
     const tipoSelecionado = e.target.value;
     
     // Ocultar todos os campos condicionais
-    document.getElementById('campos-tipo-e').style.display = 'none';
-    document.getElementById('campos-tipo-v').style.display = 'none';
-    document.getElementById('campos-tipo-l').style.display = 'none';
+    const camposTipos = ['e', 'v', 'l'];
+    camposTipos.forEach(tipo => {
+        const elemento = document.getElementById(`campos-tipo-${tipo}`);
+        if (elemento) {
+            elemento.style.display = 'none';
+        }
+    });
     
     // Mostrar campos apropriados
     if (tipoSelecionado) {
-        document.getElementById(`campos-tipo-${tipoSelecionado.toLowerCase()}`).style.display = 'block';
+        const campoTipo = document.getElementById(`campos-tipo-${tipoSelecionado.toLowerCase()}`);
+        if (campoTipo) {
+            campoTipo.style.display = 'block';
+        }
     }
     
     // Limpar campos dos outros tipos
@@ -203,20 +215,41 @@ function handleTipoVendaChange(e) {
 
 // Limpar campos não relacionados ao tipo selecionado
 function clearFieldsByType(tipoSelecionado) {
-    if (tipoSelecionado !== 'E') {
-        document.getElementById('venda-valor-extra').value = '';
+    const camposLimpar = {
+        'E': ['venda-valor-extra'],
+        'V': ['venda-poste-v', 'venda-quantidade-v', 'venda-valor-total-v'],
+        'L': ['venda-poste-l', 'venda-quantidade-l', 'venda-frete-l']
+    };
+    
+    // Limpar todos os campos exceto do tipo selecionado
+    Object.entries(camposLimpar).forEach(([tipo, campos]) => {
+        if (tipo !== tipoSelecionado) {
+            campos.forEach(campoId => {
+                const campo = document.getElementById(campoId);
+                if (campo) {
+                    if (campo.type === 'number') {
+                        campo.value = '';
+                    } else if (campo.tagName === 'SELECT') {
+                        campo.value = '';
+                    } else {
+                        campo.value = '';
+                    }
+                }
+            });
+        }
+    });
+    
+    // Restaurar valores padrão para alguns campos
+    if (tipoSelecionado === 'V') {
+        const quantidadeV = document.getElementById('venda-quantidade-v');
+        if (quantidadeV && !quantidadeV.value) quantidadeV.value = '1';
     }
-    if (tipoSelecionado !== 'V') {
-        document.getElementById('venda-poste-v').value = '';
-        document.getElementById('venda-quantidade-v').value = '1';
-        document.getElementById('venda-frete-v').value = '0';
-        document.getElementById('venda-valor-total-v').value = '';
-    }
-    if (tipoSelecionado !== 'L') {
-        document.getElementById('venda-poste-l').value = '';
-        document.getElementById('venda-quantidade-l').value = '1';
-        document.getElementById('venda-frete-l').value = '0';
-        document.getElementById('venda-valor-total-l').value = '';
+    
+    if (tipoSelecionado === 'L') {
+        const quantidadeL = document.getElementById('venda-quantidade-l');
+        const freteL = document.getElementById('venda-frete-l');
+        if (quantidadeL && !quantidadeL.value) quantidadeL.value = '1';
+        if (freteL && !freteL.value) freteL.value = '0';
     }
 }
 
@@ -228,13 +261,13 @@ function updatePreviewValor(tipo) {
     const quantidade = parseInt(document.getElementById('venda-quantidade-v').value) || 1;
     const valorTotalInput = document.getElementById('venda-valor-total-v');
     
-    if (selectPoste && selectPoste.selectedIndex > 0) {
+    if (selectPoste && selectPoste.selectedIndex > 0 && valorTotalInput) {
         const selectedOption = selectPoste.options[selectPoste.selectedIndex];
         const precoUnitario = parseFloat(selectedOption.dataset.preco) || 0;
         const valorSugerido = precoUnitario * quantidade;
         
         // Apenas sugerir se o campo estiver vazio
-        if (valorTotalInput && !valorTotalInput.value) {
+        if (!valorTotalInput.value) {
             valorTotalInput.placeholder = `Sugerido: ${Utils.formatCurrency(valorSugerido)}`;
         }
     }
@@ -280,7 +313,6 @@ async function handleVendaSubmit(e) {
             case 'V':
                 const posteIdV = document.getElementById('venda-poste-v').value;
                 const quantidadeV = parseInt(document.getElementById('venda-quantidade-v').value);
-                const freteV = parseFloat(document.getElementById('venda-frete-v').value) || 0;
                 const valorTotalV = parseFloat(document.getElementById('venda-valor-total-v').value);
                 
                 if (!posteIdV) {
@@ -298,15 +330,14 @@ async function handleVendaSubmit(e) {
                 
                 vendaCreateDTO.posteId = parseInt(posteIdV);
                 vendaCreateDTO.quantidade = quantidadeV;
-                vendaCreateDTO.freteEletrons = freteV;
                 vendaCreateDTO.valorVenda = valorTotalV;
+                // SEM frete para tipo V
                 break;
                 
             case 'L':
                 const posteIdL = document.getElementById('venda-poste-l').value;
                 const quantidadeL = parseInt(document.getElementById('venda-quantidade-l').value);
                 const freteL = parseFloat(document.getElementById('venda-frete-l').value) || 0;
-                const valorTotalL = parseFloat(document.getElementById('venda-valor-total-l').value);
                 
                 if (!posteIdL) {
                     showAlert('Selecione um poste para referência', 'warning');
@@ -316,21 +347,23 @@ async function handleVendaSubmit(e) {
                     showAlert('Quantidade deve ser maior que zero', 'warning');
                     return;
                 }
-                if (!valorTotalL || valorTotalL <= 0) {
-                    showAlert('Valor de venda deve ser maior que zero', 'warning');
+                if (freteL <= 0) {
+                    showAlert('Frete deve ser maior que zero', 'warning');
                     return;
                 }
                 
                 vendaCreateDTO.posteId = parseInt(posteIdL);
                 vendaCreateDTO.quantidade = quantidadeL;
                 vendaCreateDTO.freteEletrons = freteL;
-                vendaCreateDTO.valorVenda = valorTotalL;
+                // SEM valor de venda para tipo L
                 break;
                 
             default:
                 showAlert('Tipo de venda inválido', 'error');
                 return;
         }
+        
+        console.log('📤 Enviando venda:', vendaCreateDTO);
         
         await VendaService.create(vendaCreateDTO);
         showAlert('Venda criada com sucesso!', 'success');
@@ -352,9 +385,13 @@ async function handleVendaSubmit(e) {
 // Handler de reset do formulário
 function handleFormReset() {
     // Ocultar todos os campos condicionais
-    document.getElementById('campos-tipo-e').style.display = 'none';
-    document.getElementById('campos-tipo-v').style.display = 'none';
-    document.getElementById('campos-tipo-l').style.display = 'none';
+    const camposTipos = ['e', 'v', 'l'];
+    camposTipos.forEach(tipo => {
+        const elemento = document.getElementById(`campos-tipo-${tipo}`);
+        if (elemento) {
+            elemento.style.display = 'none';
+        }
+    });
     
     // Limpar placeholders
     const valorTotalV = document.getElementById('venda-valor-total-v');
@@ -365,7 +402,10 @@ function handleFormReset() {
     // Redefinir data atual
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('venda-data').value = now.toISOString().slice(0, 16);
+    const dataInput = document.getElementById('venda-data');
+    if (dataInput) {
+        dataInput.value = now.toISOString().slice(0, 16);
+    }
 }
 
 // Exibir vendas na tabela
@@ -405,15 +445,15 @@ function displayVendas(vendas) {
                 tipoDisplay = '<span class="status">🛒 Normal</span>';
                 posteInfo = venda.itens && venda.itens[0] ? 
                     `${venda.itens[0].codigoPoste} (${venda.itens[0].quantidade}x)` : 'N/A';
-                freteDisplay = Utils.formatCurrency(venda.totalFreteEletrons || 0);
+                freteDisplay = 'N/A'; // Removido frete do tipo V
                 valorDisplay = Utils.formatCurrency(venda.valorTotalInformado || 0);
                 break;
             case 'L':
-                tipoDisplay = '<span class="status inativo">🆓 Livre</span>';
+                tipoDisplay = '<span class="status inativo">🏪 Loja</span>';
                 posteInfo = venda.itens && venda.itens[0] ? 
                     `${venda.itens[0].codigoPoste} (${venda.itens[0].quantidade}x)` : 'N/A';
                 freteDisplay = Utils.formatCurrency(venda.totalFreteEletrons || 0);
-                valorDisplay = Utils.formatCurrency(venda.valorTotalInformado || 0);
+                valorDisplay = 'N/A'; // Tipo L não tem valor de venda
                 break;
             default:
                 tipoDisplay = venda.tipoVenda;
@@ -444,6 +484,8 @@ function displayVendas(vendas) {
         `;
         tbody.appendChild(row);
     });
+    
+    console.log(`📊 Exibindo ${vendas.length} vendas na tabela`);
 }
 
 // Exibir erro ao carregar vendas
@@ -465,7 +507,12 @@ function displayVendasError() {
 // Função de edição
 window.editVenda = async function(id) {
     try {
+        console.log(`✏️ Editando venda ID: ${id}`);
         const venda = await VendaService.getById(id);
+        
+        if (!venda) {
+            throw new Error('Venda não encontrada');
+        }
         
         // Configurar campos baseados no tipo
         document.getElementById('edit-tipo-venda').value = venda.tipoVenda;
@@ -475,17 +522,24 @@ window.editVenda = async function(id) {
         const valorGroup = document.getElementById('edit-valor-group');
         const extraGroup = document.getElementById('edit-extra-group');
         
-        if (venda.tipoVenda === 'E') {
-            freteGroup.style.display = 'none';
-            valorGroup.style.display = 'none';
-            extraGroup.style.display = 'block';
-            document.getElementById('edit-valor-extra').value = venda.valorExtra || 0;
-        } else {
-            freteGroup.style.display = 'block';
-            valorGroup.style.display = 'block';
-            extraGroup.style.display = 'none';
-            document.getElementById('edit-frete-eletrons').value = venda.totalFreteEletrons || 0;
-            document.getElementById('edit-valor-total').value = venda.valorTotalInformado || 0;
+        // Ocultar todos primeiro
+        if (freteGroup) freteGroup.style.display = 'none';
+        if (valorGroup) valorGroup.style.display = 'none';
+        if (extraGroup) extraGroup.style.display = 'none';
+        
+        switch (venda.tipoVenda) {
+            case 'E':
+                if (extraGroup) extraGroup.style.display = 'block';
+                document.getElementById('edit-valor-extra').value = venda.valorExtra || 0;
+                break;
+            case 'V':
+                if (valorGroup) valorGroup.style.display = 'block';
+                document.getElementById('edit-valor-total').value = venda.valorTotalInformado || 0;
+                break;
+            case 'L':
+                if (freteGroup) freteGroup.style.display = 'block';
+                document.getElementById('edit-frete-eletrons').value = venda.totalFreteEletrons || 0;
+                break;
         }
         
         document.getElementById('edit-observacoes').value = venda.observacoes || '';
@@ -494,7 +548,10 @@ window.editVenda = async function(id) {
         vendasData.currentEditId = id;
         
         // Abrir modal
-        document.getElementById('edit-venda-modal').style.display = 'block';
+        const modal = document.getElementById('edit-venda-modal');
+        if (modal) {
+            modal.style.display = 'block';
+        }
         
     } catch (error) {
         console.error('Erro ao carregar venda para edição:', error);
@@ -512,17 +569,27 @@ async function handleEditVendaSubmit(e) {
         observacoes: document.getElementById('edit-observacoes').value.trim()
     };
     
-    if (tipoVenda === 'E') {
-        formData.valorExtra = parseFloat(document.getElementById('edit-valor-extra').value) || 0;
-        formData.totalFreteEletrons = 0;
-        formData.valorTotalInformado = 0;
-    } else {
-        formData.totalFreteEletrons = parseFloat(document.getElementById('edit-frete-eletrons').value) || 0;
-        formData.valorTotalInformado = parseFloat(document.getElementById('edit-valor-total').value) || 0;
-        formData.valorExtra = 0;
+    switch (tipoVenda) {
+        case 'E':
+            formData.valorExtra = parseFloat(document.getElementById('edit-valor-extra').value) || 0;
+            formData.totalFreteEletrons = 0;
+            formData.valorTotalInformado = 0;
+            break;
+        case 'V':
+            formData.valorTotalInformado = parseFloat(document.getElementById('edit-valor-total').value) || 0;
+            formData.totalFreteEletrons = 0;
+            formData.valorExtra = 0;
+            break;
+        case 'L':
+            formData.totalFreteEletrons = parseFloat(document.getElementById('edit-frete-eletrons').value) || 0;
+            formData.valorTotalInformado = 0;
+            formData.valorExtra = 0;
+            break;
     }
     
     try {
+        console.log('📝 Atualizando venda:', formData);
+        
         await VendaService.update(vendasData.currentEditId, formData);
         showAlert('Venda atualizada com sucesso!', 'success');
         
@@ -549,10 +616,14 @@ window.deleteVenda = async function(id) {
     if (!confirmed) return;
     
     try {
+        console.log(`🗑️ Excluindo venda ID: ${id}`);
+        
         await VendaService.delete(id);
         showAlert('Venda excluída com sucesso!', 'success');
+        
         await loadVendas();
         await loadResumoTipos();
+        
     } catch (error) {
         console.error('Erro ao excluir venda:', error);
         showAlert('Erro ao excluir venda', 'error');
@@ -565,6 +636,8 @@ window.exportarVendas = function() {
         showAlert('Nenhuma venda para exportar', 'warning');
         return;
     }
+    
+    console.log('📊 Exportando vendas...');
     
     const dadosExportar = vendasData.vendas.map(venda => {
         const base = {
@@ -584,12 +657,19 @@ window.exportarVendas = function() {
                     'Poste': 'N/A'
                 };
             case 'V':
+                return {
+                    ...base,
+                    'Valor Extra': 'N/A',
+                    'Frete': 'N/A',
+                    'Valor Venda': venda.valorTotalInformado || 0,
+                    'Poste': venda.itens?.[0]?.codigoPoste || 'N/A'
+                };
             case 'L':
                 return {
                     ...base,
                     'Valor Extra': 'N/A',
                     'Frete': venda.totalFreteEletrons || 0,
-                    'Valor Venda': venda.valorTotalInformado || 0,
+                    'Valor Venda': 'N/A',
                     'Poste': venda.itens?.[0]?.codigoPoste || 'N/A'
                 };
             default:
@@ -601,9 +681,15 @@ window.exportarVendas = function() {
 };
 
 window.limparFiltros = function() {
-    document.getElementById('filtro-tipo-venda').value = '';
-    document.getElementById('filtro-data-inicio').value = '';
-    document.getElementById('filtro-data-fim').value = '';
+    console.log('🧹 Limpando filtros...');
+    
+    const filtroTipo = document.getElementById('filtro-tipo-venda');
+    const filtroDataInicio = document.getElementById('filtro-data-inicio');
+    const filtroDataFim = document.getElementById('filtro-data-fim');
+    
+    if (filtroTipo) filtroTipo.value = '';
+    if (filtroDataInicio) filtroDataInicio.value = '';
+    if (filtroDataFim) filtroDataFim.value = '';
     
     vendasData.filters = {
         tipoVenda: '',
@@ -628,3 +714,20 @@ window.scrollToForm = function() {
 
 // Recarregar vendas
 window.loadVendas = loadVendas;
+
+// Função de cleanup (se necessária)
+window.cleanupVendas = function() {
+    console.log('🧹 Limpando dados de vendas...');
+    vendasData = {
+        vendas: [],
+        postes: [],
+        currentEditId: null,
+        filters: {
+            tipoVenda: '',
+            dataInicio: '',
+            dataFim: ''
+        }
+    };
+};
+
+console.log('✅ vendas.js carregado completamente com tipos E, V, L');
