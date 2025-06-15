@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Despesas - Gerenciador de Vendas de Postes</title>
+    <link rel="stylesheet" href="css/despesas.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1>⚡ Gerenciador de Vendas de Postes</h1>
+            <p>Despesas - Gerenciamento de Despesas</p>
+        </div>
+    </header>
+
+    <!-- Navigation Menu -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="vendas.html" class="nav-item">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">Vendas</span>
+            </a>
+            <a href="despesas.html" class="nav-item active">
+                <span class="nav-icon">💸</span>
+                <span class="nav-text">Despesas</span>
+            </a>
+            <a href="postes.html" class="nav-item">
+                <span class="nav-icon">⚡</span>
+                <span class="nav-text">Postes</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="despesas-page">
+            <!-- Nova Despesa -->
+            <section class="form-section">
+                <div class="section-header">
+                    <h3>➕ Nova Despesa</h3>
+                </div>
+
+                <form id="despesa-form" class="form-container">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="despesa-descricao">Descrição da Despesa</label>
+                            <input type="text" id="despesa-descricao" required placeholder="Ex: Pagamento de funcionário, combustível, etc.">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="despesa-valor">Valor</label>
+                            <div class="input-with-icon">
+                                <span class="input-icon">💰</span>
+                                <input type="number" step="0.01" id="despesa-valor" required placeholder="0,00" min="0">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="despesa-tipo">Tipo de Despesa</label>
+                            <select id="despesa-tipo" required>
+                                <option value="">Selecione o tipo</option>
+                                <option value="FUNCIONARIO">💼 Despesa para Funcionário</option>
+                                <option value="OUTRAS">📋 Outras Despesas</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-icon">💾</span>
+                            Salvar Despesa
+                        </button>
+                        <button type="reset" class="btn btn-secondary">
+                            <span class="btn-icon">🔄</span>
+                            Limpar
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Resumo das Despesas -->
+            <section class="summary-section">
+                <div class="section-header">
+                    <h3>📊 Resumo das Despesas</h3>
+                </div>
+
+                <div class="summary-cards">
+                    <div class="summary-card expense-funcionario">
+                        <h4>Despesas para Funcionário</h4>
+                        <div class="summary-value" id="total-despesas-funcionario">R$ 0,00</div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h4>Outras Despesas</h4>
+                        <div class="summary-value" id="total-outras-despesas">R$ 0,00</div>
+                    </div>
+
+                    <div class="summary-card expense-total">
+                        <h4>Total de Despesas</h4>
+                        <div class="summary-value" id="total-despesas-geral">R$ 0,00</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filtros -->
+            <section class="table-section">
+                <div class="section-header">
+                    <h3>🔍 Filtros</h3>
+                </div>
+                
+                <div class="table-filters">
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <label for="filtro-tipo">Tipo de Despesa</label>
+                            <select id="filtro-tipo">
+                                <option value="">Todos os tipos</option>
+                                <option value="FUNCIONARIO">Funcionário</option>
+                                <option value="OUTRAS">Outras</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filtro-data-inicio">Data Início</label>
+                            <input type="date" id="filtro-data-inicio">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filtro-data-fim">Data Fim</label>
+                            <input type="date" id="filtro-data-fim">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filtro-descricao">Descrição</label>
+                            <input type="text" id="filtro-descricao" placeholder="Buscar por descrição...">
+                        </div>
+
+                        <div class="filter-group">
+                            <button class="btn btn-secondary btn-small" onclick="limparFiltros()">
+                                <span class="btn-icon">🧹</span>
+                                Limpar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lista de Despesas -->
+            <section class="table-section">
+                <div class="section-header">
+                    <h3>📋 Despesas Cadastradas</h3>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary btn-small" onclick="loadDespesas()">
+                            <span class="btn-icon">🔄</span>
+                            Atualizar
+                        </button>
+                        <button class="btn btn-secondary btn-small" onclick="exportarDespesas()">
+                            <span class="btn-icon">📊</span>
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="despesas-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Tipo</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="empty-table">
+                                    <div class="empty-table-icon">💸</div>
+                                    <p>Nenhuma despesa encontrada</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal de Edição de Despesa -->
+    <div id="edit-despesa-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Editar Despesa</h3>
+                <span class="close" onclick="closeModal('edit-despesa-modal')">&times;</span>
+            </div>
+            <form id="edit-despesa-form">
+                <div style="padding: 20px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="edit-despesa-descricao">Descrição</label>
+                            <input type="text" id="edit-despesa-descricao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-despesa-valor">Valor</label>
+                            <input type="number" step="0.01" id="edit-despesa-valor" required min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-despesa-tipo">Tipo</label>
+                            <select id="edit-despesa-tipo" required>
+                                <option value="FUNCIONARIO">Despesa para Funcionário</option>
+                                <option value="OUTRAS">Outras Despesas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-icon">💾</span>
+                        Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-despesa-modal')">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Carregando...</p>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container" class="alert-container"></div>
+
+    <script src="/js/despesas.js"></script>
+</body>
+</html>

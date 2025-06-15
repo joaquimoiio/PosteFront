@@ -1,54 +1,9 @@
-// Funções auxiliares
-window.exportarPostes = function() {
-    if (!postesData.filteredPostes || postesData.filteredPostes.length === 0) {
-        showAlert('Nenhum poste para exportar', 'warning');
-        return;
-    }
-    
-    const dadosExportar = postesData.filteredPostes.map(poste => ({
-        'Código': poste.codigo,
-        'Descrição': poste.descricao,
-        'Preço': poste.preco,
-        'Status': poste.ativo ? 'Ativo' : 'Inativo'
-    }));
-    
-    Utils.exportToCSV(dadosExportar, `postes_${new Date().toISOString().split('T')[0]}`);
+// Postes JavaScript
+const CONFIG = {
+    API_BASE: 'http://localhost:8080/api'
 };
 
-window.limparFiltros = function() {
-    // Limpar inputs de filtro
-    document.getElementById('filtro-status').value = '';
-    document.getElementById('filtro-codigo').value = '';
-    document.getElementById('filtro-descricao').value = '';
-    
-    // Resetar filtros
-    postesData.filters = {
-        status: '',
-        codigo: '',
-        descricao: ''
-    };
-    
-    // Reaplicar (sem filtros)
-    applyFilters();
-    
-    showAlert('Filtros limpos', 'success');
-};
-
-window.scrollToForm = function() {
-    const form = document.getElementById('poste-form');
-    if (form) {
-        Utils.smoothScrollTo(form);
-        
-        // Focar no primeiro campo
-        const firstInput = form.querySelector('input, select, textarea');
-        if (firstInput) {
-            firstInput.focus();
-        }
-    }
-};
-
-// Recarregar postes
-window.loadPostes = loadPostes;// JavaScript da página de Postes - Versão Simplificada
+// Estado global da página de postes
 let postesData = {
     postes: [],
     filteredPostes: [],
@@ -60,8 +15,8 @@ let postesData = {
     }
 };
 
-// Função de inicialização da página
-window.initPostesPage = async function() {
+// Inicialização quando a página carrega
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando página de Postes...');
     
     try {
@@ -75,7 +30,7 @@ window.initPostesPage = async function() {
         console.error('❌ Erro ao carregar página de Postes:', error);
         showAlert('Erro ao carregar dados de postes', 'error');
     }
-};
+});
 
 // Configurar event listeners
 function setupEventListeners() {
@@ -103,7 +58,7 @@ function setupFilters() {
     Object.entries(filterElements).forEach(([elementId, filterKey]) => {
         const element = document.getElementById(elementId);
         if (element) {
-            element.addEventListener('input', Utils.debounce(() => {
+            element.addEventListener('input', debounce(() => {
                 postesData.filters[filterKey] = element.value;
                 applyFilters();
             }, 300));
@@ -139,16 +94,33 @@ function applyFilters() {
     displayPostes(filtered);
 }
 
+// Funções de API
+async function apiRequest(endpoint, options = {}) {
+    try {
+        const response = await fetch(`${CONFIG.API_BASE}${endpoint}`, options);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Erro na requisição ${endpoint}:`, error);
+        throw error;
+    }
+}
+
 // Carregar postes
 async function loadPostes() {
     try {
-        const postes = await PosteService.getAll();
+        showLoading(true);
+        const postes = await apiRequest('/postes');
         postesData.postes = postes;
         postesData.filteredPostes = [...postes];
         displayPostes(postes);
     } catch (error) {
         console.error('Erro ao carregar postes:', error);
         displayPostesError();
+    } finally {
+        showLoading(false);
     }
 }
 
@@ -177,7 +149,7 @@ function updateEstatisticasCards(stats) {
     const elements = {
         'total-postes': stats.total.toString(),
         'postes-ativos': stats.ativo.toString(),
-        'preco-medio': Utils.formatCurrency(stats.precoMedio)
+        'preco-medio': formatCurrency(stats.precoMedio)
     };
     
     Object.entries(elements).forEach(([id, value]) => {
@@ -217,7 +189,7 @@ function displayPostes(postes) {
                     ${poste.descricao}
                 </div>
             </td>
-            <td class="currency" data-label="Preço">${Utils.formatCurrency(poste.preco)}</td>
+            <td class="currency" data-label="Preço">${formatCurrency(poste.preco)}</td>
             <td data-label="Status">
                 <span class="status ${poste.ativo ? 'ativo' : 'inativo'}">
                     ${poste.ativo ? '✅ Ativo' : '❌ Inativo'}
@@ -277,7 +249,15 @@ async function handlePosteSubmit(e) {
     }
     
     try {
-        await PosteService.create(formData);
+        showLoading(true);
+        await apiRequest('/postes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
         showAlert('Poste criado com sucesso!', 'success');
         
         // Resetar formulário
@@ -290,6 +270,8 @@ async function handlePosteSubmit(e) {
     } catch (error) {
         console.error('Erro ao criar poste:', error);
         showAlert('Erro ao criar poste', 'error');
+    } finally {
+        showLoading(false);
     }
 }
 
@@ -312,7 +294,15 @@ async function handleEditSubmit(e) {
     }
     
     try {
-        await PosteService.update(postesData.currentEditId, formData);
+        showLoading(true);
+        await apiRequest(`/postes/${postesData.currentEditId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
         showAlert('Poste atualizado com sucesso!', 'success');
         
         // Fechar modal
@@ -325,11 +315,13 @@ async function handleEditSubmit(e) {
     } catch (error) {
         console.error('Erro ao atualizar poste:', error);
         showAlert('Erro ao atualizar poste', 'error');
+    } finally {
+        showLoading(false);
     }
 }
 
 // Função de edição
-window.editPoste = async function(id) {
+async function editPoste(id) {
     try {
         const poste = postesData.postes.find(p => p.id === id);
         
@@ -353,10 +345,10 @@ window.editPoste = async function(id) {
         console.error('Erro ao carregar poste para edição:', error);
         showAlert('Erro ao carregar dados do poste', 'error');
     }
-};
+}
 
 // Função de alternar status
-window.togglePosteStatus = async function(id) {
+async function togglePosteStatus(id) {
     try {
         const poste = postesData.postes.find(p => p.id === id);
         if (!poste) {
@@ -366,14 +358,21 @@ window.togglePosteStatus = async function(id) {
         const novoStatus = !poste.ativo;
         const acao = novoStatus ? 'ativar' : 'inativar';
         
-        const confirmed = await Utils.confirm(
-            `Tem certeza que deseja ${acao} este poste?`,
-            `Confirmar ${acao.charAt(0).toUpperCase() + acao.slice(1)}`
+        const confirmed = await confirm(
+            `Tem certeza que deseja ${acao} este poste?`
         );
         
         if (!confirmed) return;
         
-        await PosteService.update(id, { ...poste, ativo: novoStatus });
+        showLoading(true);
+        await apiRequest(`/postes/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ...poste, ativo: novoStatus })
+        });
+        
         showAlert(`Poste ${acao}do com sucesso!`, 'success');
         
         await loadPostes();
@@ -382,8 +381,10 @@ window.togglePosteStatus = async function(id) {
     } catch (error) {
         console.error('Erro ao alterar status do poste:', error);
         showAlert('Erro ao alterar status do poste', 'error');
+    } finally {
+        showLoading(false);
     }
-};
+}
 
 // Validar dados de poste
 function validarPoste(dados) {
@@ -415,7 +416,7 @@ function validarPoste(dados) {
 }
 
 // Funções auxiliares
-window.exportarPostes = function() {
+function exportarPostes() {
     if (!postesData.postes || postesData.postes.length === 0) {
         showAlert('Nenhum poste para exportar', 'warning');
         return;
@@ -428,13 +429,32 @@ window.exportarPostes = function() {
         'Status': poste.ativo ? 'Ativo' : 'Inativo'
     }));
     
-    Utils.exportToCSV(dadosExportar, `postes_${new Date().toISOString().split('T')[0]}`);
-};
+    exportToCSV(dadosExportar, `postes_${new Date().toISOString().split('T')[0]}`);
+}
 
-window.scrollToForm = function() {
+function limparFiltros() {
+    // Limpar inputs de filtro
+    document.getElementById('filtro-status').value = '';
+    document.getElementById('filtro-codigo').value = '';
+    document.getElementById('filtro-descricao').value = '';
+    
+    // Resetar filtros
+    postesData.filters = {
+        status: '',
+        codigo: '',
+        descricao: ''
+    };
+    
+    // Reaplicar (sem filtros)
+    applyFilters();
+    
+    showAlert('Filtros limpos', 'success');
+}
+
+function scrollToForm() {
     const form = document.getElementById('poste-form');
     if (form) {
-        Utils.smoothScrollTo(form);
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
         // Focar no primeiro campo
         const firstInput = form.querySelector('input, select, textarea');
@@ -442,7 +462,98 @@ window.scrollToForm = function() {
             firstInput.focus();
         }
     }
-};
+}
 
-// Recarregar postes
-window.loadPostes = loadPostes;
+// Utilitários
+function formatCurrency(value) {
+    if (value == null || isNaN(value)) return 'R$ 0,00';
+    
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
+
+function showLoading(show) {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = show ? 'flex' : 'none';
+    }
+}
+
+function showAlert(message, type = 'success', duration = 5000) {
+    const alertContainer = document.getElementById('alert-container');
+    
+    if (!alertContainer) {
+        console.warn('Container de alertas não encontrado');
+        return;
+    }
+    
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    alert.textContent = message;
+    
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, duration);
+    
+    console.log(`📢 Alerta: ${message} (${type})`);
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function exportToCSV(data, filename) {
+    if (!data || data.length === 0) {
+        showAlert('Nenhum dado para exportar', 'warning');
+        return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const csv = [
+        headers.join(','),
+        ...data.map(row => 
+            headers.map(header => {
+                let value = row[header] || '';
+                if (typeof value === 'string' && value.includes(',')) {
+                    value = `"${value.replace(/"/g, '""')}"`;
+                }
+                return value;
+            }).join(',')
+        )
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `${filename}.csv`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    showAlert('Dados exportados com sucesso!', 'success');
+}
+
+console.log('✅ Postes carregado');

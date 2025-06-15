@@ -1,4 +1,9 @@
-// JavaScript da página de Despesas - Versão Simplificada
+// Despesas JavaScript
+const CONFIG = {
+    API_BASE: 'http://localhost:8080/api'
+};
+
+// Estado global da página de despesas
 let despesasData = {
     despesas: [],
     filteredDespesas: [],
@@ -11,8 +16,8 @@ let despesasData = {
     }
 };
 
-// Função de inicialização da página
-window.initDespesasPage = async function() {
+// Inicialização quando a página carrega
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando página de Despesas...');
     
     try {
@@ -26,7 +31,7 @@ window.initDespesasPage = async function() {
         console.error('❌ Erro ao carregar página de Despesas:', error);
         showAlert('Erro ao carregar dados de despesas', 'error');
     }
-};
+});
 
 // Configurar event listeners
 function setupEventListeners() {
@@ -55,7 +60,7 @@ function setupFilters() {
     Object.entries(filterElements).forEach(([elementId, filterKey]) => {
         const element = document.getElementById(elementId);
         if (element) {
-            element.addEventListener('input', Utils.debounce(() => {
+            element.addEventListener('input', debounce(() => {
                 despesasData.filters[filterKey] = element.value;
                 applyFilters();
             }, 300));
@@ -99,16 +104,33 @@ function applyFilters() {
     displayDespesas(filtered);
 }
 
+// Funções de API
+async function apiRequest(endpoint, options = {}) {
+    try {
+        const response = await fetch(`${CONFIG.API_BASE}${endpoint}`, options);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Erro na requisição ${endpoint}:`, error);
+        throw error;
+    }
+}
+
 // Carregar despesas
 async function loadDespesas() {
     try {
-        const despesas = await DespesaService.getAll();
+        showLoading(true);
+        const despesas = await apiRequest('/despesas');
         despesasData.despesas = despesas;
         despesasData.filteredDespesas = [...despesas];
         displayDespesas(despesas);
     } catch (error) {
         console.error('Erro ao carregar despesas:', error);
         displayDespesasError();
+    } finally {
+        showLoading(false);
     }
 }
 
@@ -148,7 +170,7 @@ function updateResumoCards(resumo) {
     Object.entries(elements).forEach(([id, value]) => {
         const element = document.getElementById(id);
         if (element) {
-            element.textContent = Utils.formatCurrency(value);
+            element.textContent = formatCurrency(value);
         }
     });
 }
@@ -176,13 +198,13 @@ function displayDespesas(despesas) {
     despesas.forEach(despesa => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="date" data-label="Data">${Utils.formatDate(despesa.dataDespesa)}</td>
+            <td class="date" data-label="Data">${formatDate(despesa.dataDespesa)}</td>
             <td data-label="Descrição">
                 <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${despesa.descricao}">
                     ${despesa.descricao}
                 </div>
             </td>
-            <td class="currency" data-label="Valor">${Utils.formatCurrency(despesa.valor)}</td>
+            <td class="currency" data-label="Valor">${formatCurrency(despesa.valor)}</td>
             <td data-label="Tipo">
                 <span class="status ${despesa.tipo.toLowerCase()}">
                     ${despesa.tipo === 'FUNCIONARIO' ? '👥 Funcionário' : '📋 Outras'}
@@ -239,7 +261,15 @@ async function handleDespesaSubmit(e) {
     }
     
     try {
-        await DespesaService.create(formData);
+        showLoading(true);
+        await apiRequest('/despesas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
         showAlert('Despesa criada com sucesso!', 'success');
         
         // Resetar formulário
@@ -252,6 +282,8 @@ async function handleDespesaSubmit(e) {
     } catch (error) {
         console.error('Erro ao criar despesa:', error);
         showAlert('Erro ao criar despesa', 'error');
+    } finally {
+        showLoading(false);
     }
 }
 
@@ -273,7 +305,15 @@ async function handleEditSubmit(e) {
     }
     
     try {
-        await DespesaService.update(despesasData.currentEditId, formData);
+        showLoading(true);
+        await apiRequest(`/despesas/${despesasData.currentEditId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
         showAlert('Despesa atualizada com sucesso!', 'success');
         
         // Fechar modal
@@ -286,11 +326,13 @@ async function handleEditSubmit(e) {
     } catch (error) {
         console.error('Erro ao atualizar despesa:', error);
         showAlert('Erro ao atualizar despesa', 'error');
+    } finally {
+        showLoading(false);
     }
 }
 
 // Função de edição
-window.editDespesa = async function(id) {
+async function editDespesa(id) {
     try {
         const despesa = despesasData.despesas.find(d => d.id === id);
         
@@ -313,19 +355,22 @@ window.editDespesa = async function(id) {
         console.error('Erro ao carregar despesa para edição:', error);
         showAlert('Erro ao carregar dados da despesa', 'error');
     }
-};
+}
 
 // Função de exclusão
-window.deleteDespesa = async function(id) {
-    const confirmed = await Utils.confirm(
-        'Tem certeza que deseja excluir esta despesa?',
-        'Confirmar Exclusão'
+async function deleteDespesa(id) {
+    const confirmed = await confirm(
+        'Tem certeza que deseja excluir esta despesa?'
     );
     
     if (!confirmed) return;
     
     try {
-        await DespesaService.delete(id);
+        showLoading(true);
+        await apiRequest(`/despesas/${id}`, {
+            method: 'DELETE'
+        });
+        
         showAlert('Despesa excluída com sucesso!', 'success');
         
         // Recarregar dados
@@ -335,8 +380,10 @@ window.deleteDespesa = async function(id) {
     } catch (error) {
         console.error('Erro ao excluir despesa:', error);
         showAlert('Erro ao excluir despesa', 'error');
+    } finally {
+        showLoading(false);
     }
-};
+}
 
 // Validar dados de despesa
 function validarDespesa(dados) {
@@ -358,7 +405,7 @@ function validarDespesa(dados) {
 }
 
 // Funções auxiliares
-window.exportarDespesas = function() {
+function exportarDespesas() {
     if (!despesasData.filteredDespesas || despesasData.filteredDespesas.length === 0) {
         showAlert('Nenhuma despesa para exportar', 'warning');
         return;
@@ -366,16 +413,16 @@ window.exportarDespesas = function() {
     
     const dadosExportar = despesasData.filteredDespesas.map(despesa => ({
         'ID': despesa.id,
-        'Data': Utils.formatDate(despesa.dataDespesa),
+        'Data': formatDate(despesa.dataDespesa),
         'Descrição': despesa.descricao,
         'Valor': despesa.valor,
         'Tipo': despesa.tipo === 'FUNCIONARIO' ? 'Funcionário' : 'Outras'
     }));
     
-    Utils.exportToCSV(dadosExportar, `despesas_${new Date().toISOString().split('T')[0]}`);
-};
+    exportToCSV(dadosExportar, `despesas_${new Date().toISOString().split('T')[0]}`);
+}
 
-window.limparFiltros = function() {
+function limparFiltros() {
     // Limpar inputs de filtro
     document.getElementById('filtro-tipo').value = '';
     document.getElementById('filtro-data-inicio').value = '';
@@ -394,12 +441,12 @@ window.limparFiltros = function() {
     applyFilters();
     
     showAlert('Filtros limpos', 'success');
-};
+}
 
-window.scrollToForm = function() {
+function scrollToForm() {
     const form = document.getElementById('despesa-form');
     if (form) {
-        Utils.smoothScrollTo(form);
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
         // Focar no primeiro campo
         const firstInput = form.querySelector('input, select, textarea');
@@ -407,7 +454,111 @@ window.scrollToForm = function() {
             firstInput.focus();
         }
     }
-};
+}
 
-// Recarregar despesas
-window.loadDespesas = loadDespesas;
+// Utilitários
+function formatCurrency(value) {
+    if (value == null || isNaN(value)) return 'R$ 0,00';
+    
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString);
+    return date.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function showLoading(show) {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = show ? 'flex' : 'none';
+    }
+}
+
+function showAlert(message, type = 'success', duration = 5000) {
+    const alertContainer = document.getElementById('alert-container');
+    
+    if (!alertContainer) {
+        console.warn('Container de alertas não encontrado');
+        return;
+    }
+    
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    alert.textContent = message;
+    
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, duration);
+    
+    console.log(`📢 Alerta: ${message} (${type})`);
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function exportToCSV(data, filename) {
+    if (!data || data.length === 0) {
+        showAlert('Nenhum dado para exportar', 'warning');
+        return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const csv = [
+        headers.join(','),
+        ...data.map(row => 
+            headers.map(header => {
+                let value = row[header] || '';
+                if (typeof value === 'string' && value.includes(',')) {
+                    value = `"${value.replace(/"/g, '""')}"`;
+                }
+                return value;
+            }).join(',')
+        )
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `${filename}.csv`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    showAlert('Dados exportados com sucesso!', 'success');
+}
+
+console.log('✅ Despesas carregado');

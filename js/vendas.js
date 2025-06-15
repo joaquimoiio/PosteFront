@@ -1,4 +1,9 @@
-// JavaScript da página de Vendas - Versão corrigida com lifecycle melhorado
+// Vendas JavaScript
+const CONFIG = {
+    API_BASE: 'http://localhost:8080/api'
+};
+
+// Estado global da página de vendas
 let vendasData = {
     vendas: [],
     postes: [],
@@ -7,34 +12,27 @@ let vendasData = {
         tipoVenda: '',
         dataInicio: '',
         dataFim: ''
-    },
-    initialized: false
+    }
 };
 
-// Função de inicialização da página
-window.initVendasPage = async function() {
+// Inicialização quando a página carrega
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando página de Vendas...');
     
     try {
-        // Sempre recarregar dados, mesmo se já inicializado
-        vendasData.initialized = false;
-        
         await loadVendas();
         await loadPostes();
         await loadResumoTipos();
         setupEventListeners();
         setupFilters();
-        
-        // Definir data atual no campo de data
         setCurrentDateTime();
         
-        vendasData.initialized = true;
         console.log('✅ Página de Vendas carregada com sucesso');
     } catch (error) {
         console.error('❌ Erro ao carregar página de Vendas:', error);
         showAlert('Erro ao carregar dados de vendas', 'error');
     }
-};
+});
 
 // Definir data/hora atual
 function setCurrentDateTime() {
@@ -48,9 +46,6 @@ function setCurrentDateTime() {
 
 // Configurar event listeners
 function setupEventListeners() {
-    // Remover listeners antigos para evitar duplicação
-    removeEventListeners();
-    
     // Formulário de nova venda
     const vendaForm = document.getElementById('venda-form');
     if (vendaForm) {
@@ -79,22 +74,6 @@ function setupEventListeners() {
     }
 }
 
-// Remover event listeners antigos
-function removeEventListeners() {
-    const vendaForm = document.getElementById('venda-form');
-    if (vendaForm) {
-        // Clonar e substituir para remover todos os listeners
-        const newForm = vendaForm.cloneNode(true);
-        vendaForm.parentNode.replaceChild(newForm, vendaForm);
-    }
-    
-    const editVendaForm = document.getElementById('edit-venda-form');
-    if (editVendaForm) {
-        const newEditForm = editVendaForm.cloneNode(true);
-        editVendaForm.parentNode.replaceChild(newEditForm, editVendaForm);
-    }
-}
-
 // Configurar filtros
 function setupFilters() {
     const filterElements = {
@@ -106,16 +85,10 @@ function setupFilters() {
     Object.entries(filterElements).forEach(([elementId, filterKey]) => {
         const element = document.getElementById(elementId);
         if (element) {
-            // Remover listener antigo
-            element.removeEventListener('input', element._filterHandler);
-            
-            // Criar novo handler
-            element._filterHandler = Utils.debounce(() => {
+            element.addEventListener('input', debounce(() => {
                 vendasData.filters[filterKey] = element.value;
                 applyFilters();
-            }, 300);
-            
-            element.addEventListener('input', element._filterHandler);
+            }, 300));
         }
     });
 }
@@ -147,17 +120,34 @@ function applyFilters() {
     displayVendas(filtered);
 }
 
+// Funções de API
+async function apiRequest(endpoint, options = {}) {
+    try {
+        const response = await fetch(`${CONFIG.API_BASE}${endpoint}`, options);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Erro na requisição ${endpoint}:`, error);
+        throw error;
+    }
+}
+
 // Carregar vendas
 async function loadVendas() {
     try {
+        showLoading(true);
         console.log('📋 Carregando vendas...');
-        const vendas = await VendaService.getAll();
+        const vendas = await apiRequest('/vendas');
         vendasData.vendas = vendas;
         displayVendas(vendas);
         console.log('📋 Vendas carregadas:', vendas.length);
     } catch (error) {
         console.error('Erro ao carregar vendas:', error);
         displayVendasError();
+    } finally {
+        showLoading(false);
     }
 }
 
@@ -165,7 +155,7 @@ async function loadVendas() {
 async function loadPostes() {
     try {
         console.log('⚡ Carregando postes...');
-        const postes = await PosteService.getActive();
+        const postes = await apiRequest('/postes/ativos');
         vendasData.postes = postes;
         
         // Atualizar selects de postes (V e L)
@@ -229,7 +219,7 @@ function updateResumoCards(resumo) {
     });
 }
 
-// Handler de mudança do tipo de venda - CORRIGIDO
+// Handler de mudança do tipo de venda
 function handleTipoVendaChange(e) {
     const tipoSelecionado = e.target.value;
     
@@ -250,8 +240,6 @@ function handleTipoVendaChange(e) {
         if (campoTipo) {
             campoTipo.style.display = 'block';
             console.log(`✅ Mostrando campos para tipo ${tipoSelecionado}`);
-        } else {
-            console.warn(`❌ Elemento campos-tipo-${tipoSelecionado.toLowerCase()} não encontrado`);
         }
     }
     
@@ -273,19 +261,13 @@ function clearFieldsByType(tipoSelecionado) {
             campos.forEach(campoId => {
                 const campo = document.getElementById(campoId);
                 if (campo) {
-                    if (campo.type === 'number') {
-                        campo.value = '';
-                    } else if (campo.tagName === 'SELECT') {
-                        campo.value = '';
-                    } else {
-                        campo.value = '';
-                    }
+                    campo.value = '';
                 }
             });
         }
     });
     
-    // Restaurar valores padrão para alguns campos
+    // Restaurar valores padrão
     if (tipoSelecionado === 'V') {
         const quantidadeV = document.getElementById('venda-quantidade-v');
         if (quantidadeV && !quantidadeV.value) quantidadeV.value = '1';
@@ -314,7 +296,7 @@ function updatePreviewValor(tipo) {
         
         // Apenas sugerir se o campo estiver vazio
         if (!valorTotalInput.value) {
-            valorTotalInput.placeholder = `Sugerido: ${Utils.formatCurrency(valorSugerido)}`;
+            valorTotalInput.placeholder = `Sugerido: ${formatCurrency(valorSugerido)}`;
         }
     }
 }
@@ -339,6 +321,8 @@ async function handleVendaSubmit(e) {
     }
     
     try {
+        showLoading(true);
+        
         let vendaCreateDTO = {
             dataVenda: dataVenda,
             tipoVenda: tipoVenda,
@@ -409,7 +393,14 @@ async function handleVendaSubmit(e) {
         
         console.log('📤 Enviando venda:', vendaCreateDTO);
         
-        await VendaService.create(vendaCreateDTO);
+        await apiRequest('/vendas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(vendaCreateDTO)
+        });
+        
         showAlert('Venda criada com sucesso!', 'success');
         
         // Resetar formulário
@@ -423,6 +414,8 @@ async function handleVendaSubmit(e) {
     } catch (error) {
         console.error('Erro ao criar venda:', error);
         showAlert('Erro ao criar venda', 'error');
+    } finally {
+        showLoading(false);
     }
 }
 
@@ -478,20 +471,20 @@ function displayVendas(vendas) {
                 tipoDisplay = '<span class="status ativo">📈 Extra</span>';
                 posteInfo = 'N/A';
                 freteDisplay = 'N/A';
-                valorDisplay = Utils.formatCurrency(venda.valorExtra || 0);
+                valorDisplay = formatCurrency(venda.valorExtra || 0);
                 break;
             case 'V':
                 tipoDisplay = '<span class="status">🛒 Normal</span>';
                 posteInfo = venda.itens && venda.itens[0] ? 
                     `${venda.itens[0].codigoPoste} (${venda.itens[0].quantidade}x)` : 'N/A';
                 freteDisplay = 'N/A';
-                valorDisplay = Utils.formatCurrency(venda.valorTotalInformado || 0);
+                valorDisplay = formatCurrency(venda.valorTotalInformado || 0);
                 break;
             case 'L':
                 tipoDisplay = '<span class="status inativo">🏪 Loja</span>';
                 posteInfo = venda.itens && venda.itens[0] ? 
                     `${venda.itens[0].codigoPoste} (${venda.itens[0].quantidade}x)` : 'N/A';
-                freteDisplay = Utils.formatCurrency(venda.totalFreteEletrons || 0);
+                freteDisplay = formatCurrency(venda.totalFreteEletrons || 0);
                 valorDisplay = 'N/A';
                 break;
             default:
@@ -502,7 +495,7 @@ function displayVendas(vendas) {
         }
         
         row.innerHTML = `
-            <td class="date" data-label="Data">${Utils.formatDate(venda.dataVenda)}</td>
+            <td class="date" data-label="Data">${formatDate(venda.dataVenda)}</td>
             <td data-label="Tipo">${tipoDisplay}</td>
             <td data-label="Poste">${posteInfo}</td>
             <td class="currency" data-label="Frete">${freteDisplay}</td>
@@ -544,10 +537,10 @@ function displayVendasError() {
 }
 
 // Função de edição
-window.editVenda = async function(id) {
+async function editVenda(id) {
     try {
         console.log(`✏️ Editando venda ID: ${id}`);
-        const venda = await VendaService.getById(id);
+        const venda = await apiRequest(`/vendas/${id}`);
         
         if (!venda) {
             throw new Error('Venda não encontrada');
@@ -596,7 +589,7 @@ window.editVenda = async function(id) {
         console.error('Erro ao carregar venda para edição:', error);
         showAlert('Erro ao carregar dados da venda', 'error');
     }
-};
+}
 
 // Handler de edição
 async function handleEditVendaSubmit(e) {
@@ -627,9 +620,17 @@ async function handleEditVendaSubmit(e) {
     }
     
     try {
+        showLoading(true);
         console.log('📝 Atualizando venda:', formData);
         
-        await VendaService.update(vendasData.currentEditId, formData);
+        await apiRequest(`/vendas/${vendasData.currentEditId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
         showAlert('Venda atualizada com sucesso!', 'success');
         
         // Fechar modal
@@ -642,22 +643,27 @@ async function handleEditVendaSubmit(e) {
     } catch (error) {
         console.error('Erro ao atualizar venda:', error);
         showAlert('Erro ao atualizar venda', 'error');
+    } finally {
+        showLoading(false);
     }
 }
 
 // Função de exclusão
-window.deleteVenda = async function(id) {
-    const confirmed = await Utils.confirm(
-        'Tem certeza que deseja excluir esta venda?',
-        'Confirmar Exclusão'
+async function deleteVenda(id) {
+    const confirmed = await confirm(
+        'Tem certeza que deseja excluir esta venda?'
     );
     
     if (!confirmed) return;
     
     try {
+        showLoading(true);
         console.log(`🗑️ Excluindo venda ID: ${id}`);
         
-        await VendaService.delete(id);
+        await apiRequest(`/vendas/${id}`, {
+            method: 'DELETE'
+        });
+        
         showAlert('Venda excluída com sucesso!', 'success');
         
         await loadVendas();
@@ -666,11 +672,13 @@ window.deleteVenda = async function(id) {
     } catch (error) {
         console.error('Erro ao excluir venda:', error);
         showAlert('Erro ao excluir venda', 'error');
+    } finally {
+        showLoading(false);
     }
-};
+}
 
 // Funções auxiliares
-window.exportarVendas = function() {
+function exportarVendas() {
     if (!vendasData.vendas || vendasData.vendas.length === 0) {
         showAlert('Nenhuma venda para exportar', 'warning');
         return;
@@ -681,7 +689,7 @@ window.exportarVendas = function() {
     const dadosExportar = vendasData.vendas.map(venda => {
         const base = {
             'ID': venda.id,
-            'Data': Utils.formatDate(venda.dataVenda),
+            'Data': formatDate(venda.dataVenda),
             'Tipo': venda.tipoVenda,
             'Observações': venda.observacoes || ''
         };
@@ -716,10 +724,10 @@ window.exportarVendas = function() {
         }
     });
     
-    Utils.exportToCSV(dadosExportar, `vendas_${new Date().toISOString().split('T')[0]}`);
-};
+    exportToCSV(dadosExportar, `vendas_${new Date().toISOString().split('T')[0]}`);
+}
 
-window.limparFiltros = function() {
+function limparFiltros() {
     console.log('🧹 Limpando filtros...');
     
     const filtroTipo = document.getElementById('filtro-tipo-venda');
@@ -738,56 +746,122 @@ window.limparFiltros = function() {
     
     applyFilters();
     showAlert('Filtros limpos', 'success');
-};
+}
 
-window.scrollToForm = function() {
+function scrollToForm() {
     const form = document.getElementById('venda-form');
     if (form) {
-        Utils.smoothScrollTo(form);
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         const firstInput = form.querySelector('input, select, textarea');
         if (firstInput) {
             firstInput.focus();
         }
     }
-};
-
-// Recarregar vendas
-window.loadVendas = loadVendas;
-
-// Função de cleanup (se necessária)
-window.cleanupVendas = function() {
-    console.log('🧹 Limpando dados de vendas...');
-    
-    // Remover event listeners
-    removeEventListeners();
-    
-    // Reset dos dados
-    vendasData = {
-        vendas: [],
-        postes: [],
-        currentEditId: null,
-        filters: {
-            tipoVenda: '',
-            dataInicio: '',
-            dataFim: ''
-        },
-        initialized: false
-    };
-};
-
-// Função para verificar se dados foram carregados
-function isDataLoaded() {
-    return vendasData.initialized && 
-           Array.isArray(vendasData.vendas) &&
-           Array.isArray(vendasData.postes);
 }
 
-// Função para garantir carregamento
-window.ensureVendasLoaded = async function() {
-    if (!isDataLoaded()) {
-        console.log('🔄 Vendas não carregadas completamente, recarregando...');
-        await initVendasPage();
-    }
-};
+// Utilitários
+function formatCurrency(value) {
+    if (value == null || isNaN(value)) return 'R$ 0,00';
+    
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
 
-console.log('✅ vendas.js carregado completamente - versão com lifecycle melhorado');
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString);
+    return date.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function showLoading(show) {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = show ? 'flex' : 'none';
+    }
+}
+
+function showAlert(message, type = 'success', duration = 5000) {
+    const alertContainer = document.getElementById('alert-container');
+    
+    if (!alertContainer) {
+        console.warn('Container de alertas não encontrado');
+        return;
+    }
+    
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    alert.textContent = message;
+    
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, duration);
+    
+    console.log(`📢 Alerta: ${message} (${type})`);
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function exportToCSV(data, filename) {
+    if (!data || data.length === 0) {
+        showAlert('Nenhum dado para exportar', 'warning');
+        return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const csv = [
+        headers.join(','),
+        ...data.map(row => 
+            headers.map(header => {
+                let value = row[header] || '';
+                if (typeof value === 'string' && value.includes(',')) {
+                    value = `"${value.replace(/"/g, '""')}"`;
+                }
+                return value;
+            }).join(',')
+        )
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `${filename}.csv`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    showAlert('Dados exportados com sucesso!', 'success');
+}
+
+console.log('✅ Vendas carregado');
