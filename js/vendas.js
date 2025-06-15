@@ -1,92 +1,97 @@
-// Vendas JavaScript
+// Postes JavaScript - VERSÃO FINAL COM FORMATO BRASILEIRO
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
 
-// Estado global da página de vendas
-let vendasData = {
-    vendas: [],
+// Estado global da página de postes
+let postesData = {
     postes: [],
+    filteredPostes: [],
     currentEditId: null,
     filters: {
-        tipoVenda: '',
-        dataInicio: '',
-        dataFim: ''
+        status: '',
+        codigo: '',
+        descricao: ''
     }
 };
 
+// FUNÇÃO DE FORMATAÇÃO DE DATA BRASILEIRA (SEM HORA)
+function formatDateBR(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString + 'T00:00:00'); // Evitar problemas de timezone
+    return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+function formatDate(dateString) {
+    return formatDateBR(dateString);
+}
+
 // Inicialização quando a página carrega
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🎯 Inicializando página de Vendas...');
+    console.log('🎯 Inicializando página de Postes...');
+    
+    // Configurar localização brasileira
+    configurarLocaleBrasileiro();
     
     try {
-        await loadVendas();
         await loadPostes();
-        await loadResumoTipos();
+        await loadEstatisticas();
         setupEventListeners();
         setupFilters();
-        setCurrentDateTime();
         
-        console.log('✅ Página de Vendas carregada com sucesso');
+        console.log('✅ Página de Postes carregada com sucesso');
     } catch (error) {
-        console.error('❌ Erro ao carregar página de Vendas:', error);
-        showAlert('Erro ao carregar dados de vendas', 'error');
+        console.error('❌ Erro ao carregar página de Postes:', error);
+        showAlert('Erro ao carregar dados de postes', 'error');
     }
 });
 
-// Definir data/hora atual
-function setCurrentDateTime() {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const dataInput = document.getElementById('venda-data');
-    if (dataInput) {
-        dataInput.value = now.toISOString().slice(0, 16);
-    }
+// Configurar localização brasileira
+function configurarLocaleBrasileiro() {
+    document.documentElement.lang = 'pt-BR';
+    
+    // Configurar inputs de data
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('input[type="date"]');
+        inputs.forEach(input => {
+            input.setAttribute('lang', 'pt-BR');
+        });
+    }, 100);
 }
 
 // Configurar event listeners
 function setupEventListeners() {
-    // Formulário de nova venda
-    const vendaForm = document.getElementById('venda-form');
-    if (vendaForm) {
-        vendaForm.addEventListener('submit', handleVendaSubmit);
-        vendaForm.addEventListener('reset', handleFormReset);
+    // Formulário de novo poste
+    const posteForm = document.getElementById('poste-form');
+    if (posteForm) {
+        posteForm.addEventListener('submit', handlePosteSubmit);
     }
     
-    // Formulário de edição de venda
-    const editVendaForm = document.getElementById('edit-venda-form');
-    if (editVendaForm) {
-        editVendaForm.addEventListener('submit', handleEditVendaSubmit);
-    }
-    
-    // Select de tipo de venda - mostrar campos condicionais
-    const selectTipo = document.getElementById('venda-tipo');
-    if (selectTipo) {
-        selectTipo.addEventListener('change', handleTipoVendaChange);
-    }
-    
-    // Selects de poste - atualizar preview do preço (apenas para tipo V)
-    const selectPosteV = document.getElementById('venda-poste-v');
-    const quantidadeV = document.getElementById('venda-quantidade-v');
-    if (selectPosteV && quantidadeV) {
-        selectPosteV.addEventListener('change', () => updatePreviewValor('v'));
-        quantidadeV.addEventListener('input', () => updatePreviewValor('v'));
+    // Formulário de edição
+    const editForm = document.getElementById('edit-poste-form');
+    if (editForm) {
+        editForm.addEventListener('submit', handleEditSubmit);
     }
 }
 
 // Configurar filtros
 function setupFilters() {
     const filterElements = {
-        'filtro-tipo-venda': 'tipoVenda',
-        'filtro-data-inicio': 'dataInicio',
-        'filtro-data-fim': 'dataFim'
+        'filtro-status': 'status',
+        'filtro-codigo': 'codigo',
+        'filtro-descricao': 'descricao'
     };
     
     Object.entries(filterElements).forEach(([elementId, filterKey]) => {
         const element = document.getElementById(elementId);
         if (element) {
             element.addEventListener('input', debounce(() => {
-                vendasData.filters[filterKey] = element.value;
+                postesData.filters[filterKey] = element.value;
                 applyFilters();
             }, 300));
         }
@@ -95,29 +100,30 @@ function setupFilters() {
 
 // Aplicar filtros
 function applyFilters() {
-    const { tipoVenda, dataInicio, dataFim } = vendasData.filters;
+    const { status, codigo, descricao } = postesData.filters;
     
-    let filtered = [...vendasData.vendas];
+    let filtered = [...postesData.postes];
     
-    // Filtro por tipo de venda
-    if (tipoVenda) {
-        filtered = filtered.filter(v => v.tipoVenda === tipoVenda);
+    // Filtro por status
+    if (status !== '') {
+        const isActive = status === 'true';
+        filtered = filtered.filter(p => p.ativo === isActive);
     }
     
-    // Filtro por data início
-    if (dataInicio) {
-        const dataInicioObj = new Date(dataInicio);
-        filtered = filtered.filter(v => new Date(v.dataVenda) >= dataInicioObj);
+    // Filtro por código
+    if (codigo) {
+        const searchTerm = codigo.toLowerCase();
+        filtered = filtered.filter(p => p.codigo.toLowerCase().includes(searchTerm));
     }
     
-    // Filtro por data fim
-    if (dataFim) {
-        const dataFimObj = new Date(dataFim);
-        dataFimObj.setHours(23, 59, 59, 999);
-        filtered = filtered.filter(v => new Date(v.dataVenda) <= dataFimObj);
+    // Filtro por descrição
+    if (descricao) {
+        const searchTerm = descricao.toLowerCase();
+        filtered = filtered.filter(p => p.descricao.toLowerCase().includes(searchTerm));
     }
     
-    displayVendas(filtered);
+    postesData.filteredPostes = filtered;
+    displayPostes(filtered);
 }
 
 // Funções de API
@@ -134,81 +140,48 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
-// Carregar vendas
-async function loadVendas() {
+// Carregar postes
+async function loadPostes() {
     try {
         showLoading(true);
-        console.log('📋 Carregando vendas...');
-        const vendas = await apiRequest('/vendas');
-        vendasData.vendas = vendas;
-        displayVendas(vendas);
-        console.log('📋 Vendas carregadas:', vendas.length);
+        const postes = await apiRequest('/postes');
+        postesData.postes = postes;
+        postesData.filteredPostes = [...postes];
+        displayPostes(postes);
     } catch (error) {
-        console.error('Erro ao carregar vendas:', error);
-        displayVendasError();
+        console.error('Erro ao carregar postes:', error);
+        displayPostesError();
     } finally {
         showLoading(false);
     }
 }
 
-// Carregar postes para os selects
-async function loadPostes() {
+// Carregar estatísticas
+async function loadEstatisticas() {
     try {
-        console.log('⚡ Carregando postes...');
-        const postes = await apiRequest('/postes/ativos');
-        vendasData.postes = postes;
+        const postes = postesData.postes;
+        const ativo = postes.filter(p => p.ativo).length;
+        const total = postes.length;
+        const precoMedio = postes.length > 0 ? 
+            postes.reduce((sum, p) => sum + (p.preco || 0), 0) / postes.length : 0;
         
-        // Atualizar selects de postes (V e L)
-        const selectsPoste = ['venda-poste-v', 'venda-poste-l'];
-        selectsPoste.forEach(selectId => {
-            const selectPoste = document.getElementById(selectId);
-            if (selectPoste) {
-                // Limpar opções existentes
-                selectPoste.innerHTML = '<option value="">Selecione um poste</option>';
-                
-                // Adicionar postes
-                postes.forEach(poste => {
-                    const option = document.createElement('option');
-                    option.value = poste.id;
-                    option.textContent = `${poste.codigo} - ${poste.descricao}`;
-                    option.dataset.preco = poste.preco;
-                    selectPoste.appendChild(option);
-                });
-            }
+        updateEstatisticasCards({
+            total,
+            ativo,
+            precoMedio
         });
         
-        console.log('⚡ Postes carregados:', postes.length);
     } catch (error) {
-        console.error('Erro ao carregar postes:', error);
-        showAlert('Erro ao carregar postes', 'error');
+        console.error('Erro ao calcular estatísticas:', error);
     }
 }
 
-// Carregar resumo por tipos
-async function loadResumoTipos() {
-    try {
-        const vendas = vendasData.vendas;
-        const resumo = {
-            E: vendas.filter(v => v.tipoVenda === 'E').length,
-            V: vendas.filter(v => v.tipoVenda === 'V').length,
-            L: vendas.filter(v => v.tipoVenda === 'L').length,
-            total: vendas.length
-        };
-        
-        updateResumoCards(resumo);
-        
-    } catch (error) {
-        console.error('Erro ao calcular resumo:', error);
-    }
-}
-
-// Atualizar cards de resumo
-function updateResumoCards(resumo) {
+// Atualizar cards de estatísticas
+function updateEstatisticasCards(stats) {
     const elements = {
-        'total-vendas-e': resumo.E.toString(),
-        'total-vendas-v': resumo.V.toString(),
-        'total-vendas-l': resumo.L.toString(),
-        'total-vendas-geral': resumo.total.toString()
+        'total-postes': stats.total.toString(),
+        'postes-ativos': stats.ativo.toString(),
+        'preco-medio': formatCurrency(stats.precoMedio)
     };
     
     Object.entries(elements).forEach(([id, value]) => {
@@ -219,239 +192,18 @@ function updateResumoCards(resumo) {
     });
 }
 
-// Handler de mudança do tipo de venda
-function handleTipoVendaChange(e) {
-    const tipoSelecionado = e.target.value;
-    
-    console.log('🔄 Tipo de venda selecionado:', tipoSelecionado);
-    
-    // Ocultar todos os campos condicionais
-    const camposTipos = ['e', 'v', 'l'];
-    camposTipos.forEach(tipo => {
-        const elemento = document.getElementById(`campos-tipo-${tipo}`);
-        if (elemento) {
-            elemento.style.display = 'none';
-        }
-    });
-    
-    // Mostrar campos apropriados
-    if (tipoSelecionado) {
-        const campoTipo = document.getElementById(`campos-tipo-${tipoSelecionado.toLowerCase()}`);
-        if (campoTipo) {
-            campoTipo.style.display = 'block';
-            console.log(`✅ Mostrando campos para tipo ${tipoSelecionado}`);
-        }
-    }
-    
-    // Limpar campos dos outros tipos
-    clearFieldsByType(tipoSelecionado);
-}
-
-// Limpar campos não relacionados ao tipo selecionado
-function clearFieldsByType(tipoSelecionado) {
-    const camposLimpar = {
-        'E': ['venda-valor-extra'],
-        'V': ['venda-poste-v', 'venda-quantidade-v', 'venda-valor-total-v'],
-        'L': ['venda-poste-l', 'venda-quantidade-l', 'venda-frete-l']
-    };
-    
-    // Limpar todos os campos exceto do tipo selecionado
-    Object.entries(camposLimpar).forEach(([tipo, campos]) => {
-        if (tipo !== tipoSelecionado) {
-            campos.forEach(campoId => {
-                const campo = document.getElementById(campoId);
-                if (campo) {
-                    campo.value = '';
-                }
-            });
-        }
-    });
-    
-    // Restaurar valores padrão
-    if (tipoSelecionado === 'V') {
-        const quantidadeV = document.getElementById('venda-quantidade-v');
-        if (quantidadeV && !quantidadeV.value) quantidadeV.value = '1';
-    }
-    
-    if (tipoSelecionado === 'L') {
-        const quantidadeL = document.getElementById('venda-quantidade-l');
-        const freteL = document.getElementById('venda-frete-l');
-        if (quantidadeL && !quantidadeL.value) quantidadeL.value = '1';
-        if (freteL && !freteL.value) freteL.value = '0';
-    }
-}
-
-// Atualizar preview do valor baseado no poste e quantidade (apenas tipo V)
-function updatePreviewValor(tipo) {
-    if (tipo !== 'v') return;
-    
-    const selectPoste = document.getElementById('venda-poste-v');
-    const quantidade = parseInt(document.getElementById('venda-quantidade-v').value) || 1;
-    const valorTotalInput = document.getElementById('venda-valor-total-v');
-    
-    if (selectPoste && selectPoste.selectedIndex > 0 && valorTotalInput) {
-        const selectedOption = selectPoste.options[selectPoste.selectedIndex];
-        const precoUnitario = parseFloat(selectedOption.dataset.preco) || 0;
-        const valorSugerido = precoUnitario * quantidade;
-        
-        // Apenas sugerir se o campo estiver vazio
-        if (!valorTotalInput.value) {
-            valorTotalInput.placeholder = `Sugerido: ${formatCurrency(valorSugerido)}`;
-        }
-    }
-}
-
-// Handler do formulário de nova venda
-async function handleVendaSubmit(e) {
-    e.preventDefault();
-    
-    const tipoVenda = document.getElementById('venda-tipo').value;
-    const dataVenda = document.getElementById('venda-data').value;
-    const observacoes = document.getElementById('venda-observacoes').value.trim();
-    
-    // Validação básica
-    if (!tipoVenda) {
-        showAlert('Selecione o tipo de venda', 'warning');
-        return;
-    }
-    
-    if (!dataVenda) {
-        showAlert('Data da venda é obrigatória', 'warning');
-        return;
-    }
-    
-    try {
-        showLoading(true);
-        
-        let vendaCreateDTO = {
-            dataVenda: dataVenda,
-            tipoVenda: tipoVenda,
-            observacoes: observacoes
-        };
-        
-        // Configurar campos específicos por tipo
-        switch (tipoVenda) {
-            case 'E':
-                const valorExtra = parseFloat(document.getElementById('venda-valor-extra').value);
-                if (!valorExtra || valorExtra <= 0) {
-                    showAlert('Valor extra deve ser maior que zero', 'warning');
-                    return;
-                }
-                vendaCreateDTO.valorExtra = valorExtra;
-                break;
-                
-            case 'V':
-                const posteIdV = document.getElementById('venda-poste-v').value;
-                const quantidadeV = parseInt(document.getElementById('venda-quantidade-v').value);
-                const valorTotalV = parseFloat(document.getElementById('venda-valor-total-v').value);
-                
-                if (!posteIdV) {
-                    showAlert('Selecione um poste', 'warning');
-                    return;
-                }
-                if (!quantidadeV || quantidadeV <= 0) {
-                    showAlert('Quantidade deve ser maior que zero', 'warning');
-                    return;
-                }
-                if (!valorTotalV || valorTotalV <= 0) {
-                    showAlert('Valor de venda deve ser maior que zero', 'warning');
-                    return;
-                }
-                
-                vendaCreateDTO.posteId = parseInt(posteIdV);
-                vendaCreateDTO.quantidade = quantidadeV;
-                vendaCreateDTO.valorVenda = valorTotalV;
-                break;
-                
-            case 'L':
-                const posteIdL = document.getElementById('venda-poste-l').value;
-                const quantidadeL = parseInt(document.getElementById('venda-quantidade-l').value);
-                const freteL = parseFloat(document.getElementById('venda-frete-l').value) || 0;
-                
-                if (!posteIdL) {
-                    showAlert('Selecione um poste para referência', 'warning');
-                    return;
-                }
-                if (!quantidadeL || quantidadeL <= 0) {
-                    showAlert('Quantidade deve ser maior que zero', 'warning');
-                    return;
-                }
-                if (freteL <= 0) {
-                    showAlert('Frete deve ser maior que zero', 'warning');
-                    return;
-                }
-                
-                vendaCreateDTO.posteId = parseInt(posteIdL);
-                vendaCreateDTO.quantidade = quantidadeL;
-                vendaCreateDTO.freteEletrons = freteL;
-                break;
-                
-            default:
-                showAlert('Tipo de venda inválido', 'error');
-                return;
-        }
-        
-        console.log('📤 Enviando venda:', vendaCreateDTO);
-        
-        await apiRequest('/vendas', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(vendaCreateDTO)
-        });
-        
-        showAlert('Venda criada com sucesso!', 'success');
-        
-        // Resetar formulário
-        e.target.reset();
-        handleFormReset();
-        
-        // Recarregar dados
-        await loadVendas();
-        await loadResumoTipos();
-        
-    } catch (error) {
-        console.error('Erro ao criar venda:', error);
-        showAlert('Erro ao criar venda', 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-// Handler de reset do formulário
-function handleFormReset() {
-    // Ocultar todos os campos condicionais
-    const camposTipos = ['e', 'v', 'l'];
-    camposTipos.forEach(tipo => {
-        const elemento = document.getElementById(`campos-tipo-${tipo}`);
-        if (elemento) {
-            elemento.style.display = 'none';
-        }
-    });
-    
-    // Limpar placeholders
-    const valorTotalV = document.getElementById('venda-valor-total-v');
-    if (valorTotalV) {
-        valorTotalV.placeholder = '0,00';
-    }
-    
-    // Redefinir data atual
-    setCurrentDateTime();
-}
-
-// Exibir vendas na tabela
-function displayVendas(vendas) {
-    const tbody = document.querySelector('#vendas-table tbody');
+// Exibir postes na tabela
+function displayPostes(postes) {
+    const tbody = document.querySelector('#postes-table tbody');
     if (!tbody) return;
     
-    if (!vendas || vendas.length === 0) {
+    if (!postes || postes.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="empty-table">
-                    <div class="empty-table-icon">📋</div>
-                    <p>Nenhuma venda encontrada</p>
-                    <button class="btn btn-primary" onclick="scrollToForm()">Cadastrar Primeira Venda</button>
+                <td colspan="5" class="empty-table">
+                    <div class="empty-table-icon">⚡</div>
+                    <p>Nenhum poste encontrado</p>
+                    <button class="btn btn-primary" onclick="scrollToForm()">Cadastrar Primeiro Poste</button>
                 </td>
             </tr>
         `;
@@ -460,170 +212,122 @@ function displayVendas(vendas) {
     
     tbody.innerHTML = '';
     
-    vendas.forEach(venda => {
+    postes.forEach(poste => {
         const row = document.createElement('tr');
-        
-        // Determinar informações baseadas no tipo
-        let tipoDisplay, posteInfo, freteDisplay, valorDisplay;
-        
-        switch (venda.tipoVenda) {
-            case 'E':
-                tipoDisplay = '<span class="status ativo">📈 Extra</span>';
-                posteInfo = 'N/A';
-                freteDisplay = 'N/A';
-                valorDisplay = formatCurrency(venda.valorExtra || 0);
-                break;
-            case 'V':
-                tipoDisplay = '<span class="status">🛒 Normal</span>';
-                posteInfo = venda.itens && venda.itens[0] ? 
-                    `${venda.itens[0].codigoPoste} (${venda.itens[0].quantidade}x)` : 'N/A';
-                freteDisplay = 'N/A';
-                valorDisplay = formatCurrency(venda.valorTotalInformado || 0);
-                break;
-            case 'L':
-                tipoDisplay = '<span class="status inativo">🏪 Loja</span>';
-                posteInfo = venda.itens && venda.itens[0] ? 
-                    `${venda.itens[0].codigoPoste} (${venda.itens[0].quantidade}x)` : 'N/A';
-                freteDisplay = formatCurrency(venda.totalFreteEletrons || 0);
-                valorDisplay = 'N/A';
-                break;
-            default:
-                tipoDisplay = venda.tipoVenda;
-                posteInfo = 'N/A';
-                freteDisplay = 'N/A';
-                valorDisplay = 'N/A';
-        }
-        
         row.innerHTML = `
-            <td class="date" data-label="Data">${formatDate(venda.dataVenda)}</td>
-            <td data-label="Tipo">${tipoDisplay}</td>
-            <td data-label="Poste">${posteInfo}</td>
-            <td class="currency" data-label="Frete">${freteDisplay}</td>
-            <td class="currency" data-label="Valor">${valorDisplay}</td>
-            <td data-label="Observações">${venda.observacoes || '-'}</td>
+            <td data-label="Código"><strong>${poste.codigo}</strong></td>
+            <td data-label="Descrição">
+                <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;" title="${poste.descricao}">
+                    ${poste.descricao}
+                </div>
+            </td>
+            <td class="currency" data-label="Preço">${formatCurrency(poste.preco)}</td>
+            <td data-label="Status">
+                <span class="status ${poste.ativo ? 'ativo' : 'inativo'}">
+                    ${poste.ativo ? '✅ Ativo' : '❌ Inativo'}
+                </span>
+            </td>
             <td data-label="Ações">
                 <div class="table-actions">
-                    <button class="btn btn-primary btn-small" onclick="editVenda(${venda.id})" title="Editar">
+                    <button class="btn btn-primary btn-small" onclick="editPoste(${poste.id})" title="Editar">
                         <span class="btn-icon">✏️</span>
                         Editar
                     </button>
-                    <button class="btn btn-danger btn-small" onclick="deleteVenda(${venda.id})" title="Excluir">
-                        <span class="btn-icon">🗑️</span>
-                        Excluir
+                    <button class="btn ${poste.ativo ? 'btn-secondary' : 'btn-success'} btn-small" 
+                            onclick="togglePosteStatus(${poste.id})" 
+                            title="${poste.ativo ? 'Inativar' : 'Ativar'}">
+                        <span class="btn-icon">${poste.ativo ? '❌' : '✅'}</span>
+                        ${poste.ativo ? 'Inativar' : 'Ativar'}
                     </button>
                 </div>
             </td>
         `;
         tbody.appendChild(row);
     });
-    
-    console.log(`📊 Exibindo ${vendas.length} vendas na tabela`);
 }
 
-// Exibir erro ao carregar vendas
-function displayVendasError() {
-    const tbody = document.querySelector('#vendas-table tbody');
+// Exibir erro ao carregar postes
+function displayPostesError() {
+    const tbody = document.querySelector('#postes-table tbody');
     if (tbody) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="empty-table">
+                <td colspan="5" class="empty-table">
                     <div class="empty-table-icon">❌</div>
-                    <p>Erro ao carregar vendas</p>
-                    <button class="btn btn-secondary" onclick="loadVendas()">Tentar Novamente</button>
+                    <p>Erro ao carregar postes</p>
+                    <button class="btn btn-secondary" onclick="loadPostes()">Tentar Novamente</button>
                 </td>
             </tr>
         `;
     }
 }
 
-// Função de edição
-async function editVenda(id) {
-    try {
-        console.log(`✏️ Editando venda ID: ${id}`);
-        const venda = await apiRequest(`/vendas/${id}`);
-        
-        if (!venda) {
-            throw new Error('Venda não encontrada');
-        }
-        
-        // Configurar campos baseados no tipo
-        document.getElementById('edit-tipo-venda').value = venda.tipoVenda;
-        
-        // Mostrar/ocultar campos baseados no tipo
-        const freteGroup = document.getElementById('edit-frete-group');
-        const valorGroup = document.getElementById('edit-valor-group');
-        const extraGroup = document.getElementById('edit-extra-group');
-        
-        // Ocultar todos primeiro
-        if (freteGroup) freteGroup.style.display = 'none';
-        if (valorGroup) valorGroup.style.display = 'none';
-        if (extraGroup) extraGroup.style.display = 'none';
-        
-        switch (venda.tipoVenda) {
-            case 'E':
-                if (extraGroup) extraGroup.style.display = 'block';
-                document.getElementById('edit-valor-extra').value = venda.valorExtra || 0;
-                break;
-            case 'V':
-                if (valorGroup) valorGroup.style.display = 'block';
-                document.getElementById('edit-valor-total').value = venda.valorTotalInformado || 0;
-                break;
-            case 'L':
-                if (freteGroup) freteGroup.style.display = 'block';
-                document.getElementById('edit-frete-eletrons').value = venda.totalFreteEletrons || 0;
-                break;
-        }
-        
-        document.getElementById('edit-observacoes').value = venda.observacoes || '';
-        
-        // Definir ID atual
-        vendasData.currentEditId = id;
-        
-        // Abrir modal
-        const modal = document.getElementById('edit-venda-modal');
-        if (modal) {
-            modal.style.display = 'block';
-        }
-        
-    } catch (error) {
-        console.error('Erro ao carregar venda para edição:', error);
-        showAlert('Erro ao carregar dados da venda', 'error');
-    }
-}
-
-// Handler de edição
-async function handleEditVendaSubmit(e) {
+// Handler do formulário de novo poste
+async function handlePosteSubmit(e) {
     e.preventDefault();
     
-    const tipoVenda = document.getElementById('edit-tipo-venda').value;
-    
-    let formData = {
-        observacoes: document.getElementById('edit-observacoes').value.trim()
+    const formData = {
+        codigo: document.getElementById('poste-codigo').value.trim(),
+        descricao: document.getElementById('poste-descricao').value.trim(),
+        preco: parseFloat(document.getElementById('poste-preco').value),
+        ativo: true
     };
     
-    switch (tipoVenda) {
-        case 'E':
-            formData.valorExtra = parseFloat(document.getElementById('edit-valor-extra').value) || 0;
-            formData.totalFreteEletrons = 0;
-            formData.valorTotalInformado = 0;
-            break;
-        case 'V':
-            formData.valorTotalInformado = parseFloat(document.getElementById('edit-valor-total').value) || 0;
-            formData.totalFreteEletrons = 0;
-            formData.valorExtra = 0;
-            break;
-        case 'L':
-            formData.totalFreteEletrons = parseFloat(document.getElementById('edit-frete-eletrons').value) || 0;
-            formData.valorTotalInformado = 0;
-            formData.valorExtra = 0;
-            break;
+    // Validação
+    const erros = validarPoste(formData);
+    if (erros.length > 0) {
+        showAlert(erros.join(', '), 'warning');
+        return;
     }
     
     try {
         showLoading(true);
-        console.log('📝 Atualizando venda:', formData);
+        await apiRequest('/postes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
         
-        await apiRequest(`/vendas/${vendasData.currentEditId}`, {
+        showAlert('Poste criado com sucesso!', 'success');
+        
+        // Resetar formulário
+        e.target.reset();
+        
+        // Recarregar dados
+        await loadPostes();
+        await loadEstatisticas();
+        
+    } catch (error) {
+        console.error('Erro ao criar poste:', error);
+        showAlert('Erro ao criar poste', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Handler do formulário de edição
+async function handleEditSubmit(e) {
+    e.preventDefault();
+    
+    const formData = {
+        codigo: document.getElementById('edit-poste-codigo').value.trim(),
+        descricao: document.getElementById('edit-poste-descricao').value.trim(),
+        preco: parseFloat(document.getElementById('edit-poste-preco').value),
+        ativo: document.getElementById('edit-poste-ativo').value === 'true'
+    };
+    
+    // Validação
+    const erros = validarPoste(formData);
+    if (erros.length > 0) {
+        showAlert(erros.join(', '), 'warning');
+        return;
+    }
+    
+    try {
+        showLoading(true);
+        await apiRequest(`/postes/${postesData.currentEditId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -631,127 +335,160 @@ async function handleEditVendaSubmit(e) {
             body: JSON.stringify(formData)
         });
         
-        showAlert('Venda atualizada com sucesso!', 'success');
+        showAlert('Poste atualizado com sucesso!', 'success');
         
         // Fechar modal
-        closeModal('edit-venda-modal');
+        closeModal('edit-poste-modal');
         
         // Recarregar dados
-        await loadVendas();
-        await loadResumoTipos();
+        await loadPostes();
+        await loadEstatisticas();
         
     } catch (error) {
-        console.error('Erro ao atualizar venda:', error);
-        showAlert('Erro ao atualizar venda', 'error');
+        console.error('Erro ao atualizar poste:', error);
+        showAlert('Erro ao atualizar poste', 'error');
     } finally {
         showLoading(false);
     }
 }
 
-// Função de exclusão
-async function deleteVenda(id) {
-    const confirmed = await confirm(
-        'Tem certeza que deseja excluir esta venda?'
-    );
-    
-    if (!confirmed) return;
-    
+// Função de edição
+async function editPoste(id) {
     try {
-        showLoading(true);
-        console.log(`🗑️ Excluindo venda ID: ${id}`);
+        const poste = postesData.postes.find(p => p.id === id);
         
-        await apiRequest(`/vendas/${id}`, {
-            method: 'DELETE'
-        });
+        if (!poste) {
+            throw new Error('Poste não encontrado');
+        }
         
-        showAlert('Venda excluída com sucesso!', 'success');
+        // Preencher formulário de edição
+        document.getElementById('edit-poste-codigo').value = poste.codigo;
+        document.getElementById('edit-poste-descricao').value = poste.descricao;
+        document.getElementById('edit-poste-preco').value = poste.preco;
+        document.getElementById('edit-poste-ativo').value = poste.ativo.toString();
         
-        await loadVendas();
-        await loadResumoTipos();
+        // Definir ID atual
+        postesData.currentEditId = id;
+        
+        // Abrir modal
+        document.getElementById('edit-poste-modal').style.display = 'block';
         
     } catch (error) {
-        console.error('Erro ao excluir venda:', error);
-        showAlert('Erro ao excluir venda', 'error');
+        console.error('Erro ao carregar poste para edição:', error);
+        showAlert('Erro ao carregar dados do poste', 'error');
+    }
+}
+
+// Função de alternar status
+async function togglePosteStatus(id) {
+    try {
+        const poste = postesData.postes.find(p => p.id === id);
+        if (!poste) {
+            throw new Error('Poste não encontrado');
+        }
+        
+        const novoStatus = !poste.ativo;
+        const acao = novoStatus ? 'ativar' : 'inativar';
+        
+        const confirmed = await confirm(
+            `Tem certeza que deseja ${acao} este poste?`
+        );
+        
+        if (!confirmed) return;
+        
+        showLoading(true);
+        await apiRequest(`/postes/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ...poste, ativo: novoStatus })
+        });
+        
+        showAlert(`Poste ${acao}do com sucesso!`, 'success');
+        
+        await loadPostes();
+        await loadEstatisticas();
+        
+    } catch (error) {
+        console.error('Erro ao alterar status do poste:', error);
+        showAlert('Erro ao alterar status do poste', 'error');
     } finally {
         showLoading(false);
     }
+}
+
+// Validar dados de poste
+function validarPoste(dados) {
+    const erros = [];
+    
+    if (!dados.codigo || dados.codigo.trim().length < 1) {
+        erros.push('Código é obrigatório');
+    }
+    
+    if (!dados.descricao || dados.descricao.trim().length < 3) {
+        erros.push('Descrição deve ter pelo menos 3 caracteres');
+    }
+    
+    if (!dados.preco || dados.preco <= 0) {
+        erros.push('Preço deve ser maior que zero');
+    }
+    
+    // Verificar se código já existe (apenas para novos postes)
+    if (!postesData.currentEditId) {
+        const codigoExistente = postesData.postes.find(p => 
+            p.codigo.toLowerCase() === dados.codigo.toLowerCase()
+        );
+        if (codigoExistente) {
+            erros.push('Código já existe');
+        }
+    }
+    
+    return erros;
 }
 
 // Funções auxiliares
-function exportarVendas() {
-    if (!vendasData.vendas || vendasData.vendas.length === 0) {
-        showAlert('Nenhuma venda para exportar', 'warning');
+function exportarPostes() {
+    if (!postesData.postes || postesData.postes.length === 0) {
+        showAlert('Nenhum poste para exportar', 'warning');
         return;
     }
     
-    console.log('📊 Exportando vendas...');
+    const dadosExportar = postesData.postes.map(poste => ({
+        'Código': poste.codigo,
+        'Descrição': poste.descricao,
+        'Preço': poste.preco,
+        'Status': poste.ativo ? 'Ativo' : 'Inativo'
+    }));
     
-    const dadosExportar = vendasData.vendas.map(venda => {
-        const base = {
-            'ID': venda.id,
-            'Data': formatDate(venda.dataVenda),
-            'Tipo': venda.tipoVenda,
-            'Observações': venda.observacoes || ''
-        };
-        
-        switch (venda.tipoVenda) {
-            case 'E':
-                return {
-                    ...base,
-                    'Valor Extra': venda.valorExtra || 0,
-                    'Frete': 'N/A',
-                    'Valor Venda': 'N/A',
-                    'Poste': 'N/A'
-                };
-            case 'V':
-                return {
-                    ...base,
-                    'Valor Extra': 'N/A',
-                    'Frete': 'N/A',
-                    'Valor Venda': venda.valorTotalInformado || 0,
-                    'Poste': venda.itens?.[0]?.codigoPoste || 'N/A'
-                };
-            case 'L':
-                return {
-                    ...base,
-                    'Valor Extra': 'N/A',
-                    'Frete': venda.totalFreteEletrons || 0,
-                    'Valor Venda': 'N/A',
-                    'Poste': venda.itens?.[0]?.codigoPoste || 'N/A'
-                };
-            default:
-                return base;
-        }
-    });
-    
-    exportToCSV(dadosExportar, `vendas_${new Date().toISOString().split('T')[0]}`);
+    exportToCSV(dadosExportar, `postes_${new Date().toISOString().split('T')[0]}`);
 }
 
 function limparFiltros() {
-    console.log('🧹 Limpando filtros...');
+    // Limpar inputs de filtro
+    document.getElementById('filtro-status').value = '';
+    document.getElementById('filtro-codigo').value = '';
+    document.getElementById('filtro-descricao').value = '';
     
-    const filtroTipo = document.getElementById('filtro-tipo-venda');
-    const filtroDataInicio = document.getElementById('filtro-data-inicio');
-    const filtroDataFim = document.getElementById('filtro-data-fim');
-    
-    if (filtroTipo) filtroTipo.value = '';
-    if (filtroDataInicio) filtroDataInicio.value = '';
-    if (filtroDataFim) filtroDataFim.value = '';
-    
-    vendasData.filters = {
-        tipoVenda: '',
-        dataInicio: '',
-        dataFim: ''
+    // Resetar filtros
+    postesData.filters = {
+        status: '',
+        codigo: '',
+        descricao: ''
     };
     
+    // Reaplicar (sem filtros)
     applyFilters();
+    
     showAlert('Filtros limpos', 'success');
 }
 
 function scrollToForm() {
-    const form = document.getElementById('venda-form');
+    const form = document.getElementById('poste-form');
     if (form) {
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // Focar no primeiro campo
         const firstInput = form.querySelector('input, select, textarea');
         if (firstInput) {
             firstInput.focus();
@@ -759,7 +496,7 @@ function scrollToForm() {
     }
 }
 
-// Utilitários
+// Utilitários - FORMATAÇÃO BRASILEIRA
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
     
@@ -769,17 +506,15 @@ function formatCurrency(value) {
     }).format(value);
 }
 
-function formatDate(dateString) {
-    if (!dateString) return '-';
+function dateToInputValue(date) {
+    if (!date) return '';
     
-    const date = new Date(dateString);
-    return date.toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
 }
 
 function showLoading(show) {
@@ -851,7 +586,7 @@ function exportToCSV(data, filename) {
         )
     ].join('\n');
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: 'text/csv' );
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.download = `${filename}.csv`;
@@ -864,4 +599,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Vendas carregado');
+console.log('✅ Postes carregado com formato brasileiro');

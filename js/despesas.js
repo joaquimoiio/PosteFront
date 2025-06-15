@@ -1,4 +1,4 @@
-// Despesas JavaScript
+// Despesas JavaScript - VERSÃO FINAL COM FORMATO BRASILEIRO
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -16,9 +16,28 @@ let despesasData = {
     }
 };
 
+// FUNÇÃO DE FORMATAÇÃO DE DATA BRASILEIRA (SEM HORA)
+function formatDateBR(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString + 'T00:00:00'); // Evitar problemas de timezone
+    return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+function formatDate(dateString) {
+    return formatDateBR(dateString);
+}
+
 // Inicialização quando a página carrega
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando página de Despesas...');
+    
+    // Configurar localização brasileira
+    configurarLocaleBrasileiro();
     
     try {
         await loadDespesas();
@@ -26,12 +45,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
         setupFilters();
         
+        // Definir filtros de data padrão - NOVO
+        setDefaultDateFilters();
+        
+        // Aplicar filtros iniciais
+        applyFilters();
+        
         console.log('✅ Página de Despesas carregada com sucesso');
     } catch (error) {
         console.error('❌ Erro ao carregar página de Despesas:', error);
         showAlert('Erro ao carregar dados de despesas', 'error');
     }
 });
+
+// Configurar localização brasileira
+function configurarLocaleBrasileiro() {
+    document.documentElement.lang = 'pt-BR';
+    
+    // Configurar inputs de data
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('input[type="date"]');
+        inputs.forEach(input => {
+            input.setAttribute('lang', 'pt-BR');
+        });
+    }, 100);
+}
 
 // Configurar event listeners
 function setupEventListeners() {
@@ -68,7 +106,27 @@ function setupFilters() {
     });
 }
 
-// Aplicar filtros
+// Função para definir filtros de data padrão - NOVA
+function setDefaultDateFilters() {
+    const hoje = new Date();
+    const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    
+    // Definir data início como primeiro dia do mês atual
+    const filtroDataInicio = document.getElementById('filtro-data-inicio');
+    if (filtroDataInicio) {
+        filtroDataInicio.value = dateToInputValue(primeiroDiaMes);
+        despesasData.filters.dataInicio = filtroDataInicio.value;
+    }
+    
+    // Definir data fim como hoje
+    const filtroDataFim = document.getElementById('filtro-data-fim');
+    if (filtroDataFim) {
+        filtroDataFim.value = dateToInputValue(hoje);
+        despesasData.filters.dataFim = filtroDataFim.value;
+    }
+}
+
+// Aplicar filtros - VERSÃO CORRIGIDA
 function applyFilters() {
     const { tipo, dataInicio, dataFim, descricao } = despesasData.filters;
     
@@ -79,17 +137,22 @@ function applyFilters() {
         filtered = filtered.filter(d => d.tipo === tipo);
     }
     
-    // Filtro por data início
+    // Filtro por data início - CORRIGIDO
     if (dataInicio) {
-        const dataInicioObj = new Date(dataInicio);
-        filtered = filtered.filter(d => new Date(d.dataDespesa) >= dataInicioObj);
+        const dataInicioObj = new Date(dataInicio + 'T00:00:00'); // Adicionar horário para evitar problemas de timezone
+        filtered = filtered.filter(d => {
+            const dataDespesa = new Date(d.dataDespesa);
+            return dataDespesa >= dataInicioObj;
+        });
     }
     
-    // Filtro por data fim
+    // Filtro por data fim - CORRIGIDO  
     if (dataFim) {
-        const dataFimObj = new Date(dataFim);
-        dataFimObj.setHours(23, 59, 59, 999); // Incluir o dia inteiro
-        filtered = filtered.filter(d => new Date(d.dataDespesa) <= dataFimObj);
+        const dataFimObj = new Date(dataFim + 'T23:59:59'); // Incluir o dia inteiro
+        filtered = filtered.filter(d => {
+            const dataDespesa = new Date(d.dataDespesa);
+            return dataDespesa <= dataFimObj;
+        });
     }
     
     // Filtro por descrição
@@ -175,7 +238,7 @@ function updateResumoCards(resumo) {
     });
 }
 
-// Exibir despesas na tabela
+// Exibir despesas na tabela - FORMATAÇÃO BRASILEIRA SEM HORA
 function displayDespesas(despesas) {
     const tbody = document.querySelector('#despesas-table tbody');
     if (!tbody) return;
@@ -198,7 +261,7 @@ function displayDespesas(despesas) {
     despesas.forEach(despesa => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="date" data-label="Data">${formatDate(despesa.dataDespesa)}</td>
+            <td class="date" data-label="Data">${formatDateBR(despesa.dataDespesa)}</td>
             <td data-label="Descrição">
                 <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${despesa.descricao}">
                     ${despesa.descricao}
@@ -413,7 +476,7 @@ function exportarDespesas() {
     
     const dadosExportar = despesasData.filteredDespesas.map(despesa => ({
         'ID': despesa.id,
-        'Data': formatDate(despesa.dataDespesa),
+        'Data': formatDateBR(despesa.dataDespesa),
         'Descrição': despesa.descricao,
         'Valor': despesa.valor,
         'Tipo': despesa.tipo === 'FUNCIONARIO' ? 'Funcionário' : 'Outras'
@@ -456,7 +519,7 @@ function scrollToForm() {
     }
 }
 
-// Utilitários
+// Utilitários - FORMATAÇÃO BRASILEIRA
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
     
@@ -466,17 +529,15 @@ function formatCurrency(value) {
     }).format(value);
 }
 
-function formatDate(dateString) {
-    if (!dateString) return '-';
+function dateToInputValue(date) {
+    if (!date) return '';
     
-    const date = new Date(dateString);
-    return date.toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
 }
 
 function showLoading(show) {
@@ -561,4 +622,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Despesas carregado');
+console.log('✅ Despesas carregado com formato brasileiro');

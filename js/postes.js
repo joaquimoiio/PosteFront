@@ -1,4 +1,4 @@
-// Postes JavaScript
+// Postes JavaScript - VERSÃO CORRIGIDA COMPLETA
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -464,7 +464,7 @@ function scrollToForm() {
     }
 }
 
-// Utilitários
+// Utilitários - FORMATAÇÃO BRASILEIRA
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
     
@@ -472,6 +472,34 @@ function formatCurrency(value) {
         style: 'currency',
         currency: 'BRL'
     }).format(value);
+}
+
+function formatDateBR(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString);
+    return date.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function dateToInputValue(date) {
+    if (!date) return '';
+    
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
+function formatDate(dateString) {
+    return formatDateBR(dateString);
 }
 
 function showLoading(show) {

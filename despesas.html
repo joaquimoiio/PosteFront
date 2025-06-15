@@ -3,8 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Language" content="pt-BR">
+    <meta name="locale" content="pt_BR">
+    <meta name="language" content="Portuguese">
     <title>Despesas - Gerenciador de Vendas de Postes</title>
     <link rel="stylesheet" href="css/despesas.css">
+    <style>
+        /* CSS para Calendário Brasileiro */
+        input[type="date"] {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .date-help {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 2px;
+            font-style: italic;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3e%3cpath fill-rule='evenodd' d='M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z' clip-rule='evenodd'/%3e%3c/svg%3e");
+            background-size: 16px 16px;
+            background-repeat: no-repeat;
+            background-position: center;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+    </style>
 </head>
 <body>
     <!-- Header -->
@@ -112,6 +137,7 @@
             <section class="table-section">
                 <div class="section-header">
                     <h3>🔍 Filtros</h3>
+                    <small style="color: #64748b;">Use os filtros para refinar sua busca. Por padrão, mostra despesas do mês atual.</small>
                 </div>
                 
                 <div class="table-filters">
@@ -126,13 +152,15 @@
                         </div>
 
                         <div class="filter-group">
-                            <label for="filtro-data-inicio">Data Início</label>
-                            <input type="date" id="filtro-data-inicio">
+                            <label for="filtro-data-inicio">📅 Data Início</label>
+                            <input type="date" id="filtro-data-inicio" lang="pt-BR">
+                            <small class="date-help">Formato: dd/mm/aaaa</small>
                         </div>
 
                         <div class="filter-group">
-                            <label for="filtro-data-fim">Data Fim</label>
-                            <input type="date" id="filtro-data-fim">
+                            <label for="filtro-data-fim">📅 Data Fim</label>
+                            <input type="date" id="filtro-data-fim" lang="pt-BR">
+                            <small class="date-help">Formato: dd/mm/aaaa</small>
                         </div>
 
                         <div class="filter-group">
@@ -240,6 +268,6 @@
     <!-- Alert Container -->
     <div id="alert-container" class="alert-container"></div>
 
-    <script src="/js/despesas.js"></script>
+    <script src="js/despesas.js"></script>
 </body>
 </html>

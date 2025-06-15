@@ -1,4 +1,4 @@
-// Dashboard JavaScript
+// Dashboard JavaScript - VERSÃO FINAL COM FORMATO BRASILEIRO
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -12,9 +12,28 @@ let dashboardData = {
     loading: false
 };
 
+// FUNÇÃO DE FORMATAÇÃO DE DATA BRASILEIRA (SEM HORA)
+function formatDateBR(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString + 'T00:00:00'); // Evitar problemas de timezone
+    return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+function formatDate(dateString) {
+    return formatDateBR(dateString);
+}
+
 // Inicialização quando a página carrega
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando Dashboard...');
+    
+    // Configurar localização brasileira
+    configurarLocaleBrasileiro();
     
     try {
         await loadDashboardData();
@@ -24,6 +43,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         showAlert('Erro ao carregar dados do dashboard', 'error');
     }
 });
+
+// Configurar localização brasileira
+function configurarLocaleBrasileiro() {
+    document.documentElement.lang = 'pt-BR';
+    
+    // Configurar inputs de data (se houver)
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('input[type="date"]');
+        inputs.forEach(input => {
+            input.setAttribute('lang', 'pt-BR');
+        });
+    }, 100);
+}
 
 // Carregar todos os dados do dashboard
 async function loadDashboardData() {
@@ -190,7 +222,7 @@ function updateResumoCards(resumoBasico, lucros) {
         { id: 'total-despesas', value: lucros.despesasFuncionario + lucros.outrasDespesas },
         { id: 'lucro-total', value: lucros.lucroTotal },
         { id: 'parte-cicero', value: lucros.parteCicero },
-        { id: 'parte-guilherme', value: lucros.parteGuilherme },
+        { id: 'parte-gilberto', value: lucros.parteGuilherme },
         { id: 'parte-jefferson', value: lucros.parteJefferson }
     ];
 
@@ -340,7 +372,7 @@ async function refreshDashboard() {
     }
 }
 
-// Utilitários
+// Utilitários - FORMATAÇÃO BRASILEIRA
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
     
@@ -348,6 +380,17 @@ function formatCurrency(value) {
         style: 'currency',
         currency: 'BRL'
     }).format(value);
+}
+
+function dateToInputValue(date) {
+    if (!date) return '';
+    
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
 }
 
 function showLoading(show) {
@@ -381,4 +424,4 @@ function showAlert(message, type = 'success', duration = 5000) {
     console.log(`📢 Alerta: ${message} (${type})`);
 }
 
-console.log('✅ Dashboard carregado');
+console.log('✅ Dashboard carregado com formato brasileiro');
