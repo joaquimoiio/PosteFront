@@ -1,10 +1,11 @@
-// Dashboard.js - Versão corrigida e completa
+// Dashboard.js - Versão corrigida com lifecycle melhorado
 let dashboardData = {
     resumo: null,
     despesas: [],
     vendas: [],
     postes: [],
-    loading: false
+    loading: false,
+    initialized: false
 };
 
 // Inicialização da página
@@ -12,11 +13,20 @@ window.initDashboardPage = async function() {
     console.log('🎯 Inicializando Dashboard...');
     
     try {
+        // Sempre recarregar dados, mesmo se já inicializado
+        dashboardData.initialized = false;
+        
+        // Mostrar estado de loading nos elementos primeiro
+        initializeLoadingState();
+        
         await loadDashboardData();
+        
+        dashboardData.initialized = true;
         console.log('✅ Dashboard carregado com sucesso');
     } catch (error) {
         console.error('❌ Erro ao carregar dashboard:', error);
         showAlert('Erro ao carregar dados do dashboard', 'error');
+        showErrorState();
     }
 };
 
@@ -25,7 +35,7 @@ async function loadDashboardData() {
     try {
         console.log('📡 Carregando dados do dashboard...');
         
-        // Buscar dados em paralelo
+        // Sempre buscar dados frescos
         const [resumoBasico, despesas, vendas, postes] = await Promise.all([
             VendaService.getResumo().catch(err => {
                 console.warn('Erro ao carregar resumo:', err);
@@ -230,36 +240,19 @@ LÓGICA ATUALIZADA:
     alert(detalhes);
 };
 
-// Função para atualizar dados em tempo real
-async function updateDashboardRealTime() {
-    try {
-        console.log('🔄 Atualizando dados em tempo real...');
-        
-        const [resumoBasico, despesas] = await Promise.all([
-            VendaService.getResumo().catch(() => ({})),
-            DespesaService.getAll().catch(() => [])
-        ]);
-
-        dashboardData.resumo = resumoBasico;
-        dashboardData.despesas = despesas;
-
-        const lucrosCalculados = Utils.calcularLucros(resumoBasico, despesas);
-        updateResumoCards(resumoBasico, lucrosCalculados);
-        
-        console.log('✅ Dados atualizados em tempo real');
-        
-    } catch (error) {
-        console.error('❌ Erro ao atualizar dados:', error);
-    }
-}
-
 // Refresh do dashboard
 window.refreshDashboard = async function() {
     console.log('🔄 Atualizando dashboard...');
     
     try {
         showLoading(true);
+        
+        // Resetar estado de inicialização para forçar recarregamento
+        dashboardData.initialized = false;
+        
         await loadDashboardData();
+        
+        dashboardData.initialized = true;
         showAlert('Dashboard atualizado!', 'success');
     } catch (error) {
         console.error('Erro ao atualizar dashboard:', error);
@@ -269,14 +262,6 @@ window.refreshDashboard = async function() {
     }
 };
 
-// Função para mostrar loading
-function showLoading(show) {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = show ? 'flex' : 'none';
-    }
-}
-
 // Função de cleanup do dashboard
 window.cleanupDashboard = function() {
     console.log('🧹 Limpando dashboard...');
@@ -284,13 +269,14 @@ window.cleanupDashboard = function() {
     // Limpar timers se houver
     clearAllTimers();
     
-    // Reset dos dados
+    // Reset dos dados mas manter flag de não inicializado para forçar reload
     dashboardData = {
         resumo: null,
         despesas: [],
         vendas: [],
         postes: [],
-        loading: false
+        loading: false,
+        initialized: false // Importante para forçar recarregamento
     };
 };
 
@@ -303,26 +289,55 @@ function clearAllTimers() {
     }
 }
 
-// Função para configurar atualização automática (opcional)
-function setupAutoRefresh() {
-    // Atualizar a cada 30 segundos
-    const autoRefreshInterval = setInterval(() => {
-        if (document.visibilityState === 'visible') {
-            updateDashboardRealTime();
+// Função para mostrar loading
+function showLoading(show) {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = show ? 'flex' : 'none';
+    }
+}
+
+// Função para inicializar loading em todos os elementos
+function initializeLoadingState() {
+    const elementIds = [
+        'total-venda-postes', 'valor-total-vendas', 'total-contribuicoes-extras',
+        'total-despesas', 'lucro-total', 'parte-cicero', 'parte-guilherme',
+        'parte-jefferson', 'total-extras-e', 'total-frete-loja',
+        'vendas-tipo-e', 'vendas-tipo-v', 'vendas-tipo-l',
+        'total-vendas', 'total-postes', 'total-despesas-count', 'ticket-medio', 'margem-lucro'
+    ];
+    
+    elementIds.forEach(id => showElementLoading(id, true));
+}
+
+// Função para mostrar estado de loading nos elementos
+function showElementLoading(elementId, show = true) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        if (show) {
+            element.textContent = '...';
+            element.style.color = '#6b7280';
+        } else {
+            element.style.color = '';
         }
-    }, 30000);
+    }
+}
+
+// Função para mostrar estado de erro
+function showErrorState(message = 'Erro ao carregar dados') {
+    const errorElements = [
+        'total-venda-postes', 'valor-total-vendas', 'lucro-total'
+    ];
     
-    // Salvar o ID do intervalo para poder limpar depois
-    dashboardData.autoRefreshInterval = autoRefreshInterval;
-    
-    // Limpar quando a página perder foco
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden' && dashboardData.autoRefreshInterval) {
-            clearInterval(dashboardData.autoRefreshInterval);
-        } else if (document.visibilityState === 'visible') {
-            setupAutoRefresh();
+    errorElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = 'Erro';
+            element.style.color = '#dc2626';
         }
     });
+    
+    showAlert(message, 'error');
 }
 
 // Função para exportar dados do dashboard
@@ -356,118 +371,21 @@ window.exportarDashboard = function() {
     Utils.exportToCSV(dadosExportar, `dashboard_${new Date().toISOString().split('T')[0]}`);
 };
 
-// Função para alternar modo de atualização automática
-window.toggleAutoRefresh = function() {
-    if (dashboardData.autoRefreshInterval) {
-        clearInterval(dashboardData.autoRefreshInterval);
-        dashboardData.autoRefreshInterval = null;
-        showAlert('Atualização automática desativada', 'success');
-    } else {
-        setupAutoRefresh();
-        showAlert('Atualização automática ativada (30s)', 'success');
-    }
-};
+// Função para verificar se dados foram carregados
+function isDataLoaded() {
+    return dashboardData.initialized && 
+           dashboardData.resumo !== null &&
+           Array.isArray(dashboardData.despesas) &&
+           Array.isArray(dashboardData.vendas) &&
+           Array.isArray(dashboardData.postes);
+}
 
-// Função para resetar dados do dashboard
-window.resetDashboard = async function() {
-    const confirmed = await Utils.confirm(
-        'Tem certeza que deseja recarregar todos os dados do dashboard?',
-        'Resetar Dashboard'
-    );
-    
-    if (!confirmed) return;
-    
-    console.log('🔄 Resetando dashboard...');
-    
-    try {
-        cleanupDashboard();
+// Função para reforçar carregamento se necessário
+window.ensureDashboardLoaded = async function() {
+    if (!isDataLoaded()) {
+        console.log('🔄 Dashboard não carregado completamente, recarregando...');
         await initDashboardPage();
-        showAlert('Dashboard resetado com sucesso!', 'success');
-    } catch (error) {
-        console.error('Erro ao resetar dashboard:', error);
-        showAlert('Erro ao resetar dashboard', 'error');
     }
 };
 
-// Função para verificar se há dados carregados
-function hasDataLoaded() {
-    return dashboardData.resumo && 
-           dashboardData.despesas && 
-           dashboardData.vendas && 
-           dashboardData.postes;
-}
-
-// Função para mostrar estado de loading nos elementos
-function showElementLoading(elementId, show = true) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        if (show) {
-            element.textContent = '...';
-            element.style.color = '#6b7280';
-        } else {
-            element.style.color = '';
-        }
-    }
-}
-
-// Função para inicializar loading em todos os elementos
-function initializeLoadingState() {
-    const elementIds = [
-        'total-venda-postes', 'valor-total-vendas', 'total-contribuicoes-extras',
-        'total-despesas', 'lucro-total', 'parte-cicero', 'parte-guilherme',
-        'parte-jefferson', 'total-extras-e', 'total-frete-loja',
-        'vendas-tipo-e', 'vendas-tipo-v', 'vendas-tipo-l',
-        'total-vendas', 'total-postes', 'total-despesas-count', 'ticket-medio', 'margem-lucro'
-    ];
-    
-    elementIds.forEach(id => showElementLoading(id, true));
-}
-
-// Função para tentar recarregar dados em caso de erro
-async function retryLoadData() {
-    try {
-        console.log('🔄 Tentando recarregar dados...');
-        await loadDashboardData();
-        showAlert('Dados recarregados com sucesso!', 'success');
-    } catch (error) {
-        console.error('Erro ao recarregar dados:', error);
-        showAlert('Falha ao recarregar dados. Tente novamente.', 'error');
-    }
-}
-
-// Função para validar dados antes de calcular
-function validateDataBeforeCalculation() {
-    if (!dashboardData.resumo) {
-        console.warn('⚠️ Resumo não carregado');
-        return false;
-    }
-    
-    if (!Array.isArray(dashboardData.despesas)) {
-        console.warn('⚠️ Despesas não carregadas');
-        return false;
-    }
-    
-    return true;
-}
-
-// Função para mostrar estado de erro
-function showErrorState(message = 'Erro ao carregar dados') {
-    const errorElements = [
-        'total-venda-postes', 'valor-total-vendas', 'lucro-total'
-    ];
-    
-    errorElements.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = 'Erro';
-            element.style.color = '#dc2626';
-        }
-    });
-    
-    showAlert(message, 'error');
-}
-
-// Auto-inicialização opcional
-// setupAutoRefresh();
-
-console.log('✅ dashboard.js carregado completamente - versão corrigida');
+console.log('✅ dashboard.js carregado completamente - versão com lifecycle melhorado');

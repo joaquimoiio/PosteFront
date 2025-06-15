@@ -1,12 +1,11 @@
-// Adição no arquivo js/navigation.js - Seção para melhorar lifecycle do dashboard
-
-// Gerenciador de Navegação - Versão Melhorada para Dashboard
+// Navigation.js - Versão corrigida com lifecycle melhorado
 class NavigationManager {
     constructor() {
         this.currentPage = 'dashboard';
         this.pageHistory = [];
         this.maxHistorySize = 10;
-        this.pageCleanupFunctions = new Map(); // Armazenar funções de cleanup por página
+        this.pageCleanupFunctions = new Map();
+        this.isNavigating = false; // Flag para evitar navegação simultânea
         
         this.init();
     }
@@ -23,7 +22,7 @@ class NavigationManager {
             if (navItem) {
                 e.preventDefault();
                 const page = navItem.dataset.page;
-                if (page && page !== this.currentPage) {
+                if (page && page !== this.currentPage && !this.isNavigating) {
                     this.navigateTo(page);
                 }
             }
@@ -55,7 +54,7 @@ class NavigationManager {
 
         // Browser back/forward
         window.addEventListener('popstate', (e) => {
-            if (e.state && e.state.page) {
+            if (e.state && e.state.page && !this.isNavigating) {
                 this.loadPageContent(e.state.page, false);
             }
         });
@@ -79,18 +78,23 @@ class NavigationManager {
     }
 
     async navigateTo(page, addToHistory = true) {
+        if (this.isNavigating) {
+            console.log('🚫 Navegação já em andamento, ignorando...');
+            return;
+        }
+
         if (this.currentPage === page) {
-            // Mesmo se for a mesma página, recarregar dados se for dashboard
-            if (page === 'dashboard' && window.refreshDashboard) {
-                console.log('🔄 Mesma página dashboard - forçando refresh...');
-                window.refreshDashboard();
-            }
+            // Mesmo se for a mesma página, recarregar dados
+            console.log(`🔄 Mesma página ${page} - forçando refresh...`);
+            await this.refreshCurrentPage();
             return;
         }
 
         console.log(`🧭 Navegando de ${this.currentPage} para: ${page}`);
 
         try {
+            this.isNavigating = true;
+            
             // Verificar se pode sair da página atual
             if (await this.canLeavePage()) {
                 // IMPORTANTE: Limpar página anterior antes de carregar nova
@@ -101,22 +105,52 @@ class NavigationManager {
         } catch (error) {
             console.error('Erro na navegação:', error);
             showAlert('Erro ao navegar para a página', 'error');
+        } finally {
+            this.isNavigating = false;
         }
     }
 
-    // NOVA: Função para limpar a página atual
+    // Função para recarregar a página atual
+    async refreshCurrentPage() {
+        try {
+            this.isNavigating = true;
+            
+            console.log(`🔄 Recarregando página: ${this.currentPage}`);
+            
+            // Executar função específica de recarga se existir
+            const refreshFunction = window[`refresh${Utils.capitalize(this.currentPage)}`];
+            if (typeof refreshFunction === 'function') {
+                await refreshFunction();
+            } else {
+                // Fallback: reinicializar a página
+                const initFunction = window[`init${Utils.capitalize(this.currentPage)}Page`];
+                if (typeof initFunction === 'function') {
+                    await initFunction();
+                }
+            }
+            
+        } catch (error) {
+            console.error('Erro ao recarregar página:', error);
+            showAlert('Erro ao recarregar página', 'error');
+        } finally {
+            this.isNavigating = false;
+        }
+    }
+
+    // Função para limpar a página atual
     async cleanupCurrentPage() {
         const currentPage = this.currentPage;
         
         console.log(`🧹 Limpando página: ${currentPage}`);
         
         // Executar função de cleanup específica da página se existir
-        if (currentPage === 'dashboard' && window.cleanupDashboard) {
+        const cleanupFunction = window[`cleanup${Utils.capitalize(currentPage)}`];
+        if (typeof cleanupFunction === 'function') {
             try {
-                window.cleanupDashboard();
-                console.log('✅ Dashboard cleanup executado');
+                await cleanupFunction();
+                console.log(`✅ Cleanup de ${currentPage} executado`);
             } catch (error) {
-                console.error('❌ Erro no cleanup do dashboard:', error);
+                console.error(`❌ Erro no cleanup de ${currentPage}:`, error);
             }
         }
         
@@ -124,27 +158,25 @@ class NavigationManager {
         this.clearPageTimers();
     }
 
-    // NOVA: Limpar timers e eventos globais
+    // Limpar timers e eventos globais
     clearPageTimers() {
-        // Limpar todos os intervalos ativos (números altos para garantir limpeza)
+        // Limpar todos os intervalos ativos
         for (let i = 1; i < 1000; i++) {
             clearInterval(i);
             clearTimeout(i);
         }
     }
 
-    // NOVA: Gerenciar visibilidade da página
+    // Gerenciar visibilidade da página
     handleVisibilityChange() {
         if (!document.hidden && this.currentPage === 'dashboard') {
             // Página ficou visível e estamos no dashboard
-            console.log('👁️ Dashboard ficou visível - carregando dados...');
-            if (window.loadDashboardData || window.refreshDashboard) {
-                setTimeout(() => {
-                    if (window.refreshDashboard) {
-                        window.refreshDashboard();
-                    }
-                }, 500); // Pequeno delay para garantir que a página está totalmente carregada
-            }
+            console.log('👁️ Dashboard ficou visível - verificando se precisa recarregar...');
+            setTimeout(() => {
+                if (window.ensureDashboardLoaded) {
+                    window.ensureDashboardLoaded();
+                }
+            }, 500);
         }
     }
 
@@ -210,7 +242,7 @@ class NavigationManager {
         }
 
         // Carregar HTML
-        const response = await fetch(pageUrl);
+        const response = await fetch(pageUrl + '?t=' + Date.now()); // Cache bust
         if (!response.ok) {
             throw new Error(`Erro HTTP: ${response.status}`);
         }
@@ -247,11 +279,16 @@ class NavigationManager {
     }
 
     async initializePage(page) {
+        // Pequeno delay para garantir que o script foi carregado
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Executar função de inicialização se existir
         const initFunction = window[`init${Utils.capitalize(page)}Page`];
         if (typeof initFunction === 'function') {
             console.log(`🚀 Inicializando página: ${page}`);
             await initFunction();
+        } else {
+            console.warn(`⚠️ Função de inicialização init${Utils.capitalize(page)}Page não encontrada`);
         }
 
         // Configurar máscaras de input
@@ -260,13 +297,8 @@ class NavigationManager {
         // Configurar validação de formulários
         this.setupFormValidation();
 
-        // Configurar tooltips
-        this.setupTooltips();
-
-        // LOG ESPECIAL PARA DASHBOARD
-        if (page === 'dashboard') {
-            console.log('📊 Dashboard inicializado - dados sempre frescos!');
-        }
+        // LOG ESPECIAL PARA PÁGINAS
+        console.log(`📊 ${Utils.capitalize(page)} inicializado - dados sempre frescos!`);
     }
 
     setupInputMasks() {
@@ -353,50 +385,6 @@ class NavigationManager {
         }
     }
 
-    setupTooltips() {
-        document.querySelectorAll('[data-tooltip]').forEach(element => {
-            element.addEventListener('mouseenter', (e) => {
-                this.showTooltip(e.target, e.target.dataset.tooltip);
-            });
-
-            element.addEventListener('mouseleave', () => {
-                this.hideTooltip();
-            });
-        });
-    }
-
-    showTooltip(element, text) {
-        const tooltip = document.createElement('div');
-        tooltip.className = 'tooltip';
-        tooltip.textContent = text;
-        tooltip.style.cssText = `
-            position: absolute;
-            background: #1f2937;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            z-index: 1000;
-            pointer-events: none;
-            white-space: nowrap;
-        `;
-
-        document.body.appendChild(tooltip);
-
-        const rect = element.getBoundingClientRect();
-        tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
-        tooltip.style.top = rect.top - tooltip.offsetHeight - 8 + 'px';
-
-        this.currentTooltip = tooltip;
-    }
-
-    hideTooltip() {
-        if (this.currentTooltip) {
-            this.currentTooltip.remove();
-            this.currentTooltip = null;
-        }
-    }
-
     updateNavigationState(activePage) {
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
@@ -425,8 +413,8 @@ class NavigationManager {
         return this.currentPage;
     }
 
-    refresh() {
-        this.navigateTo(this.currentPage, false);
+    async refresh() {
+        await this.refreshCurrentPage();
     }
 }
 
@@ -454,4 +442,4 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-console.log('🧭 Navigation.js carregado com melhorias para dashboard');
+console.log('🧭 Navigation.js carregado com lifecycle melhorado e navegação corrigida');

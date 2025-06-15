@@ -1,4 +1,4 @@
-// Configuração global da aplicação
+// Main.js - Versão corrigida com melhor gerenciamento de lifecycle
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api',
     PAGES: {
@@ -19,6 +19,12 @@ const AppState = {
         vendas: [],
         despesas: [],
         postes: []
+    },
+    pageInitialized: {
+        dashboard: false,
+        vendas: false,
+        despesas: false,
+        postes: false
     }
 };
 
@@ -48,9 +54,7 @@ async function initializeApp() {
     // 3. Verificar disponibilidade do backend
     AppState.backendAvailable = await checkBackendAvailability();
     
-    // 4. Carregar página inicial
-    await loadPage('dashboard');
-    
+    // 4. Não carregar página inicial aqui - deixar para o NavigationManager
     console.log('✅ Aplicação inicializada com sucesso');
 }
 
@@ -99,22 +103,10 @@ async function checkBackendAvailability() {
 
 // Configurar event listeners globais
 function setupEventListeners() {
-    // Navigation buttons
-    document.querySelectorAll('.nav-item').forEach(button => {
-        button.addEventListener('click', handleNavigation);
-    });
-
     // Escape key para fechar modals
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeAllModals();
-        }
-    });
-
-    // Handle browser back/forward
-    window.addEventListener('popstate', (e) => {
-        if (e.state && e.state.page) {
-            loadPage(e.state.page, false);
         }
     });
 
@@ -130,204 +122,6 @@ function setupEventListeners() {
     });
 }
 
-// Gerenciar navegação entre páginas
-async function handleNavigation(event) {
-    const targetPage = event.currentTarget.dataset.page;
-    
-    if (targetPage && targetPage !== AppState.currentPage) {
-        await loadPage(targetPage);
-    }
-}
-
-// Carregar página dinamicamente
-async function loadPage(pageName, updateHistory = true) {
-    if (AppState.isLoading) {
-        console.log('⏳ Carregamento em andamento, ignorando nova solicitação');
-        return;
-    }
-    
-    console.log(`📄 Carregando página: ${pageName}`);
-    
-    try {
-        showLoading(true);
-        
-        // Atualizar estado de navegação
-        updateNavigation(pageName);
-        
-        // Limpar página anterior se necessário
-        if (AppState.currentPage !== pageName) {
-            await cleanupCurrentPage();
-        }
-        
-        // Carregar conteúdo da página
-        const pageContent = await loadPageContent(pageName);
-        
-        // Inserir conteúdo
-        const contentContainer = document.getElementById('page-content');
-        contentContainer.innerHTML = pageContent;
-        
-        // Atualizar histórico do navegador
-        if (updateHistory) {
-            history.pushState({ page: pageName }, '', `#${pageName}`);
-        }
-        
-        // Executar scripts específicos da página
-        await executePageScripts(pageName);
-        
-        AppState.currentPage = pageName;
-        
-        console.log(`✅ Página ${pageName} carregada com sucesso`);
-        
-    } catch (error) {
-        console.error(`❌ Erro ao carregar página ${pageName}:`, error);
-        showAlert(`Erro ao carregar página ${pageName}: ${error.message}`, 'error');
-        
-        // Tentar carregar página de erro ou fallback
-        await loadErrorPage(error);
-        
-    } finally {
-        showLoading(false);
-    }
-}
-
-// Limpar página atual antes de carregar nova
-async function cleanupCurrentPage() {
-    const currentPage = AppState.currentPage;
-    
-    console.log(`🧹 Limpando página: ${currentPage}`);
-    
-    // Executar função de cleanup específica da página se existir
-    const cleanupFunction = window[`cleanup${capitalize(currentPage)}`];
-    if (typeof cleanupFunction === 'function') {
-        try {
-            await cleanupFunction();
-            console.log(`✅ Cleanup de ${currentPage} executado`);
-        } catch (error) {
-            console.error(`❌ Erro no cleanup de ${currentPage}:`, error);
-        }
-    }
-    
-    // Limpar timers globais
-    clearPageTimers();
-}
-
-// Limpar timers da página
-function clearPageTimers() {
-    // Limpar intervalos e timeouts (números altos para garantir limpeza)
-    for (let i = 1; i < 1000; i++) {
-        clearInterval(i);
-        clearTimeout(i);
-    }
-}
-
-// Carregar conteúdo HTML da página
-async function loadPageContent(pageName) {
-    const pageUrl = CONFIG.PAGES[pageName];
-    
-    if (!pageUrl) {
-        throw new Error(`Página ${pageName} não encontrada na configuração`);
-    }
-    
-    const response = await fetch(pageUrl);
-    
-    if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
-    }
-    
-    return await response.text();
-}
-
-// Executar scripts específicos da página
-async function executePageScripts(pageName) {
-    // Remove scripts anteriores para evitar conflitos
-    removePageScripts();
-    
-    // Carregar script específico da página
-    const scriptUrl = `js/${pageName}.js`;
-    
-    try {
-        await loadScript(scriptUrl);
-        
-        // Executar função de inicialização da página se existir
-        const initFunctionName = `init${capitalize(pageName)}Page`;
-        if (typeof window[initFunctionName] === 'function') {
-            console.log(`🚀 Executando ${initFunctionName}...`);
-            await window[initFunctionName]();
-        } else {
-            console.warn(`⚠️ Função de inicialização ${initFunctionName} não encontrada`);
-        }
-        
-    } catch (error) {
-        console.warn(`⚠️ Script da página ${pageName} não encontrado ou erro na execução:`, error);
-        
-        // Para páginas críticas como dashboard, tentar carregar dados básicos
-        if (pageName === 'dashboard') {
-            await fallbackDashboardInit();
-        }
-    }
-}
-
-// Fallback para inicialização do dashboard
-async function fallbackDashboardInit() {
-    console.log('🔄 Executando inicialização fallback do dashboard...');
-    
-    try {
-        // Mostrar dados básicos mesmo sem o script específico
-        const elementos = [
-            'total-venda-postes', 'valor-total-vendas', 'total-contribuicoes-extras',
-            'total-despesas', 'lucro-total'
-        ];
-        
-        elementos.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = 'R$ 0,00';
-            }
-        });
-        
-        showAlert('Dashboard carregado em modo básico', 'warning');
-        
-    } catch (error) {
-        console.error('Erro no fallback do dashboard:', error);
-    }
-}
-
-// Carregar script dinamicamente
-function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        // Verificar se o script já foi carregado
-        if (document.querySelector(`script[src="${src}"]`)) {
-            resolve();
-            return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = src + '?t=' + Date.now(); // Cache busting
-        script.className = 'page-script';
-        script.onload = resolve;
-        script.onerror = () => reject(new Error(`Falha ao carregar script: ${src}`));
-        document.head.appendChild(script);
-    });
-}
-
-// Remover scripts específicos de páginas
-function removePageScripts() {
-    document.querySelectorAll('.page-script').forEach(script => {
-        script.remove();
-    });
-}
-
-// Atualizar estado visual da navegação
-function updateNavigation(activePage) {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-        
-        if (item.dataset.page === activePage) {
-            item.classList.add('active');
-        }
-    });
-}
-
 // Mostrar/ocultar loading
 function showLoading(show) {
     const loadingOverlay = document.getElementById('loading-overlay');
@@ -338,36 +132,11 @@ function showLoading(show) {
     }
 }
 
-// Carregar página de erro
-async function loadErrorPage(error) {
-    const contentContainer = document.getElementById('page-content');
-    if (contentContainer) {
-        contentContainer.innerHTML = `
-            <div class="error-page" style="text-align: center; padding: 40px 20px;">
-                <div style="font-size: 4rem; margin-bottom: 20px;">❌</div>
-                <h2>Erro ao Carregar Página</h2>
-                <p style="color: #6b7280; margin: 20px 0;">${error.message}</p>
-                <button class="btn btn-primary" onclick="location.reload()">
-                    🔄 Recarregar Página
-                </button>
-                <button class="btn btn-secondary" onclick="loadPage('dashboard')">
-                    🏠 Ir para Dashboard
-                </button>
-            </div>
-        `;
-    }
-}
-
 // Fechar todos os modals
 function closeAllModals() {
     document.querySelectorAll('.modal').forEach(modal => {
         modal.style.display = 'none';
     });
-}
-
-// Funções utilitárias
-function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // Função global para mostrar alertas
@@ -408,7 +177,8 @@ window.checkSystemStatus = async function() {
     const status = {
         backend: await checkBackendAvailability(),
         currentPage: AppState.currentPage,
-        isLoading: AppState.isLoading
+        isLoading: AppState.isLoading,
+        pageInitialized: AppState.pageInitialized
     };
     
     console.log('📊 Status do sistema:', status);
@@ -420,8 +190,12 @@ window.reloadCurrentPage = async function() {
     console.log('🔄 Recarregando página atual...');
     
     try {
-        await loadPage(AppState.currentPage, false);
-        showAlert('Página recarregada com sucesso!', 'success');
+        if (window.navigationManager) {
+            await window.navigationManager.refresh();
+            showAlert('Página recarregada com sucesso!', 'success');
+        } else {
+            location.reload();
+        }
     } catch (error) {
         console.error('Erro ao recarregar página:', error);
         showAlert('Erro ao recarregar página', 'error');
@@ -438,12 +212,14 @@ window.diagnoseProblem = async function() {
         userAgent: navigator.userAgent,
         currentPage: AppState.currentPage,
         backendAvailable: await checkBackendAvailability(),
+        pageInitialized: AppState.pageInitialized,
         elementsPresent: {
             pageContent: !!document.getElementById('page-content'),
             loadingOverlay: !!document.getElementById('loading-overlay'),
             alertContainer: !!document.getElementById('alert-container')
         },
         scriptsLoaded: Array.from(document.querySelectorAll('script')).map(s => s.src),
+        navigationManager: !!window.navigationManager,
         errors: []
     };
     
@@ -487,6 +263,12 @@ window.reinitializeApp = async function() {
         AppState.currentPage = 'dashboard';
         AppState.isLoading = false;
         AppState.data = { resumo: null, vendas: [], despesas: [], postes: [] };
+        AppState.pageInitialized = {
+            dashboard: false,
+            vendas: false,
+            despesas: false,
+            postes: false
+        };
         
         // Limpar timers
         clearPageTimers();
@@ -497,12 +279,50 @@ window.reinitializeApp = async function() {
         // Reinicializar
         await initializeApp();
         
+        // Recriar navigation manager
+        if (window.navigationManager) {
+            window.navigationManager = new NavigationManager();
+        }
+        
         showAlert('Aplicação reinicializada com sucesso!', 'success');
         
     } catch (error) {
         console.error('Erro ao reinicializar:', error);
         showAlert('Erro ao reinicializar aplicação', 'error');
     }
+};
+
+// Limpar timers da página
+function clearPageTimers() {
+    // Limpar intervalos e timeouts (números altos para garantir limpeza)
+    for (let i = 1; i < 1000; i++) {
+        clearInterval(i);
+        clearTimeout(i);
+    }
+}
+
+// Remover scripts específicos de páginas
+function removePageScripts() {
+    document.querySelectorAll('.page-script').forEach(script => {
+        script.remove();
+    });
+}
+
+// Função para marcar página como inicializada
+window.markPageInitialized = function(pageName) {
+    AppState.pageInitialized[pageName] = true;
+    console.log(`✅ Página ${pageName} marcada como inicializada`);
+};
+
+// Função para verificar se página foi inicializada
+window.isPageInitialized = function(pageName) {
+    return AppState.pageInitialized[pageName] || false;
+};
+
+// Função para resetar estado de inicialização de uma página
+window.resetPageInitialization = function(pageName) {
+    AppState.pageInitialized[pageName] = false;
+    console.log(`🔄 Estado de inicialização de ${pageName} resetado`);
 };
 
 // Configurar atalhos de teclado para debug
@@ -538,14 +358,60 @@ window.addEventListener('offline', () => {
     showAlert('Conexão com a internet perdida', 'warning');
 });
 
+// Função para garantir que Utils está disponível
+window.ensureUtilsLoaded = function() {
+    if (!window.Utils) {
+        console.warn('⚠️ Utils não carregado, carregando...');
+        
+        // Tentar carregar utils.js
+        const script = document.createElement('script');
+        script.src = 'js/utils.js?t=' + Date.now();
+        script.onload = () => {
+            console.log('✅ Utils carregado com sucesso');
+        };
+        script.onerror = () => {
+            console.error('❌ Falha ao carregar Utils');
+        };
+        document.head.appendChild(script);
+    }
+};
+
+// Função para garantir que serviços de API estão disponíveis
+window.ensureAPIServicesLoaded = function() {
+    const requiredServices = ['VendaService', 'DespesaService', 'PosteService'];
+    const missingServices = requiredServices.filter(service => !window[service]);
+    
+    if (missingServices.length > 0) {
+        console.warn('⚠️ Serviços de API em falta:', missingServices);
+        
+        // Tentar carregar api.js
+        const script = document.createElement('script');
+        script.src = 'js/api.js?t=' + Date.now();
+        script.onload = () => {
+            console.log('✅ Serviços de API carregados');
+        };
+        script.onerror = () => {
+            console.error('❌ Falha ao carregar serviços de API');
+        };
+        document.head.appendChild(script);
+    }
+};
+
+// Executar verificações de dependências
+setTimeout(() => {
+    ensureUtilsLoaded();
+    ensureAPIServicesLoaded();
+}, 1000);
+
 // Exportar configurações para uso em outros scripts
 window.CONFIG = CONFIG;
 window.AppState = AppState;
-window.loadPage = loadPage;
+window.showLoading = showLoading;
 
 // Log de inicialização
-console.log('✅ Main.js carregado - versão melhorada com diagnósticos');
+console.log('✅ Main.js carregado - versão com lifecycle melhorado');
 console.log('🔧 Atalhos disponíveis:');
 console.log('   Ctrl+Shift+D = Diagnóstico');
 console.log('   Ctrl+Shift+R = Reinicializar');
 console.log('   Ctrl+Shift+S = Status do sistema');
+console.log('   Alt+1/2/3/4 = Navegar entre páginas');

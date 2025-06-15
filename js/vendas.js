@@ -1,4 +1,4 @@
-// JavaScript da página de Vendas - Versão completa com tipos E, V, L
+// JavaScript da página de Vendas - Versão corrigida com lifecycle melhorado
 let vendasData = {
     vendas: [],
     postes: [],
@@ -7,7 +7,8 @@ let vendasData = {
         tipoVenda: '',
         dataInicio: '',
         dataFim: ''
-    }
+    },
+    initialized: false
 };
 
 // Função de inicialização da página
@@ -15,6 +16,9 @@ window.initVendasPage = async function() {
     console.log('🎯 Inicializando página de Vendas...');
     
     try {
+        // Sempre recarregar dados, mesmo se já inicializado
+        vendasData.initialized = false;
+        
         await loadVendas();
         await loadPostes();
         await loadResumoTipos();
@@ -22,13 +26,9 @@ window.initVendasPage = async function() {
         setupFilters();
         
         // Definir data atual no campo de data
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        const dataInput = document.getElementById('venda-data');
-        if (dataInput) {
-            dataInput.value = now.toISOString().slice(0, 16);
-        }
+        setCurrentDateTime();
         
+        vendasData.initialized = true;
         console.log('✅ Página de Vendas carregada com sucesso');
     } catch (error) {
         console.error('❌ Erro ao carregar página de Vendas:', error);
@@ -36,8 +36,21 @@ window.initVendasPage = async function() {
     }
 };
 
+// Definir data/hora atual
+function setCurrentDateTime() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const dataInput = document.getElementById('venda-data');
+    if (dataInput) {
+        dataInput.value = now.toISOString().slice(0, 16);
+    }
+}
+
 // Configurar event listeners
 function setupEventListeners() {
+    // Remover listeners antigos para evitar duplicação
+    removeEventListeners();
+    
     // Formulário de nova venda
     const vendaForm = document.getElementById('venda-form');
     if (vendaForm) {
@@ -66,6 +79,22 @@ function setupEventListeners() {
     }
 }
 
+// Remover event listeners antigos
+function removeEventListeners() {
+    const vendaForm = document.getElementById('venda-form');
+    if (vendaForm) {
+        // Clonar e substituir para remover todos os listeners
+        const newForm = vendaForm.cloneNode(true);
+        vendaForm.parentNode.replaceChild(newForm, vendaForm);
+    }
+    
+    const editVendaForm = document.getElementById('edit-venda-form');
+    if (editVendaForm) {
+        const newEditForm = editVendaForm.cloneNode(true);
+        editVendaForm.parentNode.replaceChild(newEditForm, editVendaForm);
+    }
+}
+
 // Configurar filtros
 function setupFilters() {
     const filterElements = {
@@ -77,10 +106,16 @@ function setupFilters() {
     Object.entries(filterElements).forEach(([elementId, filterKey]) => {
         const element = document.getElementById(elementId);
         if (element) {
-            element.addEventListener('input', Utils.debounce(() => {
+            // Remover listener antigo
+            element.removeEventListener('input', element._filterHandler);
+            
+            // Criar novo handler
+            element._filterHandler = Utils.debounce(() => {
                 vendasData.filters[filterKey] = element.value;
                 applyFilters();
-            }, 300));
+            }, 300);
+            
+            element.addEventListener('input', element._filterHandler);
         }
     });
 }
@@ -115,6 +150,7 @@ function applyFilters() {
 // Carregar vendas
 async function loadVendas() {
     try {
+        console.log('📋 Carregando vendas...');
         const vendas = await VendaService.getAll();
         vendasData.vendas = vendas;
         displayVendas(vendas);
@@ -128,6 +164,7 @@ async function loadVendas() {
 // Carregar postes para os selects
 async function loadPostes() {
     try {
+        console.log('⚡ Carregando postes...');
         const postes = await PosteService.getActive();
         vendasData.postes = postes;
         
@@ -136,7 +173,10 @@ async function loadPostes() {
         selectsPoste.forEach(selectId => {
             const selectPoste = document.getElementById(selectId);
             if (selectPoste) {
+                // Limpar opções existentes
                 selectPoste.innerHTML = '<option value="">Selecione um poste</option>';
+                
+                // Adicionar postes
                 postes.forEach(poste => {
                     const option = document.createElement('option');
                     option.value = poste.id;
@@ -150,6 +190,7 @@ async function loadPostes() {
         console.log('⚡ Postes carregados:', postes.length);
     } catch (error) {
         console.error('Erro ao carregar postes:', error);
+        showAlert('Erro ao carregar postes', 'error');
     }
 }
 
@@ -188,9 +229,11 @@ function updateResumoCards(resumo) {
     });
 }
 
-// Handler de mudança do tipo de venda
+// Handler de mudança do tipo de venda - CORRIGIDO
 function handleTipoVendaChange(e) {
     const tipoSelecionado = e.target.value;
+    
+    console.log('🔄 Tipo de venda selecionado:', tipoSelecionado);
     
     // Ocultar todos os campos condicionais
     const camposTipos = ['e', 'v', 'l'];
@@ -206,6 +249,9 @@ function handleTipoVendaChange(e) {
         const campoTipo = document.getElementById(`campos-tipo-${tipoSelecionado.toLowerCase()}`);
         if (campoTipo) {
             campoTipo.style.display = 'block';
+            console.log(`✅ Mostrando campos para tipo ${tipoSelecionado}`);
+        } else {
+            console.warn(`❌ Elemento campos-tipo-${tipoSelecionado.toLowerCase()} não encontrado`);
         }
     }
     
@@ -331,7 +377,6 @@ async function handleVendaSubmit(e) {
                 vendaCreateDTO.posteId = parseInt(posteIdV);
                 vendaCreateDTO.quantidade = quantidadeV;
                 vendaCreateDTO.valorVenda = valorTotalV;
-                // SEM frete para tipo V
                 break;
                 
             case 'L':
@@ -355,7 +400,6 @@ async function handleVendaSubmit(e) {
                 vendaCreateDTO.posteId = parseInt(posteIdL);
                 vendaCreateDTO.quantidade = quantidadeL;
                 vendaCreateDTO.freteEletrons = freteL;
-                // SEM valor de venda para tipo L
                 break;
                 
             default:
@@ -400,12 +444,7 @@ function handleFormReset() {
     }
     
     // Redefinir data atual
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const dataInput = document.getElementById('venda-data');
-    if (dataInput) {
-        dataInput.value = now.toISOString().slice(0, 16);
-    }
+    setCurrentDateTime();
 }
 
 // Exibir vendas na tabela
@@ -445,7 +484,7 @@ function displayVendas(vendas) {
                 tipoDisplay = '<span class="status">🛒 Normal</span>';
                 posteInfo = venda.itens && venda.itens[0] ? 
                     `${venda.itens[0].codigoPoste} (${venda.itens[0].quantidade}x)` : 'N/A';
-                freteDisplay = 'N/A'; // Removido frete do tipo V
+                freteDisplay = 'N/A';
                 valorDisplay = Utils.formatCurrency(venda.valorTotalInformado || 0);
                 break;
             case 'L':
@@ -453,7 +492,7 @@ function displayVendas(vendas) {
                 posteInfo = venda.itens && venda.itens[0] ? 
                     `${venda.itens[0].codigoPoste} (${venda.itens[0].quantidade}x)` : 'N/A';
                 freteDisplay = Utils.formatCurrency(venda.totalFreteEletrons || 0);
-                valorDisplay = 'N/A'; // Tipo L não tem valor de venda
+                valorDisplay = 'N/A';
                 break;
             default:
                 tipoDisplay = venda.tipoVenda;
@@ -718,6 +757,11 @@ window.loadVendas = loadVendas;
 // Função de cleanup (se necessária)
 window.cleanupVendas = function() {
     console.log('🧹 Limpando dados de vendas...');
+    
+    // Remover event listeners
+    removeEventListeners();
+    
+    // Reset dos dados
     vendasData = {
         vendas: [],
         postes: [],
@@ -726,8 +770,24 @@ window.cleanupVendas = function() {
             tipoVenda: '',
             dataInicio: '',
             dataFim: ''
-        }
+        },
+        initialized: false
     };
 };
 
-console.log('✅ vendas.js carregado completamente com tipos E, V, L');
+// Função para verificar se dados foram carregados
+function isDataLoaded() {
+    return vendasData.initialized && 
+           Array.isArray(vendasData.vendas) &&
+           Array.isArray(vendasData.postes);
+}
+
+// Função para garantir carregamento
+window.ensureVendasLoaded = async function() {
+    if (!isDataLoaded()) {
+        console.log('🔄 Vendas não carregadas completamente, recarregando...');
+        await initVendasPage();
+    }
+};
+
+console.log('✅ vendas.js carregado completamente - versão com lifecycle melhorado');
