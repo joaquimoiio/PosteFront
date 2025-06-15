@@ -1,17 +1,18 @@
-// Postes JavaScript - VERSÃO FINAL COM FORMATO BRASILEIRO
+// Vendas JavaScript - VERSÃO REFATORADA E OTIMIZADA
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
 
-// Estado global da página de postes
-let postesData = {
+// Estado global da página de vendas
+let vendasData = {
+    vendas: [],
+    filteredVendas: [],
     postes: [],
-    filteredPostes: [],
     currentEditId: null,
     filters: {
-        status: '',
-        codigo: '',
-        descricao: ''
+        tipo: '',
+        dataInicio: '',
+        dataFim: ''
     }
 };
 
@@ -27,27 +28,47 @@ function formatDateBR(dateString) {
     });
 }
 
+function formatDateTimeBR(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 function formatDate(dateString) {
     return formatDateBR(dateString);
 }
 
 // Inicialização quando a página carrega
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🎯 Inicializando página de Postes...');
+    console.log('🎯 Inicializando página de Vendas...');
     
     // Configurar localização brasileira
     configurarLocaleBrasileiro();
     
     try {
         await loadPostes();
-        await loadEstatisticas();
+        await loadVendas();
+        await loadResumo();
         setupEventListeners();
         setupFilters();
         
-        console.log('✅ Página de Postes carregada com sucesso');
+        // Definir filtros de data padrão
+        setDefaultDateFilters();
+        
+        // Aplicar filtros iniciais
+        applyFilters();
+        
+        console.log('✅ Página de Vendas carregada com sucesso');
     } catch (error) {
-        console.error('❌ Erro ao carregar página de Postes:', error);
-        showAlert('Erro ao carregar dados de postes', 'error');
+        console.error('❌ Erro ao carregar página de Vendas:', error);
+        showAlert('Erro ao carregar dados de vendas', 'error');
     }
 });
 
@@ -57,7 +78,7 @@ function configurarLocaleBrasileiro() {
     
     // Configurar inputs de data
     setTimeout(() => {
-        const inputs = document.querySelectorAll('input[type="date"]');
+        const inputs = document.querySelectorAll('input[type="date"], input[type="datetime-local"]');
         inputs.forEach(input => {
             input.setAttribute('lang', 'pt-BR');
         });
@@ -66,64 +87,212 @@ function configurarLocaleBrasileiro() {
 
 // Configurar event listeners
 function setupEventListeners() {
-    // Formulário de novo poste
-    const posteForm = document.getElementById('poste-form');
-    if (posteForm) {
-        posteForm.addEventListener('submit', handlePosteSubmit);
+    // Formulário de nova venda
+    const vendaForm = document.getElementById('venda-form');
+    if (vendaForm) {
+        vendaForm.addEventListener('submit', handleVendaSubmit);
+        vendaForm.addEventListener('reset', resetForm);
     }
     
     // Formulário de edição
-    const editForm = document.getElementById('edit-poste-form');
+    const editForm = document.getElementById('edit-venda-form');
     if (editForm) {
         editForm.addEventListener('submit', handleEditSubmit);
     }
+    
+    // Mudança de tipo de venda
+    const tipoVenda = document.getElementById('venda-tipo');
+    if (tipoVenda) {
+        tipoVenda.addEventListener('change', handleTipoVendaChange);
+    }
+    
+    // Mudança de tipo na edição
+    const editTipoVenda = document.getElementById('edit-tipo-venda');
+    if (editTipoVenda) {
+        editTipoVenda.addEventListener('change', handleEditTipoChange);
+    }
+    
+    // Auto-calcular valores baseados no poste selecionado
+    const posteVSelect = document.getElementById('venda-poste-v');
+    const quantidadeV = document.getElementById('venda-quantidade-v');
+    
+    if (posteVSelect && quantidadeV) {
+        posteVSelect.addEventListener('change', calcularValorVenda);
+        quantidadeV.addEventListener('input', calcularValorVenda);
+    }
+    
+    // Configurar data/hora padrão
+    setDefaultDateTime();
 }
 
 // Configurar filtros
 function setupFilters() {
     const filterElements = {
-        'filtro-status': 'status',
-        'filtro-codigo': 'codigo',
-        'filtro-descricao': 'descricao'
+        'filtro-tipo-venda': 'tipo',
+        'filtro-data-inicio': 'dataInicio',
+        'filtro-data-fim': 'dataFim'
     };
     
     Object.entries(filterElements).forEach(([elementId, filterKey]) => {
         const element = document.getElementById(elementId);
         if (element) {
             element.addEventListener('input', debounce(() => {
-                postesData.filters[filterKey] = element.value;
+                vendasData.filters[filterKey] = element.value;
                 applyFilters();
             }, 300));
         }
     });
 }
 
+// Definir filtros de data padrão
+function setDefaultDateFilters() {
+    const hoje = new Date();
+    const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    
+    const filtroDataInicio = document.getElementById('filtro-data-inicio');
+    if (filtroDataInicio) {
+        filtroDataInicio.value = dateToInputValue(primeiroDiaMes);
+        vendasData.filters.dataInicio = filtroDataInicio.value;
+    }
+    
+    const filtroDataFim = document.getElementById('filtro-data-fim');
+    if (filtroDataFim) {
+        filtroDataFim.value = dateToInputValue(hoje);
+        vendasData.filters.dataFim = filtroDataFim.value;
+    }
+}
+
+// Definir data/hora padrão no formulário
+function setDefaultDateTime() {
+    const vendaData = document.getElementById('venda-data');
+    if (vendaData) {
+        const agora = new Date();
+        // Formato para datetime-local: YYYY-MM-DDTHH:MM
+        const dataFormatada = agora.getFullYear() + '-' + 
+            String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
+            String(agora.getDate()).padStart(2, '0') + 'T' + 
+            String(agora.getHours()).padStart(2, '0') + ':' + 
+            String(agora.getMinutes()).padStart(2, '0');
+        
+        vendaData.value = dataFormatada;
+    }
+}
+
+// Handler de mudança de tipo de venda
+function handleTipoVendaChange(e) {
+    const tipo = e.target.value;
+    
+    // Esconder todos os campos específicos
+    document.getElementById('campos-tipo-e').style.display = 'none';
+    document.getElementById('campos-tipo-v').style.display = 'none';
+    document.getElementById('campos-tipo-l').style.display = 'none';
+    
+    // Mostrar campos específicos do tipo selecionado
+    if (tipo) {
+        const camposDiv = document.getElementById(`campos-tipo-${tipo.toLowerCase()}`);
+        if (camposDiv) {
+            camposDiv.style.display = 'block';
+        }
+    }
+    
+    // Limpar campos que não são do tipo atual
+    clearOtherTypeFields(tipo);
+}
+
+// Handler de mudança de tipo na edição
+function handleEditTipoChange(e) {
+    const tipo = e.target.value;
+    
+    const freteGroup = document.getElementById('edit-frete-group');
+    const valorGroup = document.getElementById('edit-valor-group');
+    const extraGroup = document.getElementById('edit-extra-group');
+    
+    // Reset display
+    if (freteGroup) freteGroup.style.display = 'block';
+    if (valorGroup) valorGroup.style.display = 'block';
+    if (extraGroup) extraGroup.style.display = 'none';
+    
+    // Mostrar/esconder campos baseado no tipo
+    if (tipo === 'E') {
+        if (freteGroup) freteGroup.style.display = 'none';
+        if (valorGroup) valorGroup.style.display = 'none';
+        if (extraGroup) extraGroup.style.display = 'block';
+    } else if (tipo === 'V') {
+        if (freteGroup) freteGroup.style.display = 'none';
+    }
+}
+
+// Limpar campos de outros tipos
+function clearOtherTypeFields(currentType) {
+    const allFields = {
+        'E': ['venda-valor-extra'],
+        'V': ['venda-poste-v', 'venda-quantidade-v', 'venda-valor-total-v'],
+        'L': ['venda-poste-l', 'venda-quantidade-l', 'venda-frete-l']
+    };
+    
+    Object.entries(allFields).forEach(([tipo, campos]) => {
+        if (tipo !== currentType) {
+            campos.forEach(campo => {
+                const element = document.getElementById(campo);
+                if (element) {
+                    element.value = '';
+                }
+            });
+        }
+    });
+}
+
+// Calcular valor de venda baseado no poste selecionado
+function calcularValorVenda() {
+    const posteSelect = document.getElementById('venda-poste-v');
+    const quantidadeInput = document.getElementById('venda-quantidade-v');
+    const valorInput = document.getElementById('venda-valor-total-v');
+    
+    if (!posteSelect || !quantidadeInput || !valorInput) return;
+    
+    const posteId = parseInt(posteSelect.value);
+    const quantidade = parseInt(quantidadeInput.value) || 1;
+    
+    if (posteId) {
+        const poste = vendasData.postes.find(p => p.id === posteId);
+        if (poste) {
+            const valorCalculado = poste.preco * quantidade;
+            valorInput.value = valorCalculado.toFixed(2);
+        }
+    }
+}
+
 // Aplicar filtros
 function applyFilters() {
-    const { status, codigo, descricao } = postesData.filters;
+    const { tipo, dataInicio, dataFim } = vendasData.filters;
     
-    let filtered = [...postesData.postes];
+    let filtered = [...vendasData.vendas];
     
-    // Filtro por status
-    if (status !== '') {
-        const isActive = status === 'true';
-        filtered = filtered.filter(p => p.ativo === isActive);
+    // Filtro por tipo
+    if (tipo) {
+        filtered = filtered.filter(v => v.tipoVenda === tipo);
     }
     
-    // Filtro por código
-    if (codigo) {
-        const searchTerm = codigo.toLowerCase();
-        filtered = filtered.filter(p => p.codigo.toLowerCase().includes(searchTerm));
+    // Filtro por data início
+    if (dataInicio) {
+        const dataInicioObj = new Date(dataInicio + 'T00:00:00');
+        filtered = filtered.filter(v => {
+            const dataVenda = new Date(v.dataVenda);
+            return dataVenda >= dataInicioObj;
+        });
     }
     
-    // Filtro por descrição
-    if (descricao) {
-        const searchTerm = descricao.toLowerCase();
-        filtered = filtered.filter(p => p.descricao.toLowerCase().includes(searchTerm));
+    // Filtro por data fim
+    if (dataFim) {
+        const dataFimObj = new Date(dataFim + 'T23:59:59');
+        filtered = filtered.filter(v => {
+            const dataVenda = new Date(v.dataVenda);
+            return dataVenda <= dataFimObj;
+        });
     }
     
-    postesData.filteredPostes = filtered;
-    displayPostes(filtered);
+    vendasData.filteredVendas = filtered;
+    displayVendas(filtered);
 }
 
 // Funções de API
@@ -140,70 +309,111 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
-// Carregar postes
+// Carregar postes para os selects
 async function loadPostes() {
     try {
-        showLoading(true);
         const postes = await apiRequest('/postes');
-        postesData.postes = postes;
-        postesData.filteredPostes = [...postes];
-        displayPostes(postes);
+        vendasData.postes = postes.filter(p => p.ativo);
+        
+        // Povoar selects de postes
+        populatePosteSelects();
+        
     } catch (error) {
         console.error('Erro ao carregar postes:', error);
-        displayPostesError();
+        showAlert('Erro ao carregar lista de postes', 'warning');
+    }
+}
+
+// Povoar selects de postes
+function populatePosteSelects() {
+    const selects = ['venda-poste-v', 'venda-poste-l'];
+    
+    selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            // Limpar opções existentes (exceto a primeira)
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            // Adicionar postes
+            vendasData.postes.forEach(poste => {
+                const option = document.createElement('option');
+                option.value = poste.id;
+                option.textContent = `${poste.codigo} - ${poste.descricao} (${formatCurrency(poste.preco)})`;
+                select.appendChild(option);
+            });
+        }
+    });
+}
+
+// Carregar vendas
+async function loadVendas() {
+    try {
+        showLoading(true);
+        const vendas = await apiRequest('/vendas');
+        vendasData.vendas = vendas;
+        vendasData.filteredVendas = [...vendas];
+        displayVendas(vendas);
+    } catch (error) {
+        console.error('Erro ao carregar vendas:', error);
+        displayVendasError();
     } finally {
         showLoading(false);
     }
 }
 
-// Carregar estatísticas
-async function loadEstatisticas() {
+// Carregar resumo
+async function loadResumo() {
     try {
-        const postes = postesData.postes;
-        const ativo = postes.filter(p => p.ativo).length;
-        const total = postes.length;
-        const precoMedio = postes.length > 0 ? 
-            postes.reduce((sum, p) => sum + (p.preco || 0), 0) / postes.length : 0;
+        const vendas = vendasData.vendas;
         
-        updateEstatisticasCards({
-            total,
-            ativo,
-            precoMedio
+        const totalE = vendas.filter(v => v.tipoVenda === 'E').length;
+        const totalV = vendas.filter(v => v.tipoVenda === 'V').length;
+        const totalL = vendas.filter(v => v.tipoVenda === 'L').length;
+        const totalGeral = vendas.length;
+        
+        updateResumoCards({
+            totalE,
+            totalV,
+            totalL,
+            totalGeral
         });
         
     } catch (error) {
-        console.error('Erro ao calcular estatísticas:', error);
+        console.error('Erro ao calcular resumo:', error);
     }
 }
 
-// Atualizar cards de estatísticas
-function updateEstatisticasCards(stats) {
+// Atualizar cards de resumo
+function updateResumoCards(resumo) {
     const elements = {
-        'total-postes': stats.total.toString(),
-        'postes-ativos': stats.ativo.toString(),
-        'preco-medio': formatCurrency(stats.precoMedio)
+        'total-vendas-e': resumo.totalE,
+        'total-vendas-v': resumo.totalV,
+        'total-vendas-l': resumo.totalL,
+        'total-vendas-geral': resumo.totalGeral
     };
     
     Object.entries(elements).forEach(([id, value]) => {
         const element = document.getElementById(id);
         if (element) {
-            element.textContent = value;
+            element.textContent = value.toString();
         }
     });
 }
 
-// Exibir postes na tabela
-function displayPostes(postes) {
-    const tbody = document.querySelector('#postes-table tbody');
+// Exibir vendas na tabela
+function displayVendas(vendas) {
+    const tbody = document.querySelector('#vendas-table tbody');
     if (!tbody) return;
     
-    if (!postes || postes.length === 0) {
+    if (!vendas || vendas.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="empty-table">
-                    <div class="empty-table-icon">⚡</div>
-                    <p>Nenhum poste encontrado</p>
-                    <button class="btn btn-primary" onclick="scrollToForm()">Cadastrar Primeiro Poste</button>
+                <td colspan="7" class="empty-table">
+                    <div class="empty-table-icon">📋</div>
+                    <p>Nenhuma venda encontrada</p>
+                    <button class="btn btn-primary" onclick="scrollToForm()">Cadastrar Primeira Venda</button>
                 </td>
             </tr>
         `;
@@ -212,32 +422,34 @@ function displayPostes(postes) {
     
     tbody.innerHTML = '';
     
-    postes.forEach(poste => {
+    vendas.forEach(venda => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td data-label="Código"><strong>${poste.codigo}</strong></td>
-            <td data-label="Descrição">
-                <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;" title="${poste.descricao}">
-                    ${poste.descricao}
-                </div>
-            </td>
-            <td class="currency" data-label="Preço">${formatCurrency(poste.preco)}</td>
-            <td data-label="Status">
-                <span class="status ${poste.ativo ? 'ativo' : 'inativo'}">
-                    ${poste.ativo ? '✅ Ativo' : '❌ Inativo'}
+            <td class="date" data-label="Data">${formatDateTimeBR(venda.dataVenda)}</td>
+            <td data-label="Tipo">
+                <span class="status ${venda.tipoVenda.toLowerCase()}">
+                    ${getTipoVendaLabel(venda.tipoVenda)}
                 </span>
+            </td>
+            <td data-label="Poste/Descrição">
+                ${getPosteDescricao(venda)}
+            </td>
+            <td class="currency" data-label="Frete">${formatCurrency(venda.freteEletrons || 0)}</td>
+            <td class="currency" data-label="Valor">${getValorVenda(venda)}</td>
+            <td data-label="Observações">
+                <div style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${venda.observacoes || ''}">
+                    ${venda.observacoes || '-'}
+                </div>
             </td>
             <td data-label="Ações">
                 <div class="table-actions">
-                    <button class="btn btn-primary btn-small" onclick="editPoste(${poste.id})" title="Editar">
+                    <button class="btn btn-primary btn-small" onclick="editVenda(${venda.id})" title="Editar">
                         <span class="btn-icon">✏️</span>
                         Editar
                     </button>
-                    <button class="btn ${poste.ativo ? 'btn-secondary' : 'btn-success'} btn-small" 
-                            onclick="togglePosteStatus(${poste.id})" 
-                            title="${poste.ativo ? 'Inativar' : 'Ativar'}">
-                        <span class="btn-icon">${poste.ativo ? '❌' : '✅'}</span>
-                        ${poste.ativo ? 'Inativar' : 'Ativar'}
+                    <button class="btn btn-danger btn-small" onclick="deleteVenda(${venda.id})" title="Excluir">
+                        <span class="btn-icon">🗑️</span>
+                        Excluir
                     </button>
                 </div>
             </td>
@@ -246,43 +458,121 @@ function displayPostes(postes) {
     });
 }
 
-// Exibir erro ao carregar postes
-function displayPostesError() {
-    const tbody = document.querySelector('#postes-table tbody');
+// Helpers para exibição
+function getTipoVendaLabel(tipo) {
+    const labels = {
+        'E': '📈 Extra',
+        'V': '🛒 Normal',
+        'L': '🏪 Loja'
+    };
+    return labels[tipo] || tipo;
+}
+
+function getPosteDescricao(venda) {
+    if (venda.tipoVenda === 'E') {
+        return '<em>Venda Extra</em>';
+    }
+    
+    const poste = vendasData.postes.find(p => p.id === venda.posteId);
+    if (poste) {
+        const quantidade = venda.quantidade || 1;
+        return `${poste.codigo} ${quantidade > 1 ? `(${quantidade}x)` : ''}`;
+    }
+    
+    return 'Poste não encontrado';
+}
+
+function getValorVenda(venda) {
+    if (venda.tipoVenda === 'E') {
+        return formatCurrency(venda.valorExtra || 0);
+    } else if (venda.tipoVenda === 'L') {
+        return '<em>Só frete</em>';
+    } else {
+        return formatCurrency(venda.valorTotalInformado || 0);
+    }
+}
+
+// Exibir erro ao carregar vendas
+function displayVendasError() {
+    const tbody = document.querySelector('#vendas-table tbody');
     if (tbody) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="empty-table">
+                <td colspan="7" class="empty-table">
                     <div class="empty-table-icon">❌</div>
-                    <p>Erro ao carregar postes</p>
-                    <button class="btn btn-secondary" onclick="loadPostes()">Tentar Novamente</button>
+                    <p>Erro ao carregar vendas</p>
+                    <button class="btn btn-secondary" onclick="loadVendas()">Tentar Novamente</button>
                 </td>
             </tr>
         `;
     }
 }
 
-// Handler do formulário de novo poste
-async function handlePosteSubmit(e) {
+// Handler do formulário de nova venda
+async function handleVendaSubmit(e) {
     e.preventDefault();
     
-    const formData = {
-        codigo: document.getElementById('poste-codigo').value.trim(),
-        descricao: document.getElementById('poste-descricao').value.trim(),
-        preco: parseFloat(document.getElementById('poste-preco').value),
-        ativo: true
-    };
+    const tipoVenda = document.getElementById('venda-tipo').value;
+    const dataVenda = document.getElementById('venda-data').value;
+    const observacoes = document.getElementById('venda-observacoes').value;
     
-    // Validação
-    const erros = validarPoste(formData);
-    if (erros.length > 0) {
-        showAlert(erros.join(', '), 'warning');
+    if (!tipoVenda || !dataVenda) {
+        showAlert('Tipo de venda e data são obrigatórios', 'warning');
         return;
     }
     
+    let formData = {
+        tipoVenda,
+        dataVenda,
+        observacoes: observacoes.trim() || null
+    };
+    
+    // Adicionar campos específicos baseado no tipo
     try {
+        if (tipoVenda === 'E') {
+            const valorExtra = parseFloat(document.getElementById('venda-valor-extra').value);
+            if (!valorExtra || valorExtra <= 0) {
+                showAlert('Valor extra deve ser maior que zero', 'warning');
+                return;
+            }
+            formData.valorExtra = valorExtra;
+            
+        } else if (tipoVenda === 'V') {
+            const posteId = parseInt(document.getElementById('venda-poste-v').value);
+            const quantidade = parseInt(document.getElementById('venda-quantidade-v').value) || 1;
+            const valorTotal = parseFloat(document.getElementById('venda-valor-total-v').value);
+            
+            if (!posteId) {
+                showAlert('Selecione um poste para venda normal', 'warning');
+                return;
+            }
+            
+            if (!valorTotal || valorTotal <= 0) {
+                showAlert('Valor de venda deve ser maior que zero', 'warning');
+                return;
+            }
+            
+            formData.posteId = posteId;
+            formData.quantidade = quantidade;
+            formData.valorTotalInformado = valorTotal;
+            
+        } else if (tipoVenda === 'L') {
+            const posteId = parseInt(document.getElementById('venda-poste-l').value);
+            const quantidade = parseInt(document.getElementById('venda-quantidade-l').value) || 1;
+            const frete = parseFloat(document.getElementById('venda-frete-l').value) || 0;
+            
+            if (!posteId) {
+                showAlert('Selecione um poste de referência para venda loja', 'warning');
+                return;
+            }
+            
+            formData.posteId = posteId;
+            formData.quantidade = quantidade;
+            formData.freteEletrons = frete;
+        }
+        
         showLoading(true);
-        await apiRequest('/postes', {
+        await apiRequest('/vendas', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -290,20 +580,73 @@ async function handlePosteSubmit(e) {
             body: JSON.stringify(formData)
         });
         
-        showAlert('Poste criado com sucesso!', 'success');
+        showAlert('Venda criada com sucesso!', 'success');
         
         // Resetar formulário
-        e.target.reset();
+        resetForm();
         
         // Recarregar dados
-        await loadPostes();
-        await loadEstatisticas();
+        await loadVendas();
+        await loadResumo();
         
     } catch (error) {
-        console.error('Erro ao criar poste:', error);
-        showAlert('Erro ao criar poste', 'error');
+        console.error('Erro ao criar venda:', error);
+        showAlert('Erro ao criar venda', 'error');
     } finally {
         showLoading(false);
+    }
+}
+
+// Resetar formulário
+function resetForm() {
+    const form = document.getElementById('venda-form');
+    if (form) {
+        form.reset();
+        
+        // Esconder todos os campos específicos
+        document.getElementById('campos-tipo-e').style.display = 'none';
+        document.getElementById('campos-tipo-v').style.display = 'none';
+        document.getElementById('campos-tipo-l').style.display = 'none';
+        
+        // Restaurar data/hora padrão
+        setDefaultDateTime();
+    }
+}
+
+// Função de edição
+async function editVenda(id) {
+    try {
+        const venda = vendasData.vendas.find(v => v.id === id);
+        
+        if (!venda) {
+            throw new Error('Venda não encontrada');
+        }
+        
+        // Preencher formulário de edição
+        document.getElementById('edit-tipo-venda').value = venda.tipoVenda;
+        document.getElementById('edit-observacoes').value = venda.observacoes || '';
+        
+        // Preencher campos específicos
+        if (venda.tipoVenda === 'E') {
+            document.getElementById('edit-valor-extra').value = venda.valorExtra || '';
+        } else if (venda.tipoVenda === 'V') {
+            document.getElementById('edit-valor-total').value = venda.valorTotalInformado || '';
+        } else if (venda.tipoVenda === 'L') {
+            document.getElementById('edit-frete-eletrons').value = venda.freteEletrons || '';
+        }
+        
+        // Configurar visibilidade dos campos
+        handleEditTipoChange({ target: { value: venda.tipoVenda } });
+        
+        // Definir ID atual
+        vendasData.currentEditId = id;
+        
+        // Abrir modal
+        document.getElementById('edit-venda-modal').style.display = 'block';
+        
+    } catch (error) {
+        console.error('Erro ao carregar venda para edição:', error);
+        showAlert('Erro ao carregar dados da venda', 'error');
     }
 }
 
@@ -311,23 +654,38 @@ async function handlePosteSubmit(e) {
 async function handleEditSubmit(e) {
     e.preventDefault();
     
-    const formData = {
-        codigo: document.getElementById('edit-poste-codigo').value.trim(),
-        descricao: document.getElementById('edit-poste-descricao').value.trim(),
-        preco: parseFloat(document.getElementById('edit-poste-preco').value),
-        ativo: document.getElementById('edit-poste-ativo').value === 'true'
+    const tipoVenda = document.getElementById('edit-tipo-venda').value;
+    const observacoes = document.getElementById('edit-observacoes').value;
+    
+    let formData = {
+        observacoes: observacoes.trim() || null
     };
     
-    // Validação
-    const erros = validarPoste(formData);
-    if (erros.length > 0) {
-        showAlert(erros.join(', '), 'warning');
-        return;
+    // Adicionar campos específicos
+    if (tipoVenda === 'E') {
+        const valorExtra = parseFloat(document.getElementById('edit-valor-extra').value);
+        if (!valorExtra || valorExtra <= 0) {
+            showAlert('Valor extra deve ser maior que zero', 'warning');
+            return;
+        }
+        formData.valorExtra = valorExtra;
+        
+    } else if (tipoVenda === 'V') {
+        const valorTotal = parseFloat(document.getElementById('edit-valor-total').value);
+        if (!valorTotal || valorTotal <= 0) {
+            showAlert('Valor de venda deve ser maior que zero', 'warning');
+            return;
+        }
+        formData.valorTotalInformado = valorTotal;
+        
+    } else if (tipoVenda === 'L') {
+        const frete = parseFloat(document.getElementById('edit-frete-eletrons').value) || 0;
+        formData.freteEletrons = frete;
     }
     
     try {
         showLoading(true);
-        await apiRequest(`/postes/${postesData.currentEditId}`, {
+        await apiRequest(`/vendas/${vendasData.currentEditId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -335,146 +693,83 @@ async function handleEditSubmit(e) {
             body: JSON.stringify(formData)
         });
         
-        showAlert('Poste atualizado com sucesso!', 'success');
+        showAlert('Venda atualizada com sucesso!', 'success');
         
         // Fechar modal
-        closeModal('edit-poste-modal');
+        closeModal('edit-venda-modal');
         
         // Recarregar dados
-        await loadPostes();
-        await loadEstatisticas();
+        await loadVendas();
+        await loadResumo();
         
     } catch (error) {
-        console.error('Erro ao atualizar poste:', error);
-        showAlert('Erro ao atualizar poste', 'error');
+        console.error('Erro ao atualizar venda:', error);
+        showAlert('Erro ao atualizar venda', 'error');
     } finally {
         showLoading(false);
     }
 }
 
-// Função de edição
-async function editPoste(id) {
+// Função de exclusão
+async function deleteVenda(id) {
+    const confirmed = await confirm(
+        'Tem certeza que deseja excluir esta venda?'
+    );
+    
+    if (!confirmed) return;
+    
     try {
-        const poste = postesData.postes.find(p => p.id === id);
-        
-        if (!poste) {
-            throw new Error('Poste não encontrado');
-        }
-        
-        // Preencher formulário de edição
-        document.getElementById('edit-poste-codigo').value = poste.codigo;
-        document.getElementById('edit-poste-descricao').value = poste.descricao;
-        document.getElementById('edit-poste-preco').value = poste.preco;
-        document.getElementById('edit-poste-ativo').value = poste.ativo.toString();
-        
-        // Definir ID atual
-        postesData.currentEditId = id;
-        
-        // Abrir modal
-        document.getElementById('edit-poste-modal').style.display = 'block';
-        
-    } catch (error) {
-        console.error('Erro ao carregar poste para edição:', error);
-        showAlert('Erro ao carregar dados do poste', 'error');
-    }
-}
-
-// Função de alternar status
-async function togglePosteStatus(id) {
-    try {
-        const poste = postesData.postes.find(p => p.id === id);
-        if (!poste) {
-            throw new Error('Poste não encontrado');
-        }
-        
-        const novoStatus = !poste.ativo;
-        const acao = novoStatus ? 'ativar' : 'inativar';
-        
-        const confirmed = await confirm(
-            `Tem certeza que deseja ${acao} este poste?`
-        );
-        
-        if (!confirmed) return;
-        
         showLoading(true);
-        await apiRequest(`/postes/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ...poste, ativo: novoStatus })
+        await apiRequest(`/vendas/${id}`, {
+            method: 'DELETE'
         });
         
-        showAlert(`Poste ${acao}do com sucesso!`, 'success');
+        showAlert('Venda excluída com sucesso!', 'success');
         
-        await loadPostes();
-        await loadEstatisticas();
+        // Recarregar dados
+        await loadVendas();
+        await loadResumo();
         
     } catch (error) {
-        console.error('Erro ao alterar status do poste:', error);
-        showAlert('Erro ao alterar status do poste', 'error');
+        console.error('Erro ao excluir venda:', error);
+        showAlert('Erro ao excluir venda', 'error');
     } finally {
         showLoading(false);
     }
-}
-
-// Validar dados de poste
-function validarPoste(dados) {
-    const erros = [];
-    
-    if (!dados.codigo || dados.codigo.trim().length < 1) {
-        erros.push('Código é obrigatório');
-    }
-    
-    if (!dados.descricao || dados.descricao.trim().length < 3) {
-        erros.push('Descrição deve ter pelo menos 3 caracteres');
-    }
-    
-    if (!dados.preco || dados.preco <= 0) {
-        erros.push('Preço deve ser maior que zero');
-    }
-    
-    // Verificar se código já existe (apenas para novos postes)
-    if (!postesData.currentEditId) {
-        const codigoExistente = postesData.postes.find(p => 
-            p.codigo.toLowerCase() === dados.codigo.toLowerCase()
-        );
-        if (codigoExistente) {
-            erros.push('Código já existe');
-        }
-    }
-    
-    return erros;
 }
 
 // Funções auxiliares
-function exportarPostes() {
-    if (!postesData.postes || postesData.postes.length === 0) {
-        showAlert('Nenhum poste para exportar', 'warning');
+function exportarVendas() {
+    if (!vendasData.filteredVendas || vendasData.filteredVendas.length === 0) {
+        showAlert('Nenhuma venda para exportar', 'warning');
         return;
     }
     
-    const dadosExportar = postesData.postes.map(poste => ({
-        'Código': poste.codigo,
-        'Descrição': poste.descricao,
-        'Preço': poste.preco,
-        'Status': poste.ativo ? 'Ativo' : 'Inativo'
+    const dadosExportar = vendasData.filteredVendas.map(venda => ({
+        'Data': formatDateTimeBR(venda.dataVenda),
+        'Tipo': getTipoVendaLabel(venda.tipoVenda),
+        'Poste': getPosteDescricao(venda),
+        'Quantidade': venda.quantidade || 1,
+        'Frete': venda.freteEletrons || 0,
+        'Valor': venda.tipoVenda === 'E' ? venda.valorExtra : 
+                 venda.tipoVenda === 'V' ? venda.valorTotalInformado : 0,
+        'Observações': venda.observacoes || ''
     }));
     
-    exportToCSV(dadosExportar, `postes_${new Date().toISOString().split('T')[0]}`);
+    exportToCSV(dadosExportar, `vendas_${new Date().toISOString().split('T')[0]}`);
 }
 
 function limparFiltros() {
     // Limpar inputs de filtro
-    document.getElementById('filtro-status').value = '';
-    document.getElementById('filtro-codigo').value = '';
-    document.getElementById('filtro-descricao').value = '';
+    document.getElementById('filtro-tipo-venda').value = '';
+    document.getElementById('filtro-data-inicio').value = '';
+    document.getElementById('filtro-data-fim').value = '';
     
     // Resetar filtros
-    postesData.filters = {
-        status: '',
-        codigo: '',
-        descricao: ''
+    vendasData.filters = {
+        tipo: '',
+        dataInicio: '',
+        dataFim: ''
     };
     
     // Reaplicar (sem filtros)
@@ -484,7 +779,7 @@ function limparFiltros() {
 }
 
 function scrollToForm() {
-    const form = document.getElementById('poste-form');
+    const form = document.getElementById('venda-form');
     if (form) {
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
@@ -586,7 +881,7 @@ function exportToCSV(data, filename) {
         )
     ].join('\n');
 
-    const blob = new Blob([csv], { type: 'text/csv' );
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.download = `${filename}.csv`;
@@ -599,4 +894,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Postes carregado com formato brasileiro');
+console.log('✅ Vendas carregado com formato brasileiro');
