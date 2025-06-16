@@ -1,4 +1,4 @@
-// Despesas JavaScript - VERSÃO CORRIGIDA COM SEPARAÇÃO DE DESPESAS
+// Despesas JavaScript - VERSÃO CORRIGIDA COM CAMPO DATA DA DESPESA
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -45,7 +45,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
         setupFilters();
         
-        // Definir filtros de data padrão - NOVO
+        // Definir data padrão no formulário e filtros
+        setDefaultDate();
         setDefaultDateFilters();
         
         // Aplicar filtros iniciais
@@ -71,12 +72,22 @@ function configurarLocaleBrasileiro() {
     }, 100);
 }
 
+// Definir data padrão no formulário de nova despesa
+function setDefaultDate() {
+    const despesaData = document.getElementById('despesa-data');
+    if (despesaData) {
+        const hoje = new Date();
+        despesaData.value = dateToInputValue(hoje);
+    }
+}
+
 // Configurar event listeners
 function setupEventListeners() {
     // Formulário de nova despesa
     const despesaForm = document.getElementById('despesa-form');
     if (despesaForm) {
         despesaForm.addEventListener('submit', handleDespesaSubmit);
+        despesaForm.addEventListener('reset', resetFormWithDefaultDate);
     }
     
     // Formulário de edição
@@ -84,6 +95,13 @@ function setupEventListeners() {
     if (editForm) {
         editForm.addEventListener('submit', handleEditSubmit);
     }
+}
+
+// Reset form com data padrão
+function resetFormWithDefaultDate() {
+    setTimeout(() => {
+        setDefaultDate();
+    }, 100);
 }
 
 // Configurar filtros
@@ -106,7 +124,7 @@ function setupFilters() {
     });
 }
 
-// Função para definir filtros de data padrão - NOVA
+// Função para definir filtros de data padrão
 function setDefaultDateFilters() {
     const hoje = new Date();
     const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -315,11 +333,12 @@ function displayDespesasError() {
     }
 }
 
-// Handler do formulário de nova despesa
+// Handler do formulário de nova despesa - ATUALIZADO COM DATA
 async function handleDespesaSubmit(e) {
     e.preventDefault();
     
     const formData = {
+        dataDespesa: document.getElementById('despesa-data').value,
         descricao: document.getElementById('despesa-descricao').value.trim(),
         valor: parseFloat(document.getElementById('despesa-valor').value),
         tipo: document.getElementById('despesa-tipo').value
@@ -344,8 +363,9 @@ async function handleDespesaSubmit(e) {
         
         showAlert('Despesa criada com sucesso!', 'success');
         
-        // Resetar formulário
+        // Resetar formulário (mantendo data padrão)
         e.target.reset();
+        setDefaultDate();
         
         // Recarregar dados
         await loadDespesas();
@@ -359,11 +379,12 @@ async function handleDespesaSubmit(e) {
     }
 }
 
-// Handler do formulário de edição
+// Handler do formulário de edição - ATUALIZADO COM DATA
 async function handleEditSubmit(e) {
     e.preventDefault();
     
     const formData = {
+        dataDespesa: document.getElementById('edit-despesa-data').value,
         descricao: document.getElementById('edit-despesa-descricao').value.trim(),
         valor: parseFloat(document.getElementById('edit-despesa-valor').value),
         tipo: document.getElementById('edit-despesa-tipo').value
@@ -403,7 +424,7 @@ async function handleEditSubmit(e) {
     }
 }
 
-// Função de edição
+// Função de edição - ATUALIZADA COM DATA
 async function editDespesa(id) {
     try {
         const despesa = despesasData.despesas.find(d => d.id === id);
@@ -413,6 +434,7 @@ async function editDespesa(id) {
         }
         
         // Preencher formulário de edição
+        document.getElementById('edit-despesa-data').value = despesa.dataDespesa ? despesa.dataDespesa.split('T')[0] : '';
         document.getElementById('edit-despesa-descricao').value = despesa.descricao;
         document.getElementById('edit-despesa-valor').value = despesa.valor;
         document.getElementById('edit-despesa-tipo').value = despesa.tipo;
@@ -457,9 +479,13 @@ async function deleteDespesa(id) {
     }
 }
 
-// Validar dados de despesa
+// Validar dados de despesa - ATUALIZADO COM DATA
 function validarDespesa(dados) {
     const erros = [];
+    
+    if (!dados.dataDespesa) {
+        erros.push('Data da despesa é obrigatória');
+    }
     
     if (!dados.descricao || dados.descricao.trim().length < 3) {
         erros.push('Descrição deve ter pelo menos 3 caracteres');
@@ -484,7 +510,6 @@ function exportarDespesas() {
     }
     
     const dadosExportar = despesasData.filteredDespesas.map(despesa => ({
-        'ID': despesa.id,
         'Data': formatDateBR(despesa.dataDespesa),
         'Descrição': despesa.descricao,
         'Valor': despesa.valor,
@@ -631,4 +656,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Despesas carregado com formato brasileiro e cálculo separado');
+console.log('✅ Despesas carregado com campo Data da Despesa e formato brasileiro');

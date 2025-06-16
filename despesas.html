@@ -94,22 +94,20 @@
                 <form id="despesa-form" class="form-container" novalidate aria-labelledby="nova-despesa-titulo">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="despesa-descricao" class="form-label">
-                                Descrição da Despesa
+                            <label for="despesa-data" class="form-label">
+                                📅 Data da Despesa
                                 <span class="required" aria-label="Campo obrigatório">*</span>
                             </label>
                             <input 
-                                type="text" 
-                                id="despesa-descricao" 
+                                type="date" 
+                                id="despesa-data" 
                                 class="form-input"
                                 required 
-                                placeholder="Ex: Pagamento de funcionário, combustível, material..."
-                                aria-describedby="descricao-help"
-                                minlength="3"
-                                maxlength="500"
+                                aria-describedby="data-help"
+                                lang="pt-BR"
                             >
-                            <small id="descricao-help" class="form-help">
-                                Descreva brevemente o tipo de despesa
+                            <small id="data-help" class="date-help">
+                                Data quando a despesa foi realizada
                             </small>
                         </div>
 
@@ -134,6 +132,26 @@
                             </div>
                             <small id="valor-help" class="form-help">
                                 Valor em reais (R$)
+                            </small>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="despesa-descricao" class="form-label">
+                                Descrição da Despesa
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="despesa-descricao" 
+                                class="form-input"
+                                required 
+                                placeholder="Ex: Pagamento de funcionário, combustível, material..."
+                                aria-describedby="descricao-help"
+                                minlength="3"
+                                maxlength="500"
+                            >
+                            <small id="descricao-help" class="form-help">
+                                Descreva brevemente o tipo de despesa
                             </small>
                         </div>
 
@@ -377,17 +395,16 @@
                 <div class="modal-body">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="edit-despesa-descricao" class="form-label">
-                                Descrição
+                            <label for="edit-despesa-data" class="form-label">
+                                📅 Data da Despesa
                                 <span class="required" aria-label="Campo obrigatório">*</span>
                             </label>
                             <input 
-                                type="text" 
-                                id="edit-despesa-descricao" 
+                                type="date" 
+                                id="edit-despesa-data" 
                                 class="form-input"
                                 required
-                                minlength="3"
-                                maxlength="500"
+                                lang="pt-BR"
                             >
                         </div>
                         
@@ -404,6 +421,21 @@
                                 required 
                                 min="0.01"
                                 max="999999.99"
+                            >
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="edit-despesa-descricao" class="form-label">
+                                Descrição
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="edit-despesa-descricao" 
+                                class="form-input"
+                                required
+                                minlength="3"
+                                maxlength="500"
                             >
                         </div>
                         
