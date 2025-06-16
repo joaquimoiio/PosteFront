@@ -175,14 +175,14 @@ function calcularLucros(resumoBasico, despesas) {
 
     // 4. Divisão inicial: 50% para cada lado (SEM descontar funcionário ainda)
     const metadeCicero = lucroTotal / 2;
-    const metadeGuilhermeJefferson = lucroTotal / 2;
+    const metadeGilbertoJefferson = lucroTotal / 2;
 
-    // 5. Da parte do Guilherme e Jefferson, descontar despesas de funcionário
-    const parteGuilhermeJeffersonLiquida = metadeGuilhermeJefferson - despesasFuncionario;
+    // 5. Da parte do Gilberto e Jefferson, descontar despesas de funcionário
+    const parteGilbertoJeffersonLiquida = metadeGilbertoJefferson - despesasFuncionario;
 
-    // 6. Dividir entre Guilherme e Jefferson (25% cada do total)
-    const parteGuilherme = parteGuilhermeJeffersonLiquida / 2;
-    const parteJefferson = parteGuilhermeJeffersonLiquida / 2;
+    // 6. Dividir entre Gilberto e Jefferson (25% cada do total)
+    const parteGilberto = parteGilbertoJeffersonLiquida / 2;
+    const parteJefferson = parteGilbertoJeffersonLiquida / 2;
 
     return {
         // Valores base
@@ -198,7 +198,7 @@ function calcularLucros(resumoBasico, despesas) {
         
         // Distribuição
         parteCicero: metadeCicero,
-        parteGuilherme,
+        parteGilberto,
         parteJefferson,
         
         // Valores por tipo
@@ -219,7 +219,7 @@ function updateResumoCards(resumoBasico, lucros) {
         { id: 'total-despesas', value: lucros.outrasDespesas }, // APENAS outras despesas
         { id: 'lucro-total', value: lucros.lucroTotal },
         { id: 'parte-cicero', value: lucros.parteCicero },
-        { id: 'parte-gilberto', value: lucros.parteGuilherme },
+        { id: 'parte-gilberto', value: lucros.parteGilberto },
         { id: 'parte-jefferson', value: lucros.parteJefferson }
     ];
 
@@ -374,7 +374,7 @@ DETALHES DO CÁLCULO DE LUCROS:
    - Parte Cícero (50%): ${formatCurrency(lucros.parteCicero)}
    - Parte G&J antes funcionário: ${formatCurrency(lucros.lucroTotal / 2)}
    - Desconto funcionário: ${formatCurrency(lucros.despesasFuncionario)}
-   - Guilherme (25%): ${formatCurrency(lucros.parteGuilherme)}
+   - Gilberto (25%): ${formatCurrency(lucros.parteGilberto)}
    - Jefferson (25%): ${formatCurrency(lucros.parteJefferson)}
 
 OBSERVAÇÃO: Despesas de funcionário só afetam a divisão G&J, não o lucro total.
