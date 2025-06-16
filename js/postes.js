@@ -1,9 +1,9 @@
-// Postes JavaScript - VERSÃO CORRIGIDA COMPLETA
+// Postes JavaScript - VERSÃO REFATORADA
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
 
-// Estado global da página de postes
+// Estado global
 let postesData = {
     postes: [],
     filteredPostes: [],
@@ -15,7 +15,7 @@ let postesData = {
     }
 };
 
-// Inicialização quando a página carrega
+// Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando página de Postes...');
     
@@ -32,22 +32,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Configurar event listeners
 function setupEventListeners() {
-    // Formulário de novo poste
     const posteForm = document.getElementById('poste-form');
     if (posteForm) {
         posteForm.addEventListener('submit', handlePosteSubmit);
     }
     
-    // Formulário de edição
     const editForm = document.getElementById('edit-poste-form');
     if (editForm) {
         editForm.addEventListener('submit', handleEditSubmit);
     }
 }
 
-// Configurar filtros
 function setupFilters() {
     const filterElements = {
         'filtro-status': 'status',
@@ -66,25 +62,21 @@ function setupFilters() {
     });
 }
 
-// Aplicar filtros
 function applyFilters() {
     const { status, codigo, descricao } = postesData.filters;
     
     let filtered = [...postesData.postes];
     
-    // Filtro por status
     if (status !== '') {
         const isActive = status === 'true';
         filtered = filtered.filter(p => p.ativo === isActive);
     }
     
-    // Filtro por código
     if (codigo) {
         const searchTerm = codigo.toLowerCase();
         filtered = filtered.filter(p => p.codigo.toLowerCase().includes(searchTerm));
     }
     
-    // Filtro por descrição
     if (descricao) {
         const searchTerm = descricao.toLowerCase();
         filtered = filtered.filter(p => p.descricao.toLowerCase().includes(searchTerm));
@@ -108,7 +100,6 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
-// Carregar postes
 async function loadPostes() {
     try {
         showLoading(true);
@@ -124,7 +115,6 @@ async function loadPostes() {
     }
 }
 
-// Carregar estatísticas
 async function loadEstatisticas() {
     try {
         const postes = postesData.postes;
@@ -144,7 +134,6 @@ async function loadEstatisticas() {
     }
 }
 
-// Atualizar cards de estatísticas
 function updateEstatisticasCards(stats) {
     const elements = {
         'total-postes': stats.total.toString(),
@@ -160,7 +149,6 @@ function updateEstatisticasCards(stats) {
     });
 }
 
-// Exibir postes na tabela
 function displayPostes(postes) {
     const tbody = document.querySelector('#postes-table tbody');
     if (!tbody) return;
@@ -214,7 +202,6 @@ function displayPostes(postes) {
     });
 }
 
-// Exibir erro ao carregar postes
 function displayPostesError() {
     const tbody = document.querySelector('#postes-table tbody');
     if (tbody) {
@@ -230,7 +217,6 @@ function displayPostesError() {
     }
 }
 
-// Handler do formulário de novo poste
 async function handlePosteSubmit(e) {
     e.preventDefault();
     
@@ -241,7 +227,6 @@ async function handlePosteSubmit(e) {
         ativo: true
     };
     
-    // Validação
     const erros = validarPoste(formData);
     if (erros.length > 0) {
         showAlert(erros.join(', '), 'warning');
@@ -260,10 +245,8 @@ async function handlePosteSubmit(e) {
         
         showAlert('Poste criado com sucesso!', 'success');
         
-        // Resetar formulário
         e.target.reset();
         
-        // Recarregar dados
         await loadPostes();
         await loadEstatisticas();
         
@@ -275,7 +258,6 @@ async function handlePosteSubmit(e) {
     }
 }
 
-// Handler do formulário de edição
 async function handleEditSubmit(e) {
     e.preventDefault();
     
@@ -286,7 +268,6 @@ async function handleEditSubmit(e) {
         ativo: document.getElementById('edit-poste-ativo').value === 'true'
     };
     
-    // Validação
     const erros = validarPoste(formData);
     if (erros.length > 0) {
         showAlert(erros.join(', '), 'warning');
@@ -305,10 +286,8 @@ async function handleEditSubmit(e) {
         
         showAlert('Poste atualizado com sucesso!', 'success');
         
-        // Fechar modal
         closeModal('edit-poste-modal');
         
-        // Recarregar dados
         await loadPostes();
         await loadEstatisticas();
         
@@ -320,7 +299,6 @@ async function handleEditSubmit(e) {
     }
 }
 
-// Função de edição
 async function editPoste(id) {
     try {
         const poste = postesData.postes.find(p => p.id === id);
@@ -329,16 +307,12 @@ async function editPoste(id) {
             throw new Error('Poste não encontrado');
         }
         
-        // Preencher formulário de edição
         document.getElementById('edit-poste-codigo').value = poste.codigo;
         document.getElementById('edit-poste-descricao').value = poste.descricao;
         document.getElementById('edit-poste-preco').value = poste.preco;
         document.getElementById('edit-poste-ativo').value = poste.ativo.toString();
         
-        // Definir ID atual
         postesData.currentEditId = id;
-        
-        // Abrir modal
         document.getElementById('edit-poste-modal').style.display = 'block';
         
     } catch (error) {
@@ -347,7 +321,6 @@ async function editPoste(id) {
     }
 }
 
-// Função de alternar status
 async function togglePosteStatus(id) {
     try {
         const poste = postesData.postes.find(p => p.id === id);
@@ -386,7 +359,6 @@ async function togglePosteStatus(id) {
     }
 }
 
-// Validar dados de poste
 function validarPoste(dados) {
     const erros = [];
     
@@ -402,7 +374,6 @@ function validarPoste(dados) {
         erros.push('Preço deve ser maior que zero');
     }
     
-    // Verificar se código já existe (apenas para novos postes)
     if (!postesData.currentEditId) {
         const codigoExistente = postesData.postes.find(p => 
             p.codigo.toLowerCase() === dados.codigo.toLowerCase()
@@ -415,7 +386,6 @@ function validarPoste(dados) {
     return erros;
 }
 
-// Funções auxiliares
 function exportarPostes() {
     if (!postesData.postes || postesData.postes.length === 0) {
         showAlert('Nenhum poste para exportar', 'warning');
@@ -433,21 +403,17 @@ function exportarPostes() {
 }
 
 function limparFiltros() {
-    // Limpar inputs de filtro
     document.getElementById('filtro-status').value = '';
     document.getElementById('filtro-codigo').value = '';
     document.getElementById('filtro-descricao').value = '';
     
-    // Resetar filtros
     postesData.filters = {
         status: '',
         codigo: '',
         descricao: ''
     };
     
-    // Reaplicar (sem filtros)
     applyFilters();
-    
     showAlert('Filtros limpos', 'success');
 }
 
@@ -456,7 +422,6 @@ function scrollToForm() {
     if (form) {
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
-        // Focar no primeiro campo
         const firstInput = form.querySelector('input, select, textarea');
         if (firstInput) {
             firstInput.focus();
@@ -464,7 +429,7 @@ function scrollToForm() {
     }
 }
 
-// Utilitários - FORMATAÇÃO BRASILEIRA
+// Utilitários
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
     
@@ -472,34 +437,6 @@ function formatCurrency(value) {
         style: 'currency',
         currency: 'BRL'
     }).format(value);
-}
-
-function formatDateBR(dateString) {
-    if (!dateString) return '-';
-    
-    const date = new Date(dateString);
-    return date.toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function dateToInputValue(date) {
-    if (!date) return '';
-    
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    
-    return `${year}-${month}-${day}`;
-}
-
-function formatDate(dateString) {
-    return formatDateBR(dateString);
 }
 
 function showLoading(show) {
@@ -584,4 +521,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Postes carregado');
+console.log('✅ Postes refatorado carregado');

@@ -1,9 +1,9 @@
-// Vendas JavaScript - VERSÃO REFATORADA E OTIMIZADA
+// Vendas JavaScript - VERSÃO REFATORADA COM DATAS CORRIGIDAS
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
 
-// Estado global da página de vendas
+// Estado global
 let vendasData = {
     vendas: [],
     filteredVendas: [],
@@ -16,19 +16,8 @@ let vendasData = {
     }
 };
 
-// FUNÇÃO DE FORMATAÇÃO DE DATA BRASILEIRA (SEM HORA)
+// Formatação de data
 function formatDateBR(dateString) {
-    if (!dateString) return '-';
-    
-    const date = new Date(dateString + 'T00:00:00'); // Evitar problemas de timezone
-    return date.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-}
-
-function formatDateTimeBR(dateString) {
     if (!dateString) return '-';
     
     const date = new Date(dateString);
@@ -41,15 +30,10 @@ function formatDateTimeBR(dateString) {
     });
 }
 
-function formatDate(dateString) {
-    return formatDateBR(dateString);
-}
-
-// Inicialização quando a página carrega
+// Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando página de Vendas...');
     
-    // Configurar localização brasileira
     configurarLocaleBrasileiro();
     
     try {
@@ -58,11 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadResumo();
         setupEventListeners();
         setupFilters();
-        
-        // Definir filtros de data padrão
         setDefaultDateFilters();
-        
-        // Aplicar filtros iniciais
         applyFilters();
         
         console.log('✅ Página de Vendas carregada com sucesso');
@@ -72,11 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Configurar localização brasileira
 function configurarLocaleBrasileiro() {
     document.documentElement.lang = 'pt-BR';
     
-    // Configurar inputs de data
     setTimeout(() => {
         const inputs = document.querySelectorAll('input[type="date"], input[type="datetime-local"]');
         inputs.forEach(input => {
@@ -85,34 +63,28 @@ function configurarLocaleBrasileiro() {
     }, 100);
 }
 
-// Configurar event listeners
 function setupEventListeners() {
-    // Formulário de nova venda
     const vendaForm = document.getElementById('venda-form');
     if (vendaForm) {
         vendaForm.addEventListener('submit', handleVendaSubmit);
         vendaForm.addEventListener('reset', resetForm);
     }
     
-    // Formulário de edição
     const editForm = document.getElementById('edit-venda-form');
     if (editForm) {
         editForm.addEventListener('submit', handleEditSubmit);
     }
     
-    // Mudança de tipo de venda
     const tipoVenda = document.getElementById('venda-tipo');
     if (tipoVenda) {
         tipoVenda.addEventListener('change', handleTipoVendaChange);
     }
     
-    // Mudança de tipo na edição
     const editTipoVenda = document.getElementById('edit-tipo-venda');
     if (editTipoVenda) {
         editTipoVenda.addEventListener('change', handleEditTipoChange);
     }
     
-    // Auto-calcular valores baseados no poste selecionado
     const posteVSelect = document.getElementById('venda-poste-v');
     const quantidadeV = document.getElementById('venda-quantidade-v');
     
@@ -121,11 +93,9 @@ function setupEventListeners() {
         quantidadeV.addEventListener('input', calcularValorVenda);
     }
     
-    // Configurar data/hora padrão
     setDefaultDateTime();
 }
 
-// Configurar filtros
 function setupFilters() {
     const filterElements = {
         'filtro-tipo-venda': 'tipo',
@@ -144,7 +114,6 @@ function setupFilters() {
     });
 }
 
-// Definir filtros de data padrão
 function setDefaultDateFilters() {
     const hoje = new Date();
     const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -162,12 +131,10 @@ function setDefaultDateFilters() {
     }
 }
 
-// Definir data/hora padrão no formulário
 function setDefaultDateTime() {
     const vendaData = document.getElementById('venda-data');
     if (vendaData) {
         const agora = new Date();
-        // Formato para datetime-local: YYYY-MM-DDTHH:MM
         const dataFormatada = agora.getFullYear() + '-' + 
             String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
             String(agora.getDate()).padStart(2, '0') + 'T' + 
@@ -178,16 +145,13 @@ function setDefaultDateTime() {
     }
 }
 
-// Handler de mudança de tipo de venda
 function handleTipoVendaChange(e) {
     const tipo = e.target.value;
     
-    // Esconder todos os campos específicos
     document.getElementById('campos-tipo-e').style.display = 'none';
     document.getElementById('campos-tipo-v').style.display = 'none';
     document.getElementById('campos-tipo-l').style.display = 'none';
     
-    // Mostrar campos específicos do tipo selecionado
     if (tipo) {
         const camposDiv = document.getElementById(`campos-tipo-${tipo.toLowerCase()}`);
         if (camposDiv) {
@@ -195,11 +159,9 @@ function handleTipoVendaChange(e) {
         }
     }
     
-    // Limpar campos que não são do tipo atual
     clearOtherTypeFields(tipo);
 }
 
-// Handler de mudança de tipo na edição
 function handleEditTipoChange(e) {
     const tipo = e.target.value;
     
@@ -207,12 +169,10 @@ function handleEditTipoChange(e) {
     const valorGroup = document.getElementById('edit-valor-group');
     const extraGroup = document.getElementById('edit-extra-group');
     
-    // Reset display
     if (freteGroup) freteGroup.style.display = 'block';
     if (valorGroup) valorGroup.style.display = 'block';
     if (extraGroup) extraGroup.style.display = 'none';
     
-    // Mostrar/esconder campos baseado no tipo
     if (tipo === 'E') {
         if (freteGroup) freteGroup.style.display = 'none';
         if (valorGroup) valorGroup.style.display = 'none';
@@ -222,7 +182,6 @@ function handleEditTipoChange(e) {
     }
 }
 
-// Limpar campos de outros tipos
 function clearOtherTypeFields(currentType) {
     const allFields = {
         'E': ['venda-valor-extra'],
@@ -242,7 +201,6 @@ function clearOtherTypeFields(currentType) {
     });
 }
 
-// Calcular valor de venda baseado no poste selecionado
 function calcularValorVenda() {
     const posteSelect = document.getElementById('venda-poste-v');
     const quantidadeInput = document.getElementById('venda-quantidade-v');
@@ -262,18 +220,15 @@ function calcularValorVenda() {
     }
 }
 
-// Aplicar filtros
 function applyFilters() {
     const { tipo, dataInicio, dataFim } = vendasData.filters;
     
     let filtered = [...vendasData.vendas];
     
-    // Filtro por tipo
     if (tipo) {
         filtered = filtered.filter(v => v.tipoVenda === tipo);
     }
     
-    // Filtro por data início
     if (dataInicio) {
         const dataInicioObj = new Date(dataInicio + 'T00:00:00');
         filtered = filtered.filter(v => {
@@ -282,7 +237,6 @@ function applyFilters() {
         });
     }
     
-    // Filtro por data fim
     if (dataFim) {
         const dataFimObj = new Date(dataFim + 'T23:59:59');
         filtered = filtered.filter(v => {
@@ -309,34 +263,27 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
-// Carregar postes para os selects
 async function loadPostes() {
     try {
         const postes = await apiRequest('/postes');
         vendasData.postes = postes.filter(p => p.ativo);
-        
-        // Povoar selects de postes
         populatePosteSelects();
-        
     } catch (error) {
         console.error('Erro ao carregar postes:', error);
         showAlert('Erro ao carregar lista de postes', 'warning');
     }
 }
 
-// Povoar selects de postes
 function populatePosteSelects() {
     const selects = ['venda-poste-v', 'venda-poste-l'];
     
     selects.forEach(selectId => {
         const select = document.getElementById(selectId);
         if (select) {
-            // Limpar opções existentes (exceto a primeira)
             while (select.children.length > 1) {
                 select.removeChild(select.lastChild);
             }
             
-            // Adicionar postes
             vendasData.postes.forEach(poste => {
                 const option = document.createElement('option');
                 option.value = poste.id;
@@ -347,7 +294,6 @@ function populatePosteSelects() {
     });
 }
 
-// Carregar vendas
 async function loadVendas() {
     try {
         showLoading(true);
@@ -363,7 +309,6 @@ async function loadVendas() {
     }
 }
 
-// Carregar resumo
 async function loadResumo() {
     try {
         const vendas = vendasData.vendas;
@@ -385,7 +330,6 @@ async function loadResumo() {
     }
 }
 
-// Atualizar cards de resumo
 function updateResumoCards(resumo) {
     const elements = {
         'total-vendas-e': resumo.totalE,
@@ -402,7 +346,6 @@ function updateResumoCards(resumo) {
     });
 }
 
-// Exibir vendas na tabela
 function displayVendas(vendas) {
     const tbody = document.querySelector('#vendas-table tbody');
     if (!tbody) return;
@@ -425,7 +368,7 @@ function displayVendas(vendas) {
     vendas.forEach(venda => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="date" data-label="Data">${formatDateTimeBR(venda.dataVenda)}</td>
+            <td class="date" data-label="Data">${formatDateBR(venda.dataVenda)}</td>
             <td data-label="Tipo">
                 <span class="status ${venda.tipoVenda.toLowerCase()}">
                     ${getTipoVendaLabel(venda.tipoVenda)}
@@ -458,7 +401,6 @@ function displayVendas(vendas) {
     });
 }
 
-// Helpers para exibição
 function getTipoVendaLabel(tipo) {
     const labels = {
         'E': '📈 Extra',
@@ -473,10 +415,9 @@ function getPosteDescricao(venda) {
         return '<em>Venda Extra</em>';
     }
     
-    const poste = vendasData.postes.find(p => p.id === venda.posteId);
-    if (poste) {
+    if (venda.codigoPoste) {
         const quantidade = venda.quantidade || 1;
-        return `${poste.codigo} ${quantidade > 1 ? `(${quantidade}x)` : ''}`;
+        return `${venda.codigoPoste} ${quantidade > 1 ? `(${quantidade}x)` : ''}`;
     }
     
     return 'Poste não encontrado';
@@ -488,11 +429,10 @@ function getValorVenda(venda) {
     } else if (venda.tipoVenda === 'L') {
         return '<em>Só frete</em>';
     } else {
-        return formatCurrency(venda.valorTotalInformado || 0);
+        return formatCurrency(venda.valorVenda || 0);
     }
 }
 
-// Exibir erro ao carregar vendas
 function displayVendasError() {
     const tbody = document.querySelector('#vendas-table tbody');
     if (tbody) {
@@ -508,7 +448,6 @@ function displayVendasError() {
     }
 }
 
-// Handler do formulário de nova venda
 async function handleVendaSubmit(e) {
     e.preventDefault();
     
@@ -527,7 +466,6 @@ async function handleVendaSubmit(e) {
         observacoes: observacoes.trim() || null
     };
     
-    // Adicionar campos específicos baseado no tipo
     try {
         if (tipoVenda === 'E') {
             const valorExtra = parseFloat(document.getElementById('venda-valor-extra').value);
@@ -554,7 +492,7 @@ async function handleVendaSubmit(e) {
             
             formData.posteId = posteId;
             formData.quantidade = quantidade;
-            formData.valorTotalInformado = valorTotal;
+            formData.valorVenda = valorTotal;
             
         } else if (tipoVenda === 'L') {
             const posteId = parseInt(document.getElementById('venda-poste-l').value);
@@ -582,10 +520,7 @@ async function handleVendaSubmit(e) {
         
         showAlert('Venda criada com sucesso!', 'success');
         
-        // Resetar formulário
         resetForm();
-        
-        // Recarregar dados
         await loadVendas();
         await loadResumo();
         
@@ -597,23 +532,19 @@ async function handleVendaSubmit(e) {
     }
 }
 
-// Resetar formulário
 function resetForm() {
     const form = document.getElementById('venda-form');
     if (form) {
         form.reset();
         
-        // Esconder todos os campos específicos
         document.getElementById('campos-tipo-e').style.display = 'none';
         document.getElementById('campos-tipo-v').style.display = 'none';
         document.getElementById('campos-tipo-l').style.display = 'none';
         
-        // Restaurar data/hora padrão
         setDefaultDateTime();
     }
 }
 
-// Função de edição
 async function editVenda(id) {
     try {
         const venda = vendasData.vendas.find(v => v.id === id);
@@ -622,26 +553,20 @@ async function editVenda(id) {
             throw new Error('Venda não encontrada');
         }
         
-        // Preencher formulário de edição
         document.getElementById('edit-tipo-venda').value = venda.tipoVenda;
         document.getElementById('edit-observacoes').value = venda.observacoes || '';
         
-        // Preencher campos específicos
         if (venda.tipoVenda === 'E') {
             document.getElementById('edit-valor-extra').value = venda.valorExtra || '';
         } else if (venda.tipoVenda === 'V') {
-            document.getElementById('edit-valor-total').value = venda.valorTotalInformado || '';
+            document.getElementById('edit-valor-total').value = venda.valorVenda || '';
         } else if (venda.tipoVenda === 'L') {
             document.getElementById('edit-frete-eletrons').value = venda.freteEletrons || '';
         }
         
-        // Configurar visibilidade dos campos
         handleEditTipoChange({ target: { value: venda.tipoVenda } });
         
-        // Definir ID atual
         vendasData.currentEditId = id;
-        
-        // Abrir modal
         document.getElementById('edit-venda-modal').style.display = 'block';
         
     } catch (error) {
@@ -650,7 +575,6 @@ async function editVenda(id) {
     }
 }
 
-// Handler do formulário de edição
 async function handleEditSubmit(e) {
     e.preventDefault();
     
@@ -661,7 +585,6 @@ async function handleEditSubmit(e) {
         observacoes: observacoes.trim() || null
     };
     
-    // Adicionar campos específicos
     if (tipoVenda === 'E') {
         const valorExtra = parseFloat(document.getElementById('edit-valor-extra').value);
         if (!valorExtra || valorExtra <= 0) {
@@ -676,7 +599,7 @@ async function handleEditSubmit(e) {
             showAlert('Valor de venda deve ser maior que zero', 'warning');
             return;
         }
-        formData.valorTotalInformado = valorTotal;
+        formData.valorVenda = valorTotal;
         
     } else if (tipoVenda === 'L') {
         const frete = parseFloat(document.getElementById('edit-frete-eletrons').value) || 0;
@@ -695,10 +618,7 @@ async function handleEditSubmit(e) {
         
         showAlert('Venda atualizada com sucesso!', 'success');
         
-        // Fechar modal
         closeModal('edit-venda-modal');
-        
-        // Recarregar dados
         await loadVendas();
         await loadResumo();
         
@@ -710,7 +630,6 @@ async function handleEditSubmit(e) {
     }
 }
 
-// Função de exclusão
 async function deleteVenda(id) {
     const confirmed = await confirm(
         'Tem certeza que deseja excluir esta venda?'
@@ -726,7 +645,6 @@ async function deleteVenda(id) {
         
         showAlert('Venda excluída com sucesso!', 'success');
         
-        // Recarregar dados
         await loadVendas();
         await loadResumo();
         
@@ -738,7 +656,6 @@ async function deleteVenda(id) {
     }
 }
 
-// Funções auxiliares
 function exportarVendas() {
     if (!vendasData.filteredVendas || vendasData.filteredVendas.length === 0) {
         showAlert('Nenhuma venda para exportar', 'warning');
@@ -746,13 +663,13 @@ function exportarVendas() {
     }
     
     const dadosExportar = vendasData.filteredVendas.map(venda => ({
-        'Data': formatDateTimeBR(venda.dataVenda),
+        'Data': formatDateBR(venda.dataVenda),
         'Tipo': getTipoVendaLabel(venda.tipoVenda),
         'Poste': getPosteDescricao(venda),
         'Quantidade': venda.quantidade || 1,
         'Frete': venda.freteEletrons || 0,
         'Valor': venda.tipoVenda === 'E' ? venda.valorExtra : 
-                 venda.tipoVenda === 'V' ? venda.valorTotalInformado : 0,
+                 venda.tipoVenda === 'V' ? venda.valorVenda : 0,
         'Observações': venda.observacoes || ''
     }));
     
@@ -760,21 +677,17 @@ function exportarVendas() {
 }
 
 function limparFiltros() {
-    // Limpar inputs de filtro
     document.getElementById('filtro-tipo-venda').value = '';
     document.getElementById('filtro-data-inicio').value = '';
     document.getElementById('filtro-data-fim').value = '';
     
-    // Resetar filtros
     vendasData.filters = {
         tipo: '',
         dataInicio: '',
         dataFim: ''
     };
     
-    // Reaplicar (sem filtros)
     applyFilters();
-    
     showAlert('Filtros limpos', 'success');
 }
 
@@ -783,7 +696,6 @@ function scrollToForm() {
     if (form) {
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
-        // Focar no primeiro campo
         const firstInput = form.querySelector('input, select, textarea');
         if (firstInput) {
             firstInput.focus();
@@ -791,7 +703,7 @@ function scrollToForm() {
     }
 }
 
-// Utilitários - FORMATAÇÃO BRASILEIRA
+// Utilitários
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
     
@@ -894,4 +806,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Vendas carregado com formato brasileiro');
+console.log('✅ Vendas refatorado carregado');

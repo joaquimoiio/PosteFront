@@ -1,9 +1,9 @@
-// Despesas JavaScript - VERSÃO CORRIGIDA COM CAMPO DATA DA DESPESA
+// Despesas JavaScript - VERSÃO REFATORADA COM DATAS CORRIGIDAS
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
 
-// Estado global da página de despesas
+// Estado global
 let despesasData = {
     despesas: [],
     filteredDespesas: [],
@@ -16,11 +16,11 @@ let despesasData = {
     }
 };
 
-// FUNÇÃO DE FORMATAÇÃO DE DATA BRASILEIRA (SEM HORA)
+// Formatação de data brasileira
 function formatDateBR(dateString) {
     if (!dateString) return '-';
     
-    const date = new Date(dateString + 'T00:00:00'); // Evitar problemas de timezone
+    const date = new Date(dateString + 'T00:00:00');
     return date.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
@@ -28,15 +28,10 @@ function formatDateBR(dateString) {
     });
 }
 
-function formatDate(dateString) {
-    return formatDateBR(dateString);
-}
-
-// Inicialização quando a página carrega
+// Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando página de Despesas...');
     
-    // Configurar localização brasileira
     configurarLocaleBrasileiro();
     
     try {
@@ -44,12 +39,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadResumo();
         setupEventListeners();
         setupFilters();
-        
-        // Definir data padrão no formulário e filtros
         setDefaultDate();
         setDefaultDateFilters();
-        
-        // Aplicar filtros iniciais
         applyFilters();
         
         console.log('✅ Página de Despesas carregada com sucesso');
@@ -59,11 +50,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Configurar localização brasileira
 function configurarLocaleBrasileiro() {
     document.documentElement.lang = 'pt-BR';
     
-    // Configurar inputs de data
     setTimeout(() => {
         const inputs = document.querySelectorAll('input[type="date"]');
         inputs.forEach(input => {
@@ -72,7 +61,6 @@ function configurarLocaleBrasileiro() {
     }, 100);
 }
 
-// Definir data padrão no formulário de nova despesa
 function setDefaultDate() {
     const despesaData = document.getElementById('despesa-data');
     if (despesaData) {
@@ -81,30 +69,25 @@ function setDefaultDate() {
     }
 }
 
-// Configurar event listeners
 function setupEventListeners() {
-    // Formulário de nova despesa
     const despesaForm = document.getElementById('despesa-form');
     if (despesaForm) {
         despesaForm.addEventListener('submit', handleDespesaSubmit);
         despesaForm.addEventListener('reset', resetFormWithDefaultDate);
     }
     
-    // Formulário de edição
     const editForm = document.getElementById('edit-despesa-form');
     if (editForm) {
         editForm.addEventListener('submit', handleEditSubmit);
     }
 }
 
-// Reset form com data padrão
 function resetFormWithDefaultDate() {
     setTimeout(() => {
         setDefaultDate();
     }, 100);
 }
 
-// Configurar filtros
 function setupFilters() {
     const filterElements = {
         'filtro-tipo': 'tipo',
@@ -124,19 +107,16 @@ function setupFilters() {
     });
 }
 
-// Função para definir filtros de data padrão
 function setDefaultDateFilters() {
     const hoje = new Date();
     const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     
-    // Definir data início como primeiro dia do mês atual
     const filtroDataInicio = document.getElementById('filtro-data-inicio');
     if (filtroDataInicio) {
         filtroDataInicio.value = dateToInputValue(primeiroDiaMes);
         despesasData.filters.dataInicio = filtroDataInicio.value;
     }
     
-    // Definir data fim como hoje
     const filtroDataFim = document.getElementById('filtro-data-fim');
     if (filtroDataFim) {
         filtroDataFim.value = dateToInputValue(hoje);
@@ -144,36 +124,31 @@ function setDefaultDateFilters() {
     }
 }
 
-// Aplicar filtros - VERSÃO CORRIGIDA
 function applyFilters() {
     const { tipo, dataInicio, dataFim, descricao } = despesasData.filters;
     
     let filtered = [...despesasData.despesas];
     
-    // Filtro por tipo
     if (tipo) {
         filtered = filtered.filter(d => d.tipo === tipo);
     }
     
-    // Filtro por data início - CORRIGIDO
     if (dataInicio) {
-        const dataInicioObj = new Date(dataInicio + 'T00:00:00'); // Adicionar horário para evitar problemas de timezone
+        const dataInicioObj = new Date(dataInicio + 'T00:00:00');
         filtered = filtered.filter(d => {
-            const dataDespesa = new Date(d.dataDespesa);
+            const dataDespesa = new Date(d.dataDespesa + 'T00:00:00');
             return dataDespesa >= dataInicioObj;
         });
     }
     
-    // Filtro por data fim - CORRIGIDO  
     if (dataFim) {
-        const dataFimObj = new Date(dataFim + 'T23:59:59'); // Incluir o dia inteiro
+        const dataFimObj = new Date(dataFim + 'T23:59:59');
         filtered = filtered.filter(d => {
-            const dataDespesa = new Date(d.dataDespesa);
+            const dataDespesa = new Date(d.dataDespesa + 'T00:00:00');
             return dataDespesa <= dataFimObj;
         });
     }
     
-    // Filtro por descrição
     if (descricao) {
         const searchTerm = descricao.toLowerCase();
         filtered = filtered.filter(d => 
@@ -199,7 +174,6 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
-// Carregar despesas
 async function loadDespesas() {
     try {
         showLoading(true);
@@ -215,7 +189,6 @@ async function loadDespesas() {
     }
 }
 
-// Carregar resumo - ATUALIZADO
 async function loadResumo() {
     try {
         const despesasFuncionario = despesasData.despesas
@@ -228,7 +201,6 @@ async function loadResumo() {
             
         const totalGeral = despesasFuncionario + outrasDespesas;
         
-        // Atualizar cards de resumo
         updateResumoCards({
             despesasFuncionario,
             outrasDespesas,
@@ -240,7 +212,6 @@ async function loadResumo() {
     }
 }
 
-// Atualizar cards de resumo - ATUALIZADO
 function updateResumoCards(resumo) {
     const elements = {
         'total-despesas-funcionario': resumo.despesasFuncionario,
@@ -253,19 +224,17 @@ function updateResumoCards(resumo) {
         if (element) {
             element.textContent = formatCurrency(value);
             
-            // Colorir diferente por tipo
             if (id.includes('funcionario')) {
-                element.style.color = '#f59e0b'; // Laranja para funcionário
+                element.style.color = '#f59e0b';
             } else if (id.includes('outras')) {
-                element.style.color = '#dc2626'; // Vermelho para outras
+                element.style.color = '#dc2626';
             } else if (id.includes('geral')) {
-                element.style.color = '#6b7280'; // Cinza para total
+                element.style.color = '#6b7280';
             }
         }
     });
 }
 
-// Exibir despesas na tabela - FORMATAÇÃO BRASILEIRA SEM HORA
 function displayDespesas(despesas) {
     const tbody = document.querySelector('#despesas-table tbody');
     if (!tbody) return;
@@ -317,7 +286,6 @@ function displayDespesas(despesas) {
     });
 }
 
-// Exibir erro ao carregar despesas
 function displayDespesasError() {
     const tbody = document.querySelector('#despesas-table tbody');
     if (tbody) {
@@ -333,7 +301,6 @@ function displayDespesasError() {
     }
 }
 
-// Handler do formulário de nova despesa - ATUALIZADO COM DATA
 async function handleDespesaSubmit(e) {
     e.preventDefault();
     
@@ -344,7 +311,6 @@ async function handleDespesaSubmit(e) {
         tipo: document.getElementById('despesa-tipo').value
     };
     
-    // Validação
     const erros = validarDespesa(formData);
     if (erros.length > 0) {
         showAlert(erros.join(', '), 'warning');
@@ -363,11 +329,9 @@ async function handleDespesaSubmit(e) {
         
         showAlert('Despesa criada com sucesso!', 'success');
         
-        // Resetar formulário (mantendo data padrão)
         e.target.reset();
         setDefaultDate();
         
-        // Recarregar dados
         await loadDespesas();
         await loadResumo();
         
@@ -379,7 +343,6 @@ async function handleDespesaSubmit(e) {
     }
 }
 
-// Handler do formulário de edição - ATUALIZADO COM DATA
 async function handleEditSubmit(e) {
     e.preventDefault();
     
@@ -390,7 +353,6 @@ async function handleEditSubmit(e) {
         tipo: document.getElementById('edit-despesa-tipo').value
     };
     
-    // Validação
     const erros = validarDespesa(formData);
     if (erros.length > 0) {
         showAlert(erros.join(', '), 'warning');
@@ -409,10 +371,8 @@ async function handleEditSubmit(e) {
         
         showAlert('Despesa atualizada com sucesso!', 'success');
         
-        // Fechar modal
         closeModal('edit-despesa-modal');
         
-        // Recarregar dados
         await loadDespesas();
         await loadResumo();
         
@@ -424,7 +384,6 @@ async function handleEditSubmit(e) {
     }
 }
 
-// Função de edição - ATUALIZADA COM DATA
 async function editDespesa(id) {
     try {
         const despesa = despesasData.despesas.find(d => d.id === id);
@@ -433,16 +392,12 @@ async function editDespesa(id) {
             throw new Error('Despesa não encontrada');
         }
         
-        // Preencher formulário de edição
-        document.getElementById('edit-despesa-data').value = despesa.dataDespesa ? despesa.dataDespesa.split('T')[0] : '';
+        document.getElementById('edit-despesa-data').value = despesa.dataDespesa;
         document.getElementById('edit-despesa-descricao').value = despesa.descricao;
         document.getElementById('edit-despesa-valor').value = despesa.valor;
         document.getElementById('edit-despesa-tipo').value = despesa.tipo;
         
-        // Definir ID atual
         despesasData.currentEditId = id;
-        
-        // Abrir modal
         document.getElementById('edit-despesa-modal').style.display = 'block';
         
     } catch (error) {
@@ -451,7 +406,6 @@ async function editDespesa(id) {
     }
 }
 
-// Função de exclusão
 async function deleteDespesa(id) {
     const confirmed = await confirm(
         'Tem certeza que deseja excluir esta despesa?'
@@ -467,7 +421,6 @@ async function deleteDespesa(id) {
         
         showAlert('Despesa excluída com sucesso!', 'success');
         
-        // Recarregar dados
         await loadDespesas();
         await loadResumo();
         
@@ -479,7 +432,6 @@ async function deleteDespesa(id) {
     }
 }
 
-// Validar dados de despesa - ATUALIZADO COM DATA
 function validarDespesa(dados) {
     const erros = [];
     
@@ -502,7 +454,6 @@ function validarDespesa(dados) {
     return erros;
 }
 
-// Funções auxiliares
 function exportarDespesas() {
     if (!despesasData.filteredDespesas || despesasData.filteredDespesas.length === 0) {
         showAlert('Nenhuma despesa para exportar', 'warning');
@@ -520,13 +471,11 @@ function exportarDespesas() {
 }
 
 function limparFiltros() {
-    // Limpar inputs de filtro
     document.getElementById('filtro-tipo').value = '';
     document.getElementById('filtro-data-inicio').value = '';
     document.getElementById('filtro-data-fim').value = '';
     document.getElementById('filtro-descricao').value = '';
     
-    // Resetar filtros
     despesasData.filters = {
         tipo: '',
         dataInicio: '',
@@ -534,9 +483,7 @@ function limparFiltros() {
         descricao: ''
     };
     
-    // Reaplicar (sem filtros)
     applyFilters();
-    
     showAlert('Filtros limpos', 'success');
 }
 
@@ -545,7 +492,6 @@ function scrollToForm() {
     if (form) {
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
-        // Focar no primeiro campo
         const firstInput = form.querySelector('input, select, textarea');
         if (firstInput) {
             firstInput.focus();
@@ -553,7 +499,7 @@ function scrollToForm() {
     }
 }
 
-// Utilitários - FORMATAÇÃO BRASILEIRA
+// Utilitários
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
     
@@ -656,4 +602,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Despesas carregado com campo Data da Despesa e formato brasileiro');
+console.log('✅ Despesas refatorado carregado');

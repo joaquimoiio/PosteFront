@@ -1,15 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Dashboard do Sistema de Gerenciamento de Vendas de Postes - Relatórios e Análises">
+    <meta name="description" content="Dashboard do Sistema de Gerenciamento de Vendas de Postes">
     <title>Dashboard - Gerenciador de Vendas de Postes</title>
     <link rel="stylesheet" href="css/index.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 
 <body>
@@ -51,116 +47,105 @@
             <section class="dashboard-section filter-section" aria-labelledby="filtros-titulo">
                 <header class="section-header">
                     <h2 id="filtros-titulo">📅 Período de Análise</h2>
-                    <div class="section-actions">
-                        <button type="button" class="btn btn-secondary btn-small" onclick="setPresetPeriod('today')"
-                            aria-label="Filtrar dados de hoje">
-                            📅 Hoje
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="setPresetPeriod('week')"
-                            aria-label="Filtrar dados desta semana">
-                            📅 Esta Semana
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="setPresetPeriod('month')"
-                            aria-label="Filtrar dados deste mês">
-                            📅 Este Mês
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="setPresetPeriod('all')"
-                            aria-label="Ver todos os dados">
-                            📅 Todos
-                        </button>
-                    </div>
                 </header>
 
-                <div class="filter-container" role="search" aria-label="Filtros de período">
+                <div class="filter-container">
                     <div class="filter-grid">
                         <div class="filter-group">
-                            <label for="filtro-data-inicio" class="filter-label">📅 Data Início</label>
+                            <label for="filtro-data-inicio" class="filter-label">
+                                <span class="label-icon">📅</span>
+                                Data Início
+                            </label>
                             <input 
                                 type="date" 
                                 id="filtro-data-inicio" 
                                 class="filter-input"
                                 lang="pt-BR"
-                                aria-describedby="data-inicio-help"
                             >
-                            <small id="data-inicio-help" class="filter-help">
-                                Data inicial do período de análise
-                            </small>
                         </div>
 
                         <div class="filter-group">
-                            <label for="filtro-data-fim" class="filter-label">📅 Data Fim</label>
+                            <label for="filtro-data-fim" class="filter-label">
+                                <span class="label-icon">📅</span>
+                                Data Fim
+                            </label>
                             <input 
                                 type="date" 
                                 id="filtro-data-fim" 
                                 class="filter-input"
                                 lang="pt-BR"
-                                aria-describedby="data-fim-help"
                             >
-                            <small id="data-fim-help" class="filter-help">
-                                Data final do período de análise
-                            </small>
                         </div>
 
-                        <div class="filter-group filter-actions">
+                        <div class="filter-actions">
                             <button 
                                 type="button" 
                                 class="btn btn-primary" 
                                 onclick="applyPeriodFilter()"
-                                aria-label="Aplicar filtros de período"
                             >
-                                <span class="btn-icon" aria-hidden="true">🔍</span>
+                                <span class="btn-icon">🔍</span>
                                 Aplicar Filtro
                             </button>
                             <button 
                                 type="button" 
                                 class="btn btn-secondary" 
                                 onclick="clearPeriodFilter()"
-                                aria-label="Limpar filtros aplicados"
                             >
-                                <span class="btn-icon" aria-hidden="true">🧹</span>
+                                <span class="btn-icon">🧹</span>
                                 Limpar
                             </button>
                         </div>
                     </div>
 
-                    <!-- Indicador do período atual -->
-                    <div class="period-indicator" id="period-indicator">
-                        <span class="period-text">📊 Período atual: <strong id="current-period-text">Todos os dados</strong></span>
-                    </div>
                 </div>
             </section>
 
             <!-- Seção: Vendas por Tipo -->
             <section class="dashboard-section" aria-labelledby="vendas-titulo">
                 <header class="section-header">
-                    <h2 id="vendas-titulo">📊 Vendas por Tipo</h2>
+                    <h2 id="vendas-titulo">
+                        <span class="section-icon">📊</span>
+                        Vendas por Tipo
+                    </h2>
                 </header>
 
-                <div class="cards-grid" role="group" aria-label="Estatísticas de vendas">
-                    <article class="metric-card" aria-labelledby="vendas-e-label">
+                <div class="cards-grid">
+                    <article class="metric-card tipo-e">
                         <div class="card-content">
-                            <h3 id="vendas-e-label">📈 Vendas Extras (E)</h3>
+                            <div class="card-header">
+                                <span class="card-icon">📈</span>
+                                <h3>Vendas Extras (E)</h3>
+                            </div>
                             <div class="metric-value" id="vendas-tipo-e" aria-live="polite">0</div>
                         </div>
                     </article>
 
-                    <article class="metric-card" aria-labelledby="vendas-v-label">
+                    <article class="metric-card tipo-v">
                         <div class="card-content">
-                            <h3 id="vendas-v-label">🛒 Vendas Normais (V)</h3>
+                            <div class="card-header">
+                                <span class="card-icon">🛒</span>
+                                <h3>Vendas Normais (V)</h3>
+                            </div>
                             <div class="metric-value" id="vendas-tipo-v" aria-live="polite">0</div>
                         </div>
                     </article>
 
-                    <article class="metric-card" aria-labelledby="vendas-l-label">
+                    <article class="metric-card tipo-l">
                         <div class="card-content">
-                            <h3 id="vendas-l-label">🏪 Vendas Loja (L)</h3>
+                            <div class="card-header">
+                                <span class="card-icon">🏪</span>
+                                <h3>Vendas Loja (L)</h3>
+                            </div>
                             <div class="metric-value" id="vendas-tipo-l" aria-live="polite">0</div>
                         </div>
                     </article>
 
-                    <article class="metric-card highlight" aria-labelledby="vendas-total-label">
+                    <article class="metric-card total">
                         <div class="card-content">
-                            <h3 id="vendas-total-label">📋 Total de Vendas</h3>
+                            <div class="card-header">
+                                <span class="card-icon">📋</span>
+                                <h3>Total de Vendas</h3>
+                            </div>
                             <div class="metric-value" id="total-vendas" aria-live="polite">0</div>
                         </div>
                     </article>
@@ -170,68 +155,91 @@
             <!-- Seção: Valores por Tipo -->
             <section class="dashboard-section" aria-labelledby="valores-titulo">
                 <header class="section-header">
-                    <h2 id="valores-titulo">💰 Valores por Categoria</h2>
+                    <h2 id="valores-titulo">
+                        <span class="section-icon">💰</span>
+                        Valores por Categoria
+                    </h2>
                 </header>
 
-                <div class="cards-grid cards-grid--two-cols" role="group" aria-label="Valores por categoria">
-                    <article class="metric-card warning" aria-labelledby="valores-e-label">
+                <div class="cards-grid cards-grid-two">
+                    <article class="metric-card warning">
                         <div class="card-content">
-                            <h3 id="valores-e-label">💎 Valores Extras (E)</h3>
+                            <div class="card-header">
+                                <span class="card-icon">💎</span>
+                                <h3>Valores Extras (E)</h3>
+                            </div>
                             <div class="metric-value" id="total-extras-e" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
 
-                    <article class="metric-card success" aria-labelledby="frete-l-label">
+                    <article class="metric-card success">
                         <div class="card-content">
-                            <h3 id="frete-l-label">🚚 Frete Loja (L)</h3>
+                            <div class="card-header">
+                                <span class="card-icon">🚚</span>
+                                <h3>Frete Loja (L)</h3>
+                            </div>
                             <div class="metric-value" id="total-frete-loja" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
-
                 </div>
             </section>
 
             <!-- Seção: Resumo Financeiro -->
-            <section class="dashboard-section" aria-labelledby="financeiro-titulo">
+            <section class="dashboard-section financial-section" aria-labelledby="financeiro-titulo">
                 <header class="section-header">
-                    <h2 id="financeiro-titulo">💰 Resumo Financeiro</h2>
+                    <h2 id="financeiro-titulo">
+                        <span class="section-icon">💰</span>
+                        Resumo Financeiro
+                    </h2>
                     <div class="section-actions">
-                        <button type="button" class="btn btn-secondary btn-small" onclick="mostrarDetalhesCalculo()"
-                            aria-label="Ver detalhes do cálculo de lucros">
-                            📋 Ver Detalhes
+                        <button type="button" class="btn btn-secondary btn-small" onclick="mostrarDetalhesCalculo()">
+                            <span class="btn-icon">📋</span>
+                            Ver Detalhes
                         </button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="refreshDashboard()"
-                            aria-label="Atualizar dados do dashboard">
-                            🔄 Atualizar
+                        <button type="button" class="btn btn-secondary btn-small" onclick="refreshDashboard()">
+                            <span class="btn-icon">🔄</span>
+                            Atualizar
                         </button>
                     </div>
                 </header>
 
-                <div class="cards-grid" role="group" aria-label="Resumo financeiro">
-                    <article class="metric-card success" aria-labelledby="arrecadado-label">
+                <div class="cards-grid">
+                    <article class="metric-card success">
                         <div class="card-content">
-                            <h3 id="arrecadado-label">💵 Total Arrecadado (V)</h3>
+                            <div class="card-header">
+                                <span class="card-icon">💵</span>
+                                <h3>Total Arrecadado (V)</h3>
+                            </div>
                             <div class="metric-value" id="valor-total-vendas" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
 
-                    <article class="metric-card info" aria-labelledby="custo-postes-label">
+                    <article class="metric-card info">
                         <div class="card-content">
-                            <h3 id="custo-postes-label">📦 Custo Total Postes (V)</h3>
+                            <div class="card-header">
+                                <span class="card-icon">📦</span>
+                                <h3>Custo Total Postes (V)</h3>
+                            </div>
                             <div class="metric-value" id="total-venda-postes" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
 
-                    <article class="metric-card warning" aria-labelledby="contribuicoes-label">
+                    <article class="metric-card warning">
                         <div class="card-content">
-                            <h3 id="contribuicoes-label">🎯 Contribuições E + L</h3>
+                            <div class="card-header">
+                                <span class="card-icon">🎯</span>
+                                <h3>Contribuições E + L</h3>
+                            </div>
                             <div class="metric-value" id="total-contribuicoes-extras" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
 
-                    <article class="metric-card danger" aria-labelledby="outras-despesas-label">
+                    <article class="metric-card danger">
                         <div class="card-content">
-                            <h3 id="outras-despesas-label">💸 Outras Despesas</h3>
+                            <div class="card-header">
+                                <span class="card-icon">💸</span>
+                                <h3>Outras Despesas</h3>
+                            </div>
                             <div class="metric-value" id="total-despesas" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
@@ -241,29 +249,39 @@
             <!-- Seção: Detalhamento de Despesas -->
             <section class="dashboard-section expenses-section" aria-labelledby="despesas-titulo">
                 <header class="section-header">
-                    <h2 id="despesas-titulo">💸 Detalhamento de Despesas</h2>
+                    <h2 id="despesas-titulo">
+                        <span class="section-icon">💸</span>
+                        Detalhamento de Despesas
+                    </h2>
                 </header>
 
-                <div class="cards-grid cards-grid--three-cols" role="group" aria-label="Detalhamento de despesas">
-                    <article class="metric-card danger" aria-labelledby="outras-detalhado-label">
+                <div class="cards-grid cards-grid-three">
+                    <article class="metric-card danger">
                         <div class="card-content">
-                            <h3 id="outras-detalhado-label">📋 Outras Despesas</h3>
-                            <div class="metric-value" id="total-outras-despesas-detalhado" aria-live="polite">R$ 0,00
+                            <div class="card-header">
+                                <span class="card-icon">📋</span>
+                                <h3>Outras Despesas</h3>
                             </div>
+                            <div class="metric-value" id="total-outras-despesas-detalhado" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
 
-                    <article class="metric-card warning" aria-labelledby="funcionario-detalhado-label">
+                    <article class="metric-card warning">
                         <div class="card-content">
-                            <h3 id="funcionario-detalhado-label">👥 Despesas Funcionário</h3>
-                            <div class="metric-value" id="total-despesas-funcionario-detalhado" aria-live="polite">R$
-                                0,00</div>
+                            <div class="card-header">
+                                <span class="card-icon">👥</span>
+                                <h3>Despesas Funcionário</h3>
+                            </div>
+                            <div class="metric-value" id="total-despesas-funcionario-detalhado" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
 
-                    <article class="metric-card neutral" aria-labelledby="geral-despesas-label">
+                    <article class="metric-card neutral">
                         <div class="card-content">
-                            <h3 id="geral-despesas-label">💰 Total Geral</h3>
+                            <div class="card-header">
+                                <span class="card-icon">💰</span>
+                                <h3>Total Geral</h3>
+                            </div>
                             <div class="metric-value" id="total-geral-despesas" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
@@ -273,37 +291,52 @@
             <!-- Seção: Distribuição de Lucros -->
             <section class="dashboard-section profit-section" aria-labelledby="lucros-titulo">
                 <header class="section-header">
-                    <h2 id="lucros-titulo">💎 Distribuição de Lucros</h2>
+                    <h2 id="lucros-titulo">
+                        <span class="section-icon">💎</span>
+                        Distribuição de Lucros
+                    </h2>
                 </header>
 
-                <div class="cards-grid" role="group" aria-label="Distribuição de lucros">
-                    <article class="profit-card total-profit" aria-labelledby="lucro-total-label">
+                <div class="cards-grid">
+                    <article class="profit-card total-profit">
                         <div class="card-content">
-                            <h3 id="lucro-total-label">💰 Lucro Total</h3>
+                            <div class="card-header">
+                                <span class="card-icon">💰</span>
+                                <h3>Lucro Total</h3>
+                            </div>
                             <div class="metric-value" id="lucro-total" aria-live="polite">R$ 0,00</div>
                             <small class="card-note">Base para distribuição</small>
                         </div>
                     </article>
 
-                    <article class="profit-card cicero" aria-labelledby="cicero-label">
+                    <article class="profit-card partner-cicero">
                         <div class="card-content">
-                            <h3 id="cicero-label">👨 Parte do Cícero</h3>
+                            <div class="card-header">
+                                <span class="card-icon">👨</span>
+                                <h3>Parte do Cícero</h3>
+                            </div>
                             <div class="metric-value" id="parte-cicero" aria-live="polite">R$ 0,00</div>
                             <small class="card-note">50% do lucro total</small>
                         </div>
                     </article>
 
-                    <article class="profit-card gilberto" aria-labelledby="gilberto-label">
+                    <article class="profit-card partner-gilberto">
                         <div class="card-content">
-                            <h3 id="gilberto-label">👨 Parte do Gilberto</h3>
+                            <div class="card-header">
+                                <span class="card-icon">👨</span>
+                                <h3>Parte do Gilberto</h3>
+                            </div>
                             <div class="metric-value" id="parte-gilberto" aria-live="polite">R$ 0,00</div>
                             <small class="card-note">25% menos funcionário</small>
                         </div>
                     </article>
 
-                    <article class="profit-card jefferson" aria-labelledby="jefferson-label">
+                    <article class="profit-card partner-jefferson">
                         <div class="card-content">
-                            <h3 id="jefferson-label">👨 Parte do Jefferson</h3>
+                            <div class="card-header">
+                                <span class="card-icon">👨</span>
+                                <h3>Parte do Jefferson</h3>
+                            </div>
                             <div class="metric-value" id="parte-jefferson" aria-live="polite">R$ 0,00</div>
                             <small class="card-note">25% menos funcionário</small>
                         </div>
@@ -312,31 +345,45 @@
             </section>
 
             <!-- Seção: Estatísticas Gerais -->
-            <section class="dashboard-section" aria-labelledby="estatisticas-titulo">
+            <section class="dashboard-section stats-section" aria-labelledby="estatisticas-titulo">
                 <header class="section-header">
-                    <h2 id="estatisticas-titulo">📈 Estatísticas Gerais</h2>
-                    <p class="section-description">Indicadores de performance do negócio</p>
+                    <h2 id="estatisticas-titulo">
+                        <span class="section-icon">📈</span>
+                        Estatísticas Gerais
+                    </h2>
                 </header>
 
-                <div class="stats-grid" role="group" aria-label="Estatísticas gerais">
-                    <article class="stat-item" aria-labelledby="postes-stat">
-                        <div class="stat-number" id="total-postes" aria-live="polite">0</div>
-                        <div class="stat-label" id="postes-stat">Postes Ativos</div>
+                <div class="stats-grid">
+                    <article class="stat-item">
+                        <div class="stat-content">
+                            <span class="stat-icon">⚡</span>
+                            <div class="stat-number" id="total-postes" aria-live="polite">0</div>
+                            <div class="stat-label">Postes Ativos</div>
+                        </div>
                     </article>
 
-                    <article class="stat-item" aria-labelledby="despesas-stat">
-                        <div class="stat-number" id="total-despesas-count" aria-live="polite">0</div>
-                        <div class="stat-label" id="despesas-stat">Total Despesas</div>
+                    <article class="stat-item">
+                        <div class="stat-content">
+                            <span class="stat-icon">💸</span>
+                            <div class="stat-number" id="total-despesas-count" aria-live="polite">0</div>
+                            <div class="stat-label">Total Despesas</div>
+                        </div>
                     </article>
 
-                    <article class="stat-item" aria-labelledby="ticket-stat">
-                        <div class="stat-number" id="ticket-medio" aria-live="polite">R$ 0,00</div>
-                        <div class="stat-label" id="ticket-stat">Ticket Médio (V)</div>
+                    <article class="stat-item">
+                        <div class="stat-content">
+                            <span class="stat-icon">💰</span>
+                            <div class="stat-number" id="ticket-medio" aria-live="polite">R$ 0,00</div>
+                            <div class="stat-label">Ticket Médio (V)</div>
+                        </div>
                     </article>
 
-                    <article class="stat-item" aria-labelledby="margem-stat">
-                        <div class="stat-number" id="margem-lucro" aria-live="polite">0%</div>
-                        <div class="stat-label" id="margem-stat">Margem de Lucro</div>
+                    <article class="stat-item">
+                        <div class="stat-content">
+                            <span class="stat-icon">📊</span>
+                            <div class="stat-number" id="margem-lucro" aria-live="polite">0%</div>
+                            <div class="stat-label">Margem de Lucro</div>
+                        </div>
                     </article>
                 </div>
             </section>
@@ -353,8 +400,6 @@
     <!-- Container de Alertas -->
     <div id="alert-container" class="alert-container" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
-    <!-- Scripts -->
     <script src="js/index.js"></script>
 </body>
-
 </html>
