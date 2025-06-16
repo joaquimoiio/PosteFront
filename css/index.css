@@ -530,3 +530,230 @@ body {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* CSS Adicional para Filtros de Período - Adicionar ao index.css */
+
+/* Seção de Filtros */
+.filter-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-left-color: var(--primary);
+    margin-bottom: var(--space-5);
+}
+
+.filter-container {
+    background: white;
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-4);
+    border: 1px solid var(--gray-200);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    align-items: end;
+    margin-bottom: var(--space-4);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-label {
+    margin-bottom: var(--space-2);
+    font-weight: 500;
+    color: var(--gray-700);
+    font-size: var(--font-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.filter-input {
+    padding: var(--space-3);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius-sm);
+    font-size: 16px; /* Prevents zoom on iOS */
+    transition: all 0.2s ease;
+    background: white;
+    min-height: var(--touch-target);
+    font-family: inherit;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-help {
+    font-size: var(--font-xs);
+    color: var(--gray-500);
+    margin-top: var(--space-1);
+    font-style: italic;
+}
+
+.filter-actions {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+/* Indicador de Período */
+.period-indicator {
+    background: var(--primary-light);
+    border: 1px solid var(--primary);
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-3);
+    text-align: center;
+    margin-top: var(--space-3);
+}
+
+.period-text {
+    color: var(--primary-dark);
+    font-size: var(--font-base);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+/* Botões de período pré-definido */
+.section-actions .btn {
+    font-size: var(--font-xs);
+    padding: var(--space-2) var(--space-3);
+    min-height: 36px;
+}
+
+/* Estilos responsivos para filtros */
+@media (min-width: 640px) {
+    .filter-grid {
+        grid-template-columns: repeat(2, 1fr) auto;
+        gap: var(--space-3);
+        align-items: end;
+    }
+    
+    .filter-actions {
+        justify-content: flex-end;
+        min-width: 200px;
+    }
+    
+    .section-actions {
+        flex-wrap: nowrap;
+        gap: var(--space-2);
+    }
+}
+
+@media (min-width: 1024px) {
+    .filter-grid {
+        grid-template-columns: repeat(2, 1fr) auto;
+    }
+    
+    .filter-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-2);
+    }
+    
+    .filter-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Estados dos cards baseados em filtros */
+.dashboard-section.filtered {
+    border-left: 3px solid var(--warning);
+}
+
+.dashboard-section.filtered .section-header h2::after {
+    content: " (Filtrado)";
+    font-size: var(--font-sm);
+    color: var(--warning);
+    font-weight: 400;
+}
+
+/* Animações suaves para mudança de dados */
+.metric-value,
+.stat-number {
+    transition: all 0.3s ease;
+}
+
+.metric-value.updating,
+.stat-number.updating {
+    opacity: 0.6;
+    transform: scale(0.95);
+}
+
+/* Melhorias de acessibilidade para calendário brasileiro */
+input[type="date"] {
+    font-family: inherit;
+    color-scheme: light;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3e%3cpath fill-rule='evenodd' d='M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z' clip-rule='evenodd'/%3e%3c/svg%3e");
+    background-size: 16px 16px;
+    background-repeat: no-repeat;
+    background-position: center;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    min-width: 20px;
+    min-height: 20px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Loading state para filtros */
+.filter-container.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.filter-container.loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Landscape mobile orientation para filtros */
+@media (max-height: 500px) and (orientation: landscape) {
+    .filter-container {
+        padding: var(--space-2);
+    }
+    
+    .filter-grid {
+        gap: var(--space-2);
+    }
+    
+    .period-indicator {
+        padding: var(--space-2);
+        margin-top: var(--space-2);
+    }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .metric-value,
+    .stat-number,
+    .filter-input,
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        transition: none !important;
+        animation: none !important;
+    }
+}

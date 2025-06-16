@@ -1,4 +1,4 @@
-// Dashboard JavaScript - VERSÃO CORRIGIDA COM LUCRO SEPARADO
+// Dashboard JavaScript - VERSÃO COM FILTROS DE PERÍODO
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -9,7 +9,11 @@ let dashboardData = {
     despesas: [],
     vendas: [],
     postes: [],
-    loading: false
+    loading: false,
+    filters: {
+        dataInicio: null,
+        dataFim: null
+    }
 };
 
 // FUNÇÃO DE FORMATAÇÃO DE DATA BRASILEIRA (SEM HORA)
@@ -35,6 +39,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Configurar localização brasileira
     configurarLocaleBrasileiro();
     
+    // Configurar filtros
+    setupPeriodFilters();
+    
     try {
         await loadDashboardData();
         console.log('✅ Dashboard carregado com sucesso');
@@ -48,13 +55,161 @@ document.addEventListener('DOMContentLoaded', async () => {
 function configurarLocaleBrasileiro() {
     document.documentElement.lang = 'pt-BR';
     
-    // Configurar inputs de data (se houver)
+    // Configurar inputs de data
     setTimeout(() => {
         const inputs = document.querySelectorAll('input[type="date"]');
         inputs.forEach(input => {
             input.setAttribute('lang', 'pt-BR');
         });
     }, 100);
+}
+
+// Configurar filtros de período
+function setupPeriodFilters() {
+    const filtroDataInicio = document.getElementById('filtro-data-inicio');
+    const filtroDataFim = document.getElementById('filtro-data-fim');
+    
+    if (filtroDataInicio && filtroDataFim) {
+        // Definir período padrão (último mês)
+        setPresetPeriod('month');
+        
+        // Event listeners para mudanças manuais
+        filtroDataInicio.addEventListener('change', updatePeriodIndicator);
+        filtroDataFim.addEventListener('change', updatePeriodIndicator);
+    }
+}
+
+// Definir períodos pré-definidos
+function setPresetPeriod(period) {
+    const hoje = new Date();
+    const filtroDataInicio = document.getElementById('filtro-data-inicio');
+    const filtroDataFim = document.getElementById('filtro-data-fim');
+    
+    let dataInicio, dataFim;
+    
+    switch (period) {
+        case 'today':
+            dataInicio = dataFim = hoje;
+            break;
+            
+        case 'week':
+            const inicioSemana = new Date(hoje);
+            inicioSemana.setDate(hoje.getDate() - hoje.getDay());
+            dataInicio = inicioSemana;
+            dataFim = hoje;
+            break;
+            
+        case 'month':
+            const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+            dataInicio = inicioMes;
+            dataFim = hoje;
+            break;
+            
+        case 'all':
+        default:
+            dataInicio = null;
+            dataFim = null;
+            break;
+    }
+    
+    // Atualizar inputs
+    if (filtroDataInicio && filtroDataFim) {
+        filtroDataInicio.value = dataInicio ? dateToInputValue(dataInicio) : '';
+        filtroDataFim.value = dataFim ? dateToInputValue(dataFim) : '';
+    }
+    
+    // Atualizar estado
+    dashboardData.filters.dataInicio = dataInicio;
+    dashboardData.filters.dataFim = dataFim;
+    
+    // Atualizar indicador
+    updatePeriodIndicator();
+    
+    // Aplicar filtro automaticamente
+    applyPeriodFilter();
+}
+
+// Aplicar filtro de período
+async function applyPeriodFilter() {
+    const filtroDataInicio = document.getElementById('filtro-data-inicio');
+    const filtroDataFim = document.getElementById('filtro-data-fim');
+    
+    if (filtroDataInicio && filtroDataFim) {
+        dashboardData.filters.dataInicio = filtroDataInicio.value ? new Date(filtroDataInicio.value) : null;
+        dashboardData.filters.dataFim = filtroDataFim.value ? new Date(filtroDataFim.value) : null;
+    }
+    
+    updatePeriodIndicator();
+    await loadDashboardData();
+}
+
+// Limpar filtro de período
+function clearPeriodFilter() {
+    const filtroDataInicio = document.getElementById('filtro-data-inicio');
+    const filtroDataFim = document.getElementById('filtro-data-fim');
+    
+    if (filtroDataInicio && filtroDataFim) {
+        filtroDataInicio.value = '';
+        filtroDataFim.value = '';
+    }
+    
+    dashboardData.filters.dataInicio = null;
+    dashboardData.filters.dataFim = null;
+    
+    updatePeriodIndicator();
+    applyPeriodFilter();
+}
+
+// Atualizar indicador de período
+function updatePeriodIndicator() {
+    const periodText = document.getElementById('current-period-text');
+    if (!periodText) return;
+    
+    const { dataInicio, dataFim } = dashboardData.filters;
+    
+    if (!dataInicio && !dataFim) {
+        periodText.textContent = 'Todos os dados';
+    } else if (dataInicio && dataFim) {
+        if (isSameDay(dataInicio, dataFim)) {
+            periodText.textContent = `${formatDateBR(dateToInputValue(dataInicio))}`;
+        } else {
+            periodText.textContent = `${formatDateBR(dateToInputValue(dataInicio))} até ${formatDateBR(dateToInputValue(dataFim))}`;
+        }
+    } else if (dataInicio) {
+        periodText.textContent = `A partir de ${formatDateBR(dateToInputValue(dataInicio))}`;
+    } else if (dataFim) {
+        periodText.textContent = `Até ${formatDateBR(dateToInputValue(dataFim))}`;
+    }
+}
+
+// Verificar se duas datas são do mesmo dia
+function isSameDay(date1, date2) {
+    return date1.toDateString() === date2.toDateString();
+}
+
+// Filtrar dados por período
+function filterDataByPeriod(data, dateField = 'dataVenda') {
+    if (!dashboardData.filters.dataInicio && !dashboardData.filters.dataFim) {
+        return data;
+    }
+    
+    return data.filter(item => {
+        const itemDate = new Date(item[dateField]);
+        
+        if (dashboardData.filters.dataInicio && itemDate < dashboardData.filters.dataInicio) {
+            return false;
+        }
+        
+        if (dashboardData.filters.dataFim) {
+            const endOfDay = new Date(dashboardData.filters.dataFim);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (itemDate > endOfDay) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
 }
 
 // Carregar todos os dados do dashboard
@@ -82,24 +237,28 @@ async function loadDashboardData() {
             })
         ]);
 
+        // Aplicar filtros de período aos dados
+        const vendasFiltradas = filterDataByPeriod(vendas, 'dataVenda');
+        const despesasFiltradas = filterDataByPeriod(despesas, 'dataDespesa');
+
         dashboardData.resumo = resumoBasico;
-        dashboardData.despesas = despesas;
-        dashboardData.vendas = vendas;
+        dashboardData.despesas = despesasFiltradas;
+        dashboardData.vendas = vendasFiltradas;
         dashboardData.postes = postes;
 
-        console.log('📊 Dados carregados:', { 
+        console.log('📊 Dados carregados (filtrados):', { 
             resumoBasico, 
-            despesas: despesas.length, 
-            vendas: vendas.length,
+            despesas: despesasFiltradas.length, 
+            vendas: vendasFiltradas.length,
             postes: postes.length
         });
 
-        // CALCULAR LUCROS NO FRONTEND
-        const lucrosCalculados = calcularLucros(resumoBasico, despesas);
+        // CALCULAR LUCROS NO FRONTEND COM DADOS FILTRADOS
+        const lucrosCalculados = calcularLucrosComDadosFiltrados(vendasFiltradas, despesasFiltradas);
 
         // Atualizar interface
-        updateResumoCards(resumoBasico, lucrosCalculados);
-        updateEstatisticas(vendas, postes, despesas);
+        updateResumoCards(lucrosCalculados);
+        updateEstatisticas(vendasFiltradas, postes, despesasFiltradas);
         
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -109,66 +268,44 @@ async function loadDashboardData() {
     }
 }
 
-// Funções de API
-async function apiRequest(endpoint) {
-    try {
-        const response = await fetch(`${CONFIG.API_BASE}${endpoint}`);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error(`Erro na requisição ${endpoint}:`, error);
-        throw error;
-    }
-}
-
-async function fetchResumoVendas() {
-    return await apiRequest('/vendas/resumo');
-}
-
-async function fetchDespesas() {
-    return await apiRequest('/despesas');
-}
-
-async function fetchVendas() {
-    return await apiRequest('/vendas');
-}
-
-async function fetchPostes() {
-    return await apiRequest('/postes');
-}
-
-// Lógica de cálculo de lucros - CORRIGIDA
-function calcularLucros(resumoBasico, despesas) {
-    console.log('🔢 Iniciando cálculo de lucros...');
+// Calcular lucros com dados filtrados
+function calcularLucrosComDadosFiltrados(vendas, despesas) {
+    console.log('🔢 Calculando lucros com dados filtrados...');
     
-    // Extrair dados do resumo com valores padrão
-    const {
-        totalVendaPostes = 0,      // Custo total dos postes vendidos (tipo V)
-        valorTotalVendas = 0,      // Valor total arrecadado das vendas (tipo V)
-        valorTotalExtras = 0,      // Valores dos tipos E
-        totalFreteEletrons = 0     // Frete do tipo L (Venda Loja)
-    } = resumoBasico || {};
+    // Separar vendas por tipo
+    const vendasE = vendas.filter(v => v.tipoVenda === 'E');
+    const vendasV = vendas.filter(v => v.tipoVenda === 'V');
+    const vendasL = vendas.filter(v => v.tipoVenda === 'L');
+
+    // Calcular valores básicos
+    const valorTotalVendas = vendasV.reduce((sum, v) => sum + (parseFloat(v.valorTotalInformado) || 0), 0);
+    const valorTotalExtras = vendasE.reduce((sum, v) => sum + (parseFloat(v.valorExtra) || 0), 0);
+    const totalFreteEletrons = vendasL.reduce((sum, v) => sum + (parseFloat(v.freteEletrons) || 0), 0);
+
+    // Calcular custo dos postes (baseado nos itens das vendas V)
+    let totalVendaPostes = 0;
+    vendasV.forEach(venda => {
+        if (venda.itens && venda.itens.length > 0) {
+            totalVendaPostes += venda.itens.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
+        }
+    });
 
     // Separar despesas por tipo
     const despesasFuncionario = despesas
-        ? despesas.filter(d => d.tipo === 'FUNCIONARIO')
-                 .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0)
-        : 0;
+        .filter(d => d.tipo === 'FUNCIONARIO')
+        .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0);
         
     const outrasDespesas = despesas
-        ? despesas.filter(d => d.tipo === 'OUTRAS')
-                 .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0)
-        : 0;
+        .filter(d => d.tipo === 'OUTRAS')
+        .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0);
 
     // LÓGICA PRINCIPAL DE CÁLCULO - CORRIGIDA:
     
     // 1. Lucro das vendas normais (V): Valor vendido - Custo dos postes
-    const lucroVendasNormais = parseFloat(valorTotalVendas) - parseFloat(totalVendaPostes);
+    const lucroVendasNormais = valorTotalVendas - totalVendaPostes;
 
     // 2. Somar todas as contribuições extras (E + Frete L)
-    const totalContribuicoesExtras = parseFloat(valorTotalExtras) + parseFloat(totalFreteEletrons);
+    const totalContribuicoesExtras = valorTotalExtras + totalFreteEletrons;
 
     // 3. LUCRO TOTAL = Lucro vendas normais + Contribuições extras - APENAS OUTRAS DESPESAS
     const lucroTotal = lucroVendasNormais + totalContribuicoesExtras - outrasDespesas;
@@ -186,8 +323,8 @@ function calcularLucros(resumoBasico, despesas) {
 
     return {
         // Valores base
-        totalVendaPostes: parseFloat(totalVendaPostes) || 0,
-        valorTotalVendas: parseFloat(valorTotalVendas) || 0,
+        totalVendaPostes,
+        valorTotalVendas,
         totalContribuicoesExtras,
         despesasFuncionario,
         outrasDespesas,
@@ -202,13 +339,96 @@ function calcularLucros(resumoBasico, despesas) {
         parteJefferson,
         
         // Valores por tipo
-        valorTotalExtras: parseFloat(valorTotalExtras) || 0,
-        totalFreteEletrons: parseFloat(totalFreteEletrons) || 0
+        valorTotalExtras,
+        totalFreteEletrons,
+        
+        // Estatísticas
+        totalVendasE: vendasE.length,
+        totalVendasV: vendasV.length,
+        totalVendasL: vendasL.length,
+        totalVendas: vendas.length
     };
 }
 
+// Funções de API com filtros
+async function apiRequest(endpoint, params = {}) {
+    try {
+        const url = new URL(`${CONFIG.API_BASE}${endpoint}`);
+        
+        // Adicionar parâmetros de filtro se existirem
+        Object.keys(params).forEach(key => {
+            if (params[key] !== null && params[key] !== undefined) {
+                url.searchParams.append(key, params[key]);
+            }
+        });
+        
+        const response = await fetch(url.toString());
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Erro na requisição ${endpoint}:`, error);
+        throw error;
+    }
+}
+
+async function fetchResumoVendas() {
+    const params = {};
+    
+    if (dashboardData.filters.dataInicio) {
+        params.dataInicio = dashboardData.filters.dataInicio.toISOString();
+    }
+    
+    if (dashboardData.filters.dataFim) {
+        // Adicionar horário de fim do dia
+        const fimDia = new Date(dashboardData.filters.dataFim);
+        fimDia.setHours(23, 59, 59, 999);
+        params.dataFim = fimDia.toISOString();
+    }
+    
+    return await apiRequest('/vendas/resumo', params);
+}
+
+async function fetchDespesas() {
+    const params = {};
+    
+    if (dashboardData.filters.dataInicio) {
+        params.dataInicio = dashboardData.filters.dataInicio.toISOString();
+    }
+    
+    if (dashboardData.filters.dataFim) {
+        const fimDia = new Date(dashboardData.filters.dataFim);
+        fimDia.setHours(23, 59, 59, 999);
+        params.dataFim = fimDia.toISOString();
+    }
+    
+    return await apiRequest('/despesas', params);
+}
+
+async function fetchVendas() {
+    const params = {};
+    
+    if (dashboardData.filters.dataInicio) {
+        params.dataInicio = dashboardData.filters.dataInicio.toISOString();
+    }
+    
+    if (dashboardData.filters.dataFim) {
+        const fimDia = new Date(dashboardData.filters.dataFim);
+        fimDia.setHours(23, 59, 59, 999);
+        params.dataFim = fimDia.toISOString();
+    }
+    
+    return await apiRequest('/vendas', params);
+}
+
+async function fetchPostes() {
+    // Postes não precisam de filtro de data
+    return await apiRequest('/postes');
+}
+
 // Atualizar cards de resumo - ATUALIZADO
-function updateResumoCards(resumoBasico, lucros) {
+function updateResumoCards(lucros) {
     console.log('📊 Atualizando cards de resumo...');
     
     // Cards de valores básicos
@@ -288,19 +508,10 @@ function updateResumoCards(resumoBasico, lucros) {
 function updateEstatisticas(vendas, postes, despesas) {
     console.log('📈 Atualizando estatísticas...');
     
-    // Usar dados do resumo se estiverem disponíveis
-    let vendasE, vendasV, vendasL;
-    
-    if (dashboardData.resumo) {
-        vendasE = dashboardData.resumo.totalVendasE || 0;
-        vendasV = dashboardData.resumo.totalVendasV || 0;
-        vendasL = dashboardData.resumo.totalVendasL || 0;
-    } else {
-        // Fallback para cálculo manual
-        vendasE = vendas.filter(v => v.tipoVenda === 'E').length;
-        vendasV = vendas.filter(v => v.tipoVenda === 'V').length;
-        vendasL = vendas.filter(v => v.tipoVenda === 'L').length;
-    }
+    // Estatísticas por tipo de venda
+    const vendasE = vendas.filter(v => v.tipoVenda === 'E').length;
+    const vendasV = vendas.filter(v => v.tipoVenda === 'V').length;
+    const vendasL = vendas.filter(v => v.tipoVenda === 'L').length;
     
     // Calcular ticket médio baseado em vendas do tipo V
     const vendasVList = vendas.filter(v => v.tipoVenda === 'V');
@@ -342,16 +553,32 @@ function updateEstatisticas(vendas, postes, despesas) {
 
 // Função para mostrar detalhes do cálculo - ATUALIZADA
 function mostrarDetalhesCalculo() {
-    if (!dashboardData.resumo || !dashboardData.despesas) {
+    if (!dashboardData.vendas || !dashboardData.despesas) {
         showAlert('Dados não carregados ainda', 'warning');
         return;
     }
 
-    const lucros = calcularLucros(dashboardData.resumo, dashboardData.despesas);
+    const lucros = calcularLucrosComDadosFiltrados(dashboardData.vendas, dashboardData.despesas);
+    
+    const { dataInicio, dataFim } = dashboardData.filters;
+    let periodoTexto = '';
+    
+    if (dataInicio && dataFim) {
+        if (isSameDay(dataInicio, dataFim)) {
+            periodoTexto = `\nPeríodo: ${formatDateBR(dateToInputValue(dataInicio))}\n`;
+        } else {
+            periodoTexto = `\nPeríodo: ${formatDateBR(dateToInputValue(dataInicio))} até ${formatDateBR(dateToInputValue(dataFim))}\n`;
+        }
+    } else if (dataInicio) {
+        periodoTexto = `\nPeríodo: A partir de ${formatDateBR(dateToInputValue(dataInicio))}\n`;
+    } else if (dataFim) {
+        periodoTexto = `\nPeríodo: Até ${formatDateBR(dateToInputValue(dataFim))}\n`;
+    } else {
+        periodoTexto = '\nPeríodo: Todos os dados\n';
+    }
     
     const detalhes = `
-DETALHES DO CÁLCULO DE LUCROS:
-
+DETALHES DO CÁLCULO DE LUCROS:${periodoTexto}
 1. Vendas Normais (Tipo V):
    - Custo dos postes: ${formatCurrency(lucros.totalVendaPostes)}
    - Valor arrecadado: ${formatCurrency(lucros.valorTotalVendas)}
@@ -376,6 +603,12 @@ DETALHES DO CÁLCULO DE LUCROS:
    - Desconto funcionário: ${formatCurrency(lucros.despesasFuncionario)}
    - Gilberto (25%): ${formatCurrency(lucros.parteGilberto)}
    - Jefferson (25%): ${formatCurrency(lucros.parteJefferson)}
+
+6. Estatísticas do Período:
+   - Vendas E: ${lucros.totalVendasE}
+   - Vendas V: ${lucros.totalVendasV}
+   - Vendas L: ${lucros.totalVendasL}
+   - Total vendas: ${lucros.totalVendas}
 
 OBSERVAÇÃO: Despesas de funcionário só afetam a divisão G&J, não o lucro total.
     `;
@@ -448,4 +681,4 @@ function showAlert(message, type = 'success', duration = 5000) {
     console.log(`📢 Alerta: ${message} (${type})`);
 }
 
-console.log('✅ Dashboard carregado com formato brasileiro e cálculo corrigido');
+console.log('✅ Dashboard carregado com filtros de período e formato brasileiro');

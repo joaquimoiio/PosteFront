@@ -47,6 +47,89 @@
     <main class="main-content" role="main">
         <div class="dashboard-page">
 
+            <!-- Seção de Filtros de Período -->
+            <section class="dashboard-section filter-section" aria-labelledby="filtros-titulo">
+                <header class="section-header">
+                    <h2 id="filtros-titulo">📅 Período de Análise</h2>
+                    <div class="section-actions">
+                        <button type="button" class="btn btn-secondary btn-small" onclick="setPresetPeriod('today')"
+                            aria-label="Filtrar dados de hoje">
+                            📅 Hoje
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="setPresetPeriod('week')"
+                            aria-label="Filtrar dados desta semana">
+                            📅 Esta Semana
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="setPresetPeriod('month')"
+                            aria-label="Filtrar dados deste mês">
+                            📅 Este Mês
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="setPresetPeriod('all')"
+                            aria-label="Ver todos os dados">
+                            📅 Todos
+                        </button>
+                    </div>
+                </header>
+
+                <div class="filter-container" role="search" aria-label="Filtros de período">
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <label for="filtro-data-inicio" class="filter-label">📅 Data Início</label>
+                            <input 
+                                type="date" 
+                                id="filtro-data-inicio" 
+                                class="filter-input"
+                                lang="pt-BR"
+                                aria-describedby="data-inicio-help"
+                            >
+                            <small id="data-inicio-help" class="filter-help">
+                                Data inicial do período de análise
+                            </small>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filtro-data-fim" class="filter-label">📅 Data Fim</label>
+                            <input 
+                                type="date" 
+                                id="filtro-data-fim" 
+                                class="filter-input"
+                                lang="pt-BR"
+                                aria-describedby="data-fim-help"
+                            >
+                            <small id="data-fim-help" class="filter-help">
+                                Data final do período de análise
+                            </small>
+                        </div>
+
+                        <div class="filter-group filter-actions">
+                            <button 
+                                type="button" 
+                                class="btn btn-primary" 
+                                onclick="applyPeriodFilter()"
+                                aria-label="Aplicar filtros de período"
+                            >
+                                <span class="btn-icon" aria-hidden="true">🔍</span>
+                                Aplicar Filtro
+                            </button>
+                            <button 
+                                type="button" 
+                                class="btn btn-secondary" 
+                                onclick="clearPeriodFilter()"
+                                aria-label="Limpar filtros aplicados"
+                            >
+                                <span class="btn-icon" aria-hidden="true">🧹</span>
+                                Limpar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Indicador do período atual -->
+                    <div class="period-indicator" id="period-indicator">
+                        <span class="period-text">📊 Período atual: <strong id="current-period-text">Todos os dados</strong></span>
+                    </div>
+                </div>
+            </section>
+
             <!-- Seção: Vendas por Tipo -->
             <section class="dashboard-section" aria-labelledby="vendas-titulo">
                 <header class="section-header">
