@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gerenciamento de Despesas - Sistema de Vendas de Postes">
     <meta http-equiv="Content-Language" content="pt-BR">
-    <meta name="locale" content="pt_BR">
-    <meta name="language" content="Portuguese">
     <title>Despesas - Gerenciador de Vendas de Postes</title>
     <link rel="stylesheet" href="css/despesas.css">
     <style>
-        /* CSS para Calendário Brasileiro */
+        /* Estilos específicos para calendário brasileiro */
         input[type="date"] {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: inherit;
+            color-scheme: light;
         }
         
         .date-help {
             font-size: 0.75rem;
-            color: #64748b;
-            margin-top: 2px;
+            color: var(--gray-500);
+            margin-top: var(--space-1);
             font-style: italic;
         }
         
@@ -28,149 +28,266 @@
             background-position: center;
             cursor: pointer;
             opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Melhorias de acessibilidade */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
+    <!-- Header Principal -->
+    <header class="header" role="banner">
         <div class="header-content">
             <h1>⚡ Gerenciador de Vendas de Postes</h1>
-            <p>Despesas - Gerenciamento de Despesas</p>
+            <p>Despesas - Controle Financeiro</p>
         </div>
     </header>
 
-    <!-- Navigation Menu -->
-    <nav class="main-nav">
+    <!-- Navegação Principal -->
+    <nav class="main-nav" role="navigation" aria-label="Navegação principal">
         <div class="nav-container">
             <a href="index.html" class="nav-item">
-                <span class="nav-icon">📊</span>
-                <span class="nav-text">Relatório</span>
+                <span class="nav-icon" aria-hidden="true">📊</span>
+                <span class="nav-text">Dashboard</span>
             </a>
             <a href="vendas.html" class="nav-item">
-                <span class="nav-icon">📋</span>
+                <span class="nav-icon" aria-hidden="true">📋</span>
                 <span class="nav-text">Vendas</span>
             </a>
-            <a href="despesas.html" class="nav-item active">
-                <span class="nav-icon">💸</span>
+            <a href="despesas.html" class="nav-item active" aria-current="page">
+                <span class="nav-icon" aria-hidden="true">💸</span>
                 <span class="nav-text">Despesas</span>
             </a>
             <a href="postes.html" class="nav-item">
-                <span class="nav-icon">⚡</span>
+                <span class="nav-icon" aria-hidden="true">⚡</span>
                 <span class="nav-text">Postes</span>
             </a>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="main-content">
+    <!-- Conteúdo Principal -->
+    <main class="main-content" role="main">
         <div class="despesas-page">
-            <!-- Nova Despesa -->
-            <section class="form-section">
-                <div class="section-header">
-                    <h3>➕ Nova Despesa</h3>
-                </div>
 
-                <form id="despesa-form" class="form-container">
+            <!-- Seção: Cadastro de Nova Despesa -->
+            <section class="form-section" aria-labelledby="nova-despesa-titulo">
+                <header class="section-header">
+                    <h2 id="nova-despesa-titulo">➕ Cadastrar Nova Despesa</h2>
+                    <p class="section-description">Registre uma nova despesa no sistema</p>
+                </header>
+
+                <form id="despesa-form" class="form-container" novalidate aria-labelledby="nova-despesa-titulo">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="despesa-descricao">Descrição da Despesa</label>
-                            <input type="text" id="despesa-descricao" required placeholder="Ex: Pagamento de funcionário, combustível, etc.">
+                            <label for="despesa-descricao" class="form-label">
+                                Descrição da Despesa
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="despesa-descricao" 
+                                class="form-input"
+                                required 
+                                placeholder="Ex: Pagamento de funcionário, combustível, material..."
+                                aria-describedby="descricao-help"
+                                minlength="3"
+                                maxlength="500"
+                            >
+                            <small id="descricao-help" class="form-help">
+                                Descreva brevemente o tipo de despesa
+                            </small>
                         </div>
 
                         <div class="form-group">
-                            <label for="despesa-valor">Valor</label>
+                            <label for="despesa-valor" class="form-label">
+                                Valor
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
                             <div class="input-with-icon">
-                                <span class="input-icon">💰</span>
-                                <input type="number" step="0.01" id="despesa-valor" required placeholder="0,00" min="0">
+                                <span class="input-icon" aria-hidden="true">💰</span>
+                                <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    id="despesa-valor" 
+                                    class="form-input"
+                                    required 
+                                    placeholder="0,00" 
+                                    min="0.01"
+                                    max="999999.99"
+                                    aria-describedby="valor-help"
+                                >
                             </div>
+                            <small id="valor-help" class="form-help">
+                                Valor em reais (R$)
+                            </small>
                         </div>
 
                         <div class="form-group">
-                            <label for="despesa-tipo">Tipo de Despesa</label>
-                            <select id="despesa-tipo" required>
-                                <option value="">Selecione o tipo</option>
+                            <label for="despesa-tipo" class="form-label">
+                                Categoria da Despesa
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
+                            <select id="despesa-tipo" class="form-select" required aria-describedby="tipo-help">
+                                <option value="">Selecione a categoria</option>
                                 <option value="FUNCIONARIO">💼 Despesa para Funcionário</option>
                                 <option value="OUTRAS">📋 Outras Despesas</option>
                             </select>
+                            <small id="tipo-help" class="form-help">
+                                Escolha se afeta todos os sócios ou só G&J
+                            </small>
                         </div>
                     </div>
 
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
-                            <span class="btn-icon">💾</span>
+                            <span class="btn-icon" aria-hidden="true">💾</span>
                             Salvar Despesa
                         </button>
                         <button type="reset" class="btn btn-secondary">
-                            <span class="btn-icon">🔄</span>
-                            Limpar
+                            <span class="btn-icon" aria-hidden="true">🔄</span>
+                            Limpar Campos
                         </button>
                     </div>
                 </form>
             </section>
 
-            <!-- Resumo das Despesas -->
-            <section class="summary-section">
-                <div class="section-header">
-                    <h3>📊 Resumo das Despesas</h3>
+            <!-- Seção: Resumo das Despesas -->
+            <section class="summary-section" aria-labelledby="resumo-titulo">
+                <header class="section-header">
+                    <h2 id="resumo-titulo">📊 Resumo das Despesas</h2>
+                    <p class="section-description">Visão geral das despesas por categoria</p>
+                </header>
+
+                <div class="summary-cards" role="group" aria-label="Resumo de despesas">
+                    <article class="summary-card expense-funcionario" aria-labelledby="funcionario-resumo">
+                        <div class="card-content">
+                            <h3 id="funcionario-resumo">💼 Despesas Funcionário</h3>
+                            <div class="summary-value" id="total-despesas-funcionario" aria-live="polite">R$ 0,00</div>
+                            <small class="card-note">Afeta apenas G&J (25% cada)</small>
+                        </div>
+                    </article>
+
+                    <article class="summary-card expense-total" aria-labelledby="outras-resumo">
+                        <div class="card-content">
+                            <h3 id="outras-resumo">📋 Outras Despesas</h3>
+                            <div class="summary-value" id="total-outras-despesas" aria-live="polite">R$ 0,00</div>
+                            <small class="card-note">Afeta lucro total de todos</small>
+                        </div>
+                    </article>
+
+                    <article class="summary-card neutral" aria-labelledby="total-resumo">
+                        <div class="card-content">
+                            <h3 id="total-resumo">💸 Total Geral</h3>
+                            <div class="summary-value" id="total-despesas-geral" aria-live="polite">R$ 0,00</div>
+                            <small class="card-note">Soma de todas as despesas</small>
+                        </div>
+                    </article>
                 </div>
 
-                <div class="summary-cards">
-                    <div class="summary-card expense-funcionario">
-                        <h4>Despesas para Funcionário</h4>
-                        <div class="summary-value" id="total-despesas-funcionario">R$ 0,00</div>
-                    </div>
-
-                    <div class="summary-card">
-                        <h4>Outras Despesas</h4>
-                        <div class="summary-value" id="total-outras-despesas">R$ 0,00</div>
-                    </div>
-
-                    <div class="summary-card expense-total">
-                        <h4>Total de Despesas</h4>
-                        <div class="summary-value" id="total-despesas-geral">R$ 0,00</div>
+                <!-- Painel Informativo -->
+                <div class="info-panel" role="region" aria-labelledby="info-categorias">
+                    <h3 id="info-categorias">ℹ️ Diferença entre Categorias</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong class="text-warning">💼 Funcionário:</strong>
+                            <span>Reduz apenas a parte de Guilherme e Jefferson (25% cada)</span>
+                        </div>
+                        <div class="info-item">
+                            <strong class="text-danger">📋 Outras:</strong>
+                            <span>Reduz o lucro total de todos os sócios (Cícero 50%, G&J 25% cada)</span>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Filtros -->
-            <section class="table-section">
-                <div class="section-header">
-                    <h3>🔍 Filtros</h3>
-                    <small style="color: #64748b;">Use os filtros para refinar sua busca. Por padrão, mostra despesas do mês atual.</small>
-                </div>
+            <!-- Seção: Filtros -->
+            <section class="table-section" aria-labelledby="filtros-titulo">
+                <header class="section-header">
+                    <h2 id="filtros-titulo">🔍 Filtros de Busca</h2>
+                    <p class="section-description">
+                        Use os filtros para refinar sua pesquisa. Por padrão, mostra despesas do mês atual.
+                    </p>
+                </header>
                 
-                <div class="table-filters">
+                <div class="table-filters" role="search" aria-label="Filtros de despesas">
                     <div class="filter-grid">
                         <div class="filter-group">
-                            <label for="filtro-tipo">Tipo de Despesa</label>
-                            <select id="filtro-tipo">
-                                <option value="">Todos os tipos</option>
-                                <option value="FUNCIONARIO">Funcionário</option>
-                                <option value="OUTRAS">Outras</option>
+                            <label for="filtro-tipo" class="filter-label">Categoria</label>
+                            <select id="filtro-tipo" class="filter-select" aria-describedby="filtro-tipo-help">
+                                <option value="">Todas as categorias</option>
+                                <option value="FUNCIONARIO">💼 Funcionário</option>
+                                <option value="OUTRAS">📋 Outras</option>
                             </select>
+                            <small id="filtro-tipo-help" class="filter-help">
+                                Filtrar por tipo de despesa
+                            </small>
                         </div>
 
                         <div class="filter-group">
-                            <label for="filtro-data-inicio">📅 Data Início</label>
-                            <input type="date" id="filtro-data-inicio" lang="pt-BR">
-                            <small class="date-help">Formato: dd/mm/aaaa</small>
+                            <label for="filtro-data-inicio" class="filter-label">📅 Data Início</label>
+                            <input 
+                                type="date" 
+                                id="filtro-data-inicio" 
+                                class="filter-input"
+                                lang="pt-BR"
+                                aria-describedby="data-inicio-help"
+                            >
+                            <small id="data-inicio-help" class="date-help">
+                                Data inicial do período
+                            </small>
                         </div>
 
                         <div class="filter-group">
-                            <label for="filtro-data-fim">📅 Data Fim</label>
-                            <input type="date" id="filtro-data-fim" lang="pt-BR">
-                            <small class="date-help">Formato: dd/mm/aaaa</small>
+                            <label for="filtro-data-fim" class="filter-label">📅 Data Fim</label>
+                            <input 
+                                type="date" 
+                                id="filtro-data-fim" 
+                                class="filter-input"
+                                lang="pt-BR"
+                                aria-describedby="data-fim-help"
+                            >
+                            <small id="data-fim-help" class="date-help">
+                                Data final do período
+                            </small>
                         </div>
 
                         <div class="filter-group">
-                            <label for="filtro-descricao">Descrição</label>
-                            <input type="text" id="filtro-descricao" placeholder="Buscar por descrição...">
+                            <label for="filtro-descricao" class="filter-label">Descrição</label>
+                            <input 
+                                type="text" 
+                                id="filtro-descricao" 
+                                class="filter-input"
+                                placeholder="Buscar na descrição..."
+                                aria-describedby="descricao-filtro-help"
+                            >
+                            <small id="descricao-filtro-help" class="filter-help">
+                                Busca por texto na descrição
+                            </small>
                         </div>
 
-                        <div class="filter-group">
-                            <button class="btn btn-secondary btn-small" onclick="limparFiltros()">
-                                <span class="btn-icon">🧹</span>
+                        <div class="filter-group filter-actions">
+                            <button 
+                                type="button" 
+                                class="btn btn-secondary btn-small" 
+                                onclick="limparFiltros()"
+                                aria-label="Limpar todos os filtros aplicados"
+                            >
+                                <span class="btn-icon" aria-hidden="true">🧹</span>
                                 Limpar Filtros
                             </button>
                         </div>
@@ -178,96 +295,158 @@
                 </div>
             </section>
 
-            <!-- Lista de Despesas -->
-            <section class="table-section">
-                <div class="section-header">
-                    <h3>📋 Despesas Cadastradas</h3>
+            <!-- Seção: Lista de Despesas -->
+            <section class="table-section" aria-labelledby="lista-titulo">
+                <header class="section-header">
+                    <h2 id="lista-titulo">📋 Despesas Cadastradas</h2>
                     <div class="section-actions">
-                        <button class="btn btn-secondary btn-small" onclick="loadDespesas()">
-                            <span class="btn-icon">🔄</span>
+                        <button 
+                            type="button" 
+                            class="btn btn-secondary btn-small" 
+                            onclick="loadDespesas()"
+                            aria-label="Atualizar lista de despesas"
+                        >
+                            <span class="btn-icon" aria-hidden="true">🔄</span>
                             Atualizar
                         </button>
-                        <button class="btn btn-secondary btn-small" onclick="exportarDespesas()">
-                            <span class="btn-icon">📊</span>
+                        <button 
+                            type="button" 
+                            class="btn btn-secondary btn-small" 
+                            onclick="exportarDespesas()"
+                            aria-label="Exportar despesas para arquivo"
+                        >
+                            <span class="btn-icon" aria-hidden="true">📊</span>
                             Exportar
                         </button>
                     </div>
-                </div>
+                </header>
 
-                <div class="table-container">
-                    <table id="despesas-table" class="data-table">
+                <div class="table-container" role="region" aria-labelledby="lista-titulo" tabindex="0">
+                    <table id="despesas-table" class="data-table" role="table" aria-label="Lista de despesas">
                         <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Descrição</th>
-                                <th>Valor</th>
-                                <th>Tipo</th>
-                                <th>Ações</th>
+                            <tr role="row">
+                                <th scope="col" class="sortable">Data</th>
+                                <th scope="col" class="sortable">Descrição</th>
+                                <th scope="col" class="sortable">Valor</th>
+                                <th scope="col" class="sortable">Categoria</th>
+                                <th scope="col">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td colspan="5" class="empty-table">
-                                    <div class="empty-table-icon">💸</div>
-                                    <p>Nenhuma despesa encontrada</p>
+                                    <div class="empty-state">
+                                        <div class="empty-table-icon" aria-hidden="true">💸</div>
+                                        <h3>Nenhuma despesa encontrada</h3>
+                                        <p>Comece cadastrando sua primeira despesa no formulário acima.</p>
+                                        <button 
+                                            type="button" 
+                                            class="btn btn-primary" 
+                                            onclick="scrollToForm()"
+                                            aria-label="Ir para formulário de cadastro"
+                                        >
+                                            Cadastrar Primeira Despesa
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </section>
+
         </div>
     </main>
 
-    <!-- Modal de Edição de Despesa -->
-    <div id="edit-despesa-modal" class="modal">
+    <!-- Modal: Edição de Despesa -->
+    <div id="edit-despesa-modal" class="modal" role="dialog" aria-labelledby="modal-titulo" aria-hidden="true">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>✏️ Editar Despesa</h3>
-                <span class="close" onclick="closeModal('edit-despesa-modal')">&times;</span>
-            </div>
-            <form id="edit-despesa-form">
-                <div style="padding: 20px;">
+            <header class="modal-header">
+                <h2 id="modal-titulo">✏️ Editar Despesa</h2>
+                <button 
+                    type="button" 
+                    class="close" 
+                    onclick="closeModal('edit-despesa-modal')"
+                    aria-label="Fechar modal de edição"
+                >
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </header>
+            
+            <form id="edit-despesa-form" novalidate>
+                <div class="modal-body">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="edit-despesa-descricao">Descrição</label>
-                            <input type="text" id="edit-despesa-descricao" required>
+                            <label for="edit-despesa-descricao" class="form-label">
+                                Descrição
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="edit-despesa-descricao" 
+                                class="form-input"
+                                required
+                                minlength="3"
+                                maxlength="500"
+                            >
                         </div>
+                        
                         <div class="form-group">
-                            <label for="edit-despesa-valor">Valor</label>
-                            <input type="number" step="0.01" id="edit-despesa-valor" required min="0">
+                            <label for="edit-despesa-valor" class="form-label">
+                                Valor
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                step="0.01" 
+                                id="edit-despesa-valor" 
+                                class="form-input"
+                                required 
+                                min="0.01"
+                                max="999999.99"
+                            >
                         </div>
+                        
                         <div class="form-group">
-                            <label for="edit-despesa-tipo">Tipo</label>
-                            <select id="edit-despesa-tipo" required>
-                                <option value="FUNCIONARIO">Despesa para Funcionário</option>
-                                <option value="OUTRAS">Outras Despesas</option>
+                            <label for="edit-despesa-tipo" class="form-label">
+                                Categoria
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
+                            <select id="edit-despesa-tipo" class="form-select" required>
+                                <option value="FUNCIONARIO">💼 Despesa para Funcionário</option>
+                                <option value="OUTRAS">📋 Outras Despesas</option>
                             </select>
                         </div>
                     </div>
                 </div>
-                <div class="modal-actions">
+                
+                <footer class="modal-actions">
                     <button type="submit" class="btn btn-primary">
-                        <span class="btn-icon">💾</span>
-                        Salvar
+                        <span class="btn-icon" aria-hidden="true">💾</span>
+                        Salvar Alterações
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-despesa-modal')">
+                    <button 
+                        type="button" 
+                        class="btn btn-secondary" 
+                        onclick="closeModal('edit-despesa-modal')"
+                    >
                         Cancelar
                     </button>
-                </div>
+                </footer>
             </form>
         </div>
     </div>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="spinner"></div>
-        <p>Carregando...</p>
+    <!-- Overlay de Carregamento -->
+    <div id="loading-overlay" class="loading-overlay" role="status" aria-live="polite" aria-hidden="true">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Carregando dados das despesas...</p>
     </div>
 
-    <!-- Alert Container -->
-    <div id="alert-container" class="alert-container"></div>
+    <!-- Container de Alertas -->
+    <div id="alert-container" class="alert-container" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
+    <!-- Scripts -->
     <script src="js/despesas.js"></script>
 </body>
 </html>

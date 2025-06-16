@@ -1,4 +1,4 @@
-// Despesas JavaScript - VERSÃO FINAL COM FORMATO BRASILEIRO
+// Despesas JavaScript - VERSÃO CORRIGIDA COM SEPARAÇÃO DE DESPESAS
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -197,7 +197,7 @@ async function loadDespesas() {
     }
 }
 
-// Carregar resumo
+// Carregar resumo - ATUALIZADO
 async function loadResumo() {
     try {
         const despesasFuncionario = despesasData.despesas
@@ -222,7 +222,7 @@ async function loadResumo() {
     }
 }
 
-// Atualizar cards de resumo
+// Atualizar cards de resumo - ATUALIZADO
 function updateResumoCards(resumo) {
     const elements = {
         'total-despesas-funcionario': resumo.despesasFuncionario,
@@ -234,6 +234,15 @@ function updateResumoCards(resumo) {
         const element = document.getElementById(id);
         if (element) {
             element.textContent = formatCurrency(value);
+            
+            // Colorir diferente por tipo
+            if (id.includes('funcionario')) {
+                element.style.color = '#f59e0b'; // Laranja para funcionário
+            } else if (id.includes('outras')) {
+                element.style.color = '#dc2626'; // Vermelho para outras
+            } else if (id.includes('geral')) {
+                element.style.color = '#6b7280'; // Cinza para total
+            }
         }
     });
 }
@@ -622,4 +631,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Despesas carregado com formato brasileiro');
+console.log('✅ Despesas carregado com formato brasileiro e cálculo separado');

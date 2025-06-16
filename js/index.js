@@ -1,4 +1,4 @@
-// Dashboard JavaScript - VERSÃO FINAL COM FORMATO BRASILEIRO
+// Dashboard JavaScript - VERSÃO CORRIGIDA COM LUCRO SEPARADO
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -139,7 +139,7 @@ async function fetchPostes() {
     return await apiRequest('/postes');
 }
 
-// Lógica de cálculo de lucros
+// Lógica de cálculo de lucros - CORRIGIDA
 function calcularLucros(resumoBasico, despesas) {
     console.log('🔢 Iniciando cálculo de lucros...');
     
@@ -162,19 +162,20 @@ function calcularLucros(resumoBasico, despesas) {
                  .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0)
         : 0;
 
-    // LÓGICA PRINCIPAL DE CÁLCULO:
+    // LÓGICA PRINCIPAL DE CÁLCULO - CORRIGIDA:
+    
     // 1. Lucro das vendas normais (V): Valor vendido - Custo dos postes
     const lucroVendasNormais = parseFloat(valorTotalVendas) - parseFloat(totalVendaPostes);
 
     // 2. Somar todas as contribuições extras (E + Frete L)
     const totalContribuicoesExtras = parseFloat(valorTotalExtras) + parseFloat(totalFreteEletrons);
 
-    // 3. Lucro bruto = Lucro vendas normais + Contribuições extras - Outras despesas
-    const lucroBruto = lucroVendasNormais + totalContribuicoesExtras - outrasDespesas;
+    // 3. LUCRO TOTAL = Lucro vendas normais + Contribuições extras - APENAS OUTRAS DESPESAS
+    const lucroTotal = lucroVendasNormais + totalContribuicoesExtras - outrasDespesas;
 
-    // 4. Divisão inicial: 50% para cada lado
-    const metadeCicero = lucroBruto / 2;
-    const metadeGuilhermeJefferson = lucroBruto / 2;
+    // 4. Divisão inicial: 50% para cada lado (SEM descontar funcionário ainda)
+    const metadeCicero = lucroTotal / 2;
+    const metadeGuilhermeJefferson = lucroTotal / 2;
 
     // 5. Da parte do Guilherme e Jefferson, descontar despesas de funcionário
     const parteGuilhermeJeffersonLiquida = metadeGuilhermeJefferson - despesasFuncionario;
@@ -182,9 +183,6 @@ function calcularLucros(resumoBasico, despesas) {
     // 6. Dividir entre Guilherme e Jefferson (25% cada do total)
     const parteGuilherme = parteGuilhermeJeffersonLiquida / 2;
     const parteJefferson = parteGuilhermeJeffersonLiquida / 2;
-
-    // 7. Lucro total final considerando todas as despesas
-    const lucroTotal = lucroBruto - despesasFuncionario;
 
     return {
         // Valores base
@@ -196,8 +194,7 @@ function calcularLucros(resumoBasico, despesas) {
         
         // Lucros calculados
         lucroVendasNormais,
-        lucroBruto,
-        lucroTotal,
+        lucroTotal, // APENAS com outras despesas descontadas
         
         // Distribuição
         parteCicero: metadeCicero,
@@ -210,7 +207,7 @@ function calcularLucros(resumoBasico, despesas) {
     };
 }
 
-// Atualizar cards de resumo
+// Atualizar cards de resumo - ATUALIZADO
 function updateResumoCards(resumoBasico, lucros) {
     console.log('📊 Atualizando cards de resumo...');
     
@@ -219,11 +216,18 @@ function updateResumoCards(resumoBasico, lucros) {
         { id: 'total-venda-postes', value: lucros.totalVendaPostes },
         { id: 'valor-total-vendas', value: lucros.valorTotalVendas },
         { id: 'total-contribuicoes-extras', value: lucros.totalContribuicoesExtras },
-        { id: 'total-despesas', value: lucros.despesasFuncionario + lucros.outrasDespesas },
+        { id: 'total-despesas', value: lucros.outrasDespesas }, // APENAS outras despesas
         { id: 'lucro-total', value: lucros.lucroTotal },
         { id: 'parte-cicero', value: lucros.parteCicero },
         { id: 'parte-gilberto', value: lucros.parteGuilherme },
         { id: 'parte-jefferson', value: lucros.parteJefferson }
+    ];
+
+    // Cards de despesas detalhadas
+    const despesasCards = [
+        { id: 'total-outras-despesas-detalhado', value: lucros.outrasDespesas },
+        { id: 'total-despesas-funcionario-detalhado', value: lucros.despesasFuncionario },
+        { id: 'total-geral-despesas', value: lucros.outrasDespesas + lucros.despesasFuncionario }
     ];
 
     cards.forEach(card => {
@@ -242,6 +246,21 @@ function updateResumoCards(resumoBasico, lucros) {
         }
     });
 
+    // Atualizar cards de despesas detalhadas
+    despesasCards.forEach(card => {
+        const element = document.getElementById(card.id);
+        if (element) {
+            element.textContent = formatCurrency(card.value || 0);
+            
+            // Colorir despesas funcionário diferente
+            if (card.id.includes('funcionario')) {
+                element.style.color = '#f59e0b';
+            } else if (card.id.includes('outras') || card.id.includes('geral')) {
+                element.style.color = '#dc2626';
+            }
+        }
+    });
+
     // Cards específicos por tipo de venda
     const tipoCards = [
         { id: 'total-extras-e', value: lucros.valorTotalExtras },
@@ -255,7 +274,7 @@ function updateResumoCards(resumoBasico, lucros) {
         }
     });
     
-    // Calcular e mostrar margem de lucro
+    // Calcular e mostrar margem de lucro (baseada no lucro total)
     const margemLucro = lucros.valorTotalVendas > 0 ? 
         (lucros.lucroTotal / lucros.valorTotalVendas * 100) : 0;
     const margemElement = document.getElementById('margem-lucro');
@@ -321,7 +340,7 @@ function updateEstatisticas(vendas, postes, despesas) {
     });
 }
 
-// Função para mostrar detalhes do cálculo
+// Função para mostrar detalhes do cálculo - ATUALIZADA
 function mostrarDetalhesCalculo() {
     if (!dashboardData.resumo || !dashboardData.despesas) {
         showAlert('Dados não carregados ainda', 'warning');
@@ -347,13 +366,18 @@ DETALHES DO CÁLCULO DE LUCROS:
    - Outras despesas: ${formatCurrency(lucros.outrasDespesas)}
    - Despesas funcionário: ${formatCurrency(lucros.despesasFuncionario)}
 
-4. Cálculo Final:
-   - Lucro bruto: ${formatCurrency(lucros.lucroBruto)}
+4. Cálculo do Lucro Total:
+   - Fórmula: (Lucro V + Contribuições E+L) - APENAS Outras Despesas
+   - Lucro total: ${formatCurrency(lucros.lucroTotal)}
+
+5. Distribuição:
    - Parte Cícero (50%): ${formatCurrency(lucros.parteCicero)}
-   - Parte G&J (50% - desp. func.): ${formatCurrency(lucros.parteGuilherme + lucros.parteJefferson)}
+   - Parte G&J antes funcionário: ${formatCurrency(lucros.lucroTotal / 2)}
+   - Desconto funcionário: ${formatCurrency(lucros.despesasFuncionario)}
    - Guilherme (25%): ${formatCurrency(lucros.parteGuilherme)}
    - Jefferson (25%): ${formatCurrency(lucros.parteJefferson)}
-   - Lucro total: ${formatCurrency(lucros.lucroTotal)}
+
+OBSERVAÇÃO: Despesas de funcionário só afetam a divisão G&J, não o lucro total.
     `;
 
     alert(detalhes);
@@ -424,4 +448,4 @@ function showAlert(message, type = 'success', duration = 5000) {
     console.log(`📢 Alerta: ${message} (${type})`);
 }
 
-console.log('✅ Dashboard carregado com formato brasileiro');
+console.log('✅ Dashboard carregado com formato brasileiro e cálculo corrigido');
