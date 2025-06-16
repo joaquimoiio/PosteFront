@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Dashboard do Sistema de Gerenciamento de Vendas de Postes - Relatórios e Análises">
+    <meta name="description"
+        content="Dashboard do Sistema de Gerenciamento de Vendas de Postes - Relatórios e Análises">
     <title>Dashboard - Gerenciador de Vendas de Postes</title>
     <link rel="stylesheet" href="css/index.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
+
 <body>
     <!-- Header Principal -->
     <header class="header" role="banner">
@@ -48,9 +51,8 @@
             <section class="dashboard-section" aria-labelledby="vendas-titulo">
                 <header class="section-header">
                     <h2 id="vendas-titulo">📊 Vendas por Tipo</h2>
-                    <p class="section-description">Distribuição das vendas por categoria</p>
                 </header>
-                
+
                 <div class="cards-grid" role="group" aria-label="Estatísticas de vendas">
                     <article class="metric-card" aria-labelledby="vendas-e-label">
                         <div class="card-content">
@@ -86,9 +88,8 @@
             <section class="dashboard-section" aria-labelledby="valores-titulo">
                 <header class="section-header">
                     <h2 id="valores-titulo">💰 Valores por Categoria</h2>
-                    <p class="section-description">Receitas específicas por tipo de operação</p>
                 </header>
-                
+
                 <div class="cards-grid cards-grid--two-cols" role="group" aria-label="Valores por categoria">
                     <article class="metric-card warning" aria-labelledby="valores-e-label">
                         <div class="card-content">
@@ -103,6 +104,7 @@
                             <div class="metric-value" id="total-frete-loja" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
+
                 </div>
             </section>
 
@@ -111,29 +113,29 @@
                 <header class="section-header">
                     <h2 id="financeiro-titulo">💰 Resumo Financeiro</h2>
                     <div class="section-actions">
-                        <button type="button" class="btn btn-secondary btn-small" onclick="mostrarDetalhesCalculo()" 
-                                aria-label="Ver detalhes do cálculo de lucros">
+                        <button type="button" class="btn btn-secondary btn-small" onclick="mostrarDetalhesCalculo()"
+                            aria-label="Ver detalhes do cálculo de lucros">
                             📋 Ver Detalhes
                         </button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="refreshDashboard()" 
-                                aria-label="Atualizar dados do dashboard">
+                        <button type="button" class="btn btn-secondary btn-small" onclick="refreshDashboard()"
+                            aria-label="Atualizar dados do dashboard">
                             🔄 Atualizar
                         </button>
                     </div>
                 </header>
-                
-                <div class="cards-grid" role="group" aria-label="Resumo financeiro">
-                    <article class="metric-card info" aria-labelledby="custo-postes-label">
-                        <div class="card-content">
-                            <h3 id="custo-postes-label">📦 Custo Total Postes (V)</h3>
-                            <div class="metric-value" id="total-venda-postes" aria-live="polite">R$ 0,00</div>
-                        </div>
-                    </article>
 
+                <div class="cards-grid" role="group" aria-label="Resumo financeiro">
                     <article class="metric-card success" aria-labelledby="arrecadado-label">
                         <div class="card-content">
                             <h3 id="arrecadado-label">💵 Total Arrecadado (V)</h3>
                             <div class="metric-value" id="valor-total-vendas" aria-live="polite">R$ 0,00</div>
+                        </div>
+                    </article>
+
+                    <article class="metric-card info" aria-labelledby="custo-postes-label">
+                        <div class="card-content">
+                            <h3 id="custo-postes-label">📦 Custo Total Postes (V)</h3>
+                            <div class="metric-value" id="total-venda-postes" aria-live="polite">R$ 0,00</div>
                         </div>
                     </article>
 
@@ -157,23 +159,22 @@
             <section class="dashboard-section expenses-section" aria-labelledby="despesas-titulo">
                 <header class="section-header">
                     <h2 id="despesas-titulo">💸 Detalhamento de Despesas</h2>
-                    <p class="section-description">Separação das despesas por categoria de impacto</p>
                 </header>
-                
+
                 <div class="cards-grid cards-grid--three-cols" role="group" aria-label="Detalhamento de despesas">
                     <article class="metric-card danger" aria-labelledby="outras-detalhado-label">
                         <div class="card-content">
                             <h3 id="outras-detalhado-label">📋 Outras Despesas</h3>
-                            <div class="metric-value" id="total-outras-despesas-detalhado" aria-live="polite">R$ 0,00</div>
-                            <small class="card-note">Afeta lucro total</small>
+                            <div class="metric-value" id="total-outras-despesas-detalhado" aria-live="polite">R$ 0,00
+                            </div>
                         </div>
                     </article>
 
                     <article class="metric-card warning" aria-labelledby="funcionario-detalhado-label">
                         <div class="card-content">
                             <h3 id="funcionario-detalhado-label">👥 Despesas Funcionário</h3>
-                            <div class="metric-value" id="total-despesas-funcionario-detalhado" aria-live="polite">R$ 0,00</div>
-                            <small class="card-note">Só afeta G&J</small>
+                            <div class="metric-value" id="total-despesas-funcionario-detalhado" aria-live="polite">R$
+                                0,00</div>
                         </div>
                     </article>
 
@@ -181,24 +182,8 @@
                         <div class="card-content">
                             <h3 id="geral-despesas-label">💰 Total Geral</h3>
                             <div class="metric-value" id="total-geral-despesas" aria-live="polite">R$ 0,00</div>
-                            <small class="card-note">Soma total</small>
                         </div>
                     </article>
-                </div>
-
-                <!-- Explicação dos Tipos de Despesa -->
-                <div class="info-panel" role="region" aria-labelledby="info-despesas">
-                    <h3 id="info-despesas">ℹ️ Como as despesas afetam o lucro:</h3>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <strong class="text-danger">📋 Outras Despesas:</strong>
-                            <span>Reduzem o lucro total de todos os sócios</span>
-                        </div>
-                        <div class="info-item">
-                            <strong class="text-warning">👥 Funcionário:</strong>
-                            <span>Afetam apenas a divisão entre Gilberto e Jefferson</span>
-                        </div>
-                    </div>
                 </div>
             </section>
 
@@ -206,9 +191,6 @@
             <section class="dashboard-section profit-section" aria-labelledby="lucros-titulo">
                 <header class="section-header">
                     <h2 id="lucros-titulo">💎 Distribuição de Lucros</h2>
-                    <p class="section-description">
-                        Fórmula: (Lucro V + Extras E + Frete L) - Outras Despesas ÷ Sócios
-                    </p>
                 </header>
 
                 <div class="cards-grid" role="group" aria-label="Distribuição de lucros">
@@ -258,51 +240,20 @@
                         <div class="stat-number" id="total-postes" aria-live="polite">0</div>
                         <div class="stat-label" id="postes-stat">Postes Ativos</div>
                     </article>
-                    
+
                     <article class="stat-item" aria-labelledby="despesas-stat">
                         <div class="stat-number" id="total-despesas-count" aria-live="polite">0</div>
                         <div class="stat-label" id="despesas-stat">Total Despesas</div>
                     </article>
-                    
+
                     <article class="stat-item" aria-labelledby="ticket-stat">
                         <div class="stat-number" id="ticket-medio" aria-live="polite">R$ 0,00</div>
                         <div class="stat-label" id="ticket-stat">Ticket Médio (V)</div>
                     </article>
-                    
+
                     <article class="stat-item" aria-labelledby="margem-stat">
                         <div class="stat-number" id="margem-lucro" aria-live="polite">0%</div>
                         <div class="stat-label" id="margem-stat">Margem de Lucro</div>
-                    </article>
-                </div>
-            </section>
-
-            <!-- Seção: Explicação dos Tipos -->
-            <section class="dashboard-section info-section" aria-labelledby="tipos-titulo">
-                <header class="section-header">
-                    <h2 id="tipos-titulo">ℹ️ Guia dos Tipos de Venda</h2>
-                    <p class="section-description">Entenda como cada tipo de venda funciona</p>
-                </header>
-                
-                <div class="explanation-grid" role="group" aria-label="Tipos de venda">
-                    <article class="explanation-card type-e">
-                        <div class="card-icon">📈</div>
-                        <h3>Tipo E - Extra</h3>
-                        <p>Valores extras que contribuem diretamente para o lucro. Apenas data e valor extra são necessários.</p>
-                        <div class="card-highlight">💡 Contribuição direta ao lucro</div>
-                    </article>
-                    
-                    <article class="explanation-card type-v">
-                        <div class="card-icon">🛒</div>
-                        <h3>Tipo V - Venda Normal</h3>
-                        <p>Vendas normais com postes. O valor do poste é fixo e usado no cálculo do lucro. SEM frete Eletrons.</p>
-                        <div class="card-highlight">⚡ Base do negócio</div>
-                    </article>
-                    
-                    <article class="explanation-card type-l">
-                        <div class="card-icon">🏪</div>
-                        <h3>Tipo L - Venda Loja</h3>
-                        <p>Vendas de loja onde apenas o frete contribui para o lucro. Poste é apenas referência, SEM valor de venda.</p>
-                        <div class="card-highlight">🚚 Apenas frete conta</div>
                     </article>
                 </div>
             </section>
@@ -322,4 +273,5 @@
     <!-- Scripts -->
     <script src="js/index.js"></script>
 </body>
+
 </html>
