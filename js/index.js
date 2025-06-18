@@ -1,4 +1,4 @@
-// Dashboard JavaScript - VERSÃO REFATORADA COM DATAS CORRIGIDAS
+// Dashboard JavaScript - VERSÃO CORRIGIDA COM FILTROS DE DATA
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -26,6 +26,34 @@ function formatDateBR(dateString) {
         month: '2-digit',
         year: 'numeric'
     });
+}
+
+// CORREÇÃO: Função para normalizar datas para comparação
+function normalizeDateForComparison(dateString, isEndDate = false) {
+    if (!dateString) return null;
+    
+    const date = new Date(dateString);
+    
+    if (isEndDate) {
+        // Para data fim, definir para 23:59:59.999 do dia
+        date.setHours(23, 59, 59, 999);
+    } else {
+        // Para data início, definir para 00:00:00.000 do dia
+        date.setHours(0, 0, 0, 0);
+    }
+    
+    return date;
+}
+
+// CORREÇÃO: Função para converter data para formato ISO string correto
+function dateToISOString(date) {
+    if (!date) return null;
+    
+    // Garantir que a data seja um objeto Date
+    const d = date instanceof Date ? date : new Date(date);
+    
+    // Retornar no formato ISO (YYYY-MM-DD)
+    return d.toISOString().split('T')[0];
 }
 
 // Inicialização
@@ -111,14 +139,23 @@ function setPresetPeriod(period) {
     applyPeriodFilter();
 }
 
+// CORREÇÃO: Função de aplicar filtro corrigida
 async function applyPeriodFilter() {
     const filtroDataInicio = document.getElementById('filtro-data-inicio');
     const filtroDataFim = document.getElementById('filtro-data-fim');
     
     if (filtroDataInicio && filtroDataFim) {
-        dashboardData.filters.dataInicio = filtroDataInicio.value ? new Date(filtroDataInicio.value) : null;
-        dashboardData.filters.dataFim = filtroDataFim.value ? new Date(filtroDataFim.value) : null;
+        // CORREÇÃO: Normalizar as datas para comparação adequada
+        dashboardData.filters.dataInicio = filtroDataInicio.value ? 
+            normalizeDateForComparison(filtroDataInicio.value, false) : null;
+        dashboardData.filters.dataFim = filtroDataFim.value ? 
+            normalizeDateForComparison(filtroDataFim.value, true) : null;
     }
+    
+    console.log('🔍 Aplicando filtros:', {
+        dataInicio: dashboardData.filters.dataInicio ? dashboardData.filters.dataInicio.toISOString() : null,
+        dataFim: dashboardData.filters.dataFim ? dashboardData.filters.dataFim.toISOString() : null
+    });
     
     updatePeriodIndicator();
     await loadDashboardData();
@@ -162,7 +199,14 @@ function updatePeriodIndicator() {
 }
 
 function isSameDay(date1, date2) {
-    return date1.toDateString() === date2.toDateString();
+    if (!date1 || !date2) return false;
+    
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
 }
 
 async function loadDashboardData() {
@@ -263,7 +307,7 @@ function calcularLucros(resumoVendas, despesas) {
     };
 }
 
-// Funções de API
+// CORREÇÃO: Funções de API com parâmetros de data corrigidos
 async function apiRequest(endpoint, params = {}) {
     try {
         const url = new URL(`${CONFIG.API_BASE}${endpoint}`);
@@ -273,6 +317,8 @@ async function apiRequest(endpoint, params = {}) {
                 url.searchParams.append(key, params[key]);
             }
         });
+        
+        console.log('🌐 Requisição API:', url.toString());
         
         const response = await fetch(url.toString());
         if (!response.ok) {
@@ -285,43 +331,48 @@ async function apiRequest(endpoint, params = {}) {
     }
 }
 
+// CORREÇÃO: Função fetchResumoVendas com datas corretas
 async function fetchResumoVendas() {
     const params = {};
     
     if (dashboardData.filters.dataInicio) {
-        params.dataInicio = dateToInputValue(dashboardData.filters.dataInicio);
+        params.dataInicio = dateToISOString(dashboardData.filters.dataInicio);
+        console.log('📅 Data início para API:', params.dataInicio);
     }
     
     if (dashboardData.filters.dataFim) {
-        params.dataFim = dateToInputValue(dashboardData.filters.dataFim);
+        params.dataFim = dateToISOString(dashboardData.filters.dataFim);
+        console.log('📅 Data fim para API:', params.dataFim);
     }
     
     return await apiRequest('/vendas/resumo', params);
 }
 
+// CORREÇÃO: Função fetchDespesas com datas corretas
 async function fetchDespesas() {
     const params = {};
     
     if (dashboardData.filters.dataInicio) {
-        params.dataInicio = dateToInputValue(dashboardData.filters.dataInicio);
+        params.dataInicio = dateToISOString(dashboardData.filters.dataInicio);
     }
     
     if (dashboardData.filters.dataFim) {
-        params.dataFim = dateToInputValue(dashboardData.filters.dataFim);
+        params.dataFim = dateToISOString(dashboardData.filters.dataFim);
     }
     
     return await apiRequest('/despesas', params);
 }
 
+// CORREÇÃO: Função fetchVendas com datas corretas
 async function fetchVendas() {
     const params = {};
     
     if (dashboardData.filters.dataInicio) {
-        params.dataInicio = dateToInputValue(dashboardData.filters.dataInicio);
+        params.dataInicio = dateToISOString(dashboardData.filters.dataInicio);
     }
     
     if (dashboardData.filters.dataFim) {
-        params.dataFim = dateToInputValue(dashboardData.filters.dataFim);
+        params.dataFim = dateToISOString(dashboardData.filters.dataFim);
     }
     
     return await apiRequest('/vendas', params);
@@ -518,6 +569,22 @@ async function refreshDashboard() {
     }
 }
 
+// CORREÇÃO: Função dateToInputValue melhorada
+function dateToInputValue(date) {
+    if (!date) return '';
+    
+    const d = new Date(date);
+    
+    // Verificar se a data é válida
+    if (isNaN(d.getTime())) return '';
+    
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
 // Utilitários
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
@@ -526,17 +593,6 @@ function formatCurrency(value) {
         style: 'currency',
         currency: 'BRL'
     }).format(value);
-}
-
-function dateToInputValue(date) {
-    if (!date) return '';
-    
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    
-    return `${year}-${month}-${day}`;
 }
 
 function showLoading(show) {
@@ -569,4 +625,4 @@ function showAlert(message, type = 'success', duration = 5000) {
     console.log(`📢 Alerta: ${message} (${type})`);
 }
 
-console.log('✅ Dashboard refatorado carregado');
+console.log('✅ Dashboard com filtros de data corrigidos carregado');
