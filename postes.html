@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,6 +37,10 @@
                 <span class="nav-icon" aria-hidden="true">⚡</span>
                 <span class="nav-text">Postes</span>
             </a>
+            <a href="relatorios.html" class="nav-item">
+                <span class="nav-icon" aria-hidden="true">📈</span>
+                <span class="nav-text">Relatórios</span>
+            </a>
         </div>
     </nav>
 
@@ -61,15 +66,8 @@
                                 Código do Poste
                                 <span class="required" aria-label="Campo obrigatório">*</span>
                             </label>
-                            <input 
-                                type="text" 
-                                id="poste-codigo" 
-                                class="form-input"
-                                required 
-                                placeholder="Ex: 4199, 91450"
-                                minlength="1"
-                                maxlength="50"
-                            >
+                            <input type="text" id="poste-codigo" class="form-input" required
+                                placeholder="Ex: 4199, 91450" minlength="1" maxlength="50">
                         </div>
 
                         <div class="form-group">
@@ -80,15 +78,8 @@
                             </label>
                             <div class="input-with-icon">
                                 <span class="input-icon">R$</span>
-                                <input 
-                                    type="number" 
-                                    step="0.01" 
-                                    id="poste-preco" 
-                                    class="form-input"
-                                    required 
-                                    placeholder="0,00" 
-                                    min="0.01"
-                                >
+                                <input type="number" step="0.01" id="poste-preco" class="form-input" required
+                                    placeholder="0,00" min="0.01">
                             </div>
                         </div>
 
@@ -98,15 +89,8 @@
                                 Descrição do Poste
                                 <span class="required" aria-label="Campo obrigatório">*</span>
                             </label>
-                            <input 
-                                type="text" 
-                                id="poste-descricao" 
-                                class="form-input"
-                                required 
-                                placeholder="Ex: Kit Poste 7m 1 Cx Mono Saída Aérea"
-                                minlength="3"
-                                maxlength="500"
-                            >
+                            <input type="text" id="poste-descricao" class="form-input" required
+                                placeholder="Ex: Kit Poste 7m 1 Cx Mono Saída Aérea" minlength="3" maxlength="500">
                         </div>
                     </div>
 
@@ -178,7 +162,7 @@
                     </h2>
                     <p class="section-description">Encontre postes específicos</p>
                 </header>
-                
+
                 <div class="filter-container">
                     <div class="filter-grid">
                         <div class="filter-group">
@@ -198,12 +182,8 @@
                                 <span class="label-icon">🔍</span>
                                 Código
                             </label>
-                            <input 
-                                type="text" 
-                                id="filtro-codigo" 
-                                class="filter-input"
-                                placeholder="Buscar por código..."
-                            >
+                            <input type="text" id="filtro-codigo" class="filter-input"
+                                placeholder="Buscar por código...">
                         </div>
 
                         <div class="filter-group">
@@ -211,12 +191,8 @@
                                 <span class="label-icon">🔍</span>
                                 Descrição
                             </label>
-                            <input 
-                                type="text" 
-                                id="filtro-descricao" 
-                                class="filter-input"
-                                placeholder="Buscar na descrição..."
-                            >
+                            <input type="text" id="filtro-descricao" class="filter-input"
+                                placeholder="Buscar na descrição...">
                         </div>
 
                         <div class="filter-actions">
@@ -292,7 +268,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </header>
-            
+
             <form id="edit-poste-form" novalidate>
                 <div class="modal-body">
                     <div class="form-grid">
@@ -302,9 +278,10 @@
                                 Código
                                 <span class="required">*</span>
                             </label>
-                            <input type="text" id="edit-poste-codigo" class="form-input" required minlength="1" maxlength="50">
+                            <input type="text" id="edit-poste-codigo" class="form-input" required minlength="1"
+                                maxlength="50">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="edit-poste-preco" class="form-label">
                                 <span class="label-icon">💰</span>
@@ -313,7 +290,8 @@
                             </label>
                             <div class="input-with-icon">
                                 <span class="input-icon">R$</span>
-                                <input type="number" step="0.01" id="edit-poste-preco" class="form-input" required min="0.01">
+                                <input type="number" step="0.01" id="edit-poste-preco" class="form-input" required
+                                    min="0.01">
                             </div>
                         </div>
 
@@ -323,9 +301,10 @@
                                 Descrição
                                 <span class="required">*</span>
                             </label>
-                            <input type="text" id="edit-poste-descricao" class="form-input" required minlength="3" maxlength="500">
+                            <input type="text" id="edit-poste-descricao" class="form-input" required minlength="3"
+                                maxlength="500">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="edit-poste-ativo" class="form-label">
                                 <span class="label-icon">🏷️</span>
@@ -339,7 +318,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <footer class="modal-actions">
                     <button type="submit" class="btn btn-primary">
                         <span class="btn-icon">💾</span>
@@ -364,4 +343,5 @@
 
     <script src="js/postes.js"></script>
 </body>
+
 </html>

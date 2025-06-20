@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,6 +37,10 @@
                 <span class="nav-icon" aria-hidden="true">⚡</span>
                 <span class="nav-text">Postes</span>
             </a>
+            <a href="relatorios.html" class="nav-item">
+                <span class="nav-icon" aria-hidden="true">📈</span>
+                <span class="nav-text">Relatórios</span>
+            </a>
         </div>
     </nav>
 
@@ -61,13 +66,7 @@
                                 Data da Despesa
                                 <span class="required" aria-label="Campo obrigatório">*</span>
                             </label>
-                            <input 
-                                type="date" 
-                                id="despesa-data" 
-                                class="form-input"
-                                required 
-                                lang="pt-BR"
-                            >
+                            <input type="date" id="despesa-data" class="form-input" required lang="pt-BR">
                         </div>
 
                         <div class="form-group">
@@ -78,15 +77,8 @@
                             </label>
                             <div class="input-with-icon">
                                 <span class="input-icon">R$</span>
-                                <input 
-                                    type="number" 
-                                    step="0.01" 
-                                    id="despesa-valor" 
-                                    class="form-input"
-                                    required 
-                                    placeholder="0,00" 
-                                    min="0.01"
-                                >
+                                <input type="number" step="0.01" id="despesa-valor" class="form-input" required
+                                    placeholder="0,00" min="0.01">
                             </div>
                         </div>
 
@@ -96,15 +88,9 @@
                                 Descrição da Despesa
                                 <span class="required" aria-label="Campo obrigatório">*</span>
                             </label>
-                            <input 
-                                type="text" 
-                                id="despesa-descricao" 
-                                class="form-input"
-                                required 
-                                placeholder="Ex: Pagamento de funcionário, combustível, material..."
-                                minlength="3"
-                                maxlength="500"
-                            >
+                            <input type="text" id="despesa-descricao" class="form-input" required
+                                placeholder="Ex: Pagamento de funcionário, combustível, material..." minlength="3"
+                                maxlength="500">
                         </div>
 
                         <div class="form-group">
@@ -210,7 +196,7 @@
                     </h2>
                     <p class="section-description">Por padrão, mostra despesas do mês atual</p>
                 </header>
-                
+
                 <div class="filter-container">
                     <div class="filter-grid">
                         <div class="filter-group">
@@ -230,12 +216,7 @@
                                 <span class="label-icon">📅</span>
                                 Data Início
                             </label>
-                            <input 
-                                type="date" 
-                                id="filtro-data-inicio" 
-                                class="filter-input"
-                                lang="pt-BR"
-                            >
+                            <input type="date" id="filtro-data-inicio" class="filter-input" lang="pt-BR">
                         </div>
 
                         <div class="filter-group">
@@ -243,12 +224,7 @@
                                 <span class="label-icon">📅</span>
                                 Data Fim
                             </label>
-                            <input 
-                                type="date" 
-                                id="filtro-data-fim" 
-                                class="filter-input"
-                                lang="pt-BR"
-                            >
+                            <input type="date" id="filtro-data-fim" class="filter-input" lang="pt-BR">
                         </div>
 
                         <div class="filter-group">
@@ -256,12 +232,8 @@
                                 <span class="label-icon">🔍</span>
                                 Descrição
                             </label>
-                            <input 
-                                type="text" 
-                                id="filtro-descricao" 
-                                class="filter-input"
-                                placeholder="Buscar na descrição..."
-                            >
+                            <input type="text" id="filtro-descricao" class="filter-input"
+                                placeholder="Buscar na descrição...">
                         </div>
 
                         <div class="filter-actions">
@@ -333,11 +305,12 @@
                     <span class="modal-icon">✏️</span>
                     Editar Despesa
                 </h2>
-                <button type="button" class="close" onclick="closeModal('edit-despesa-modal')" aria-label="Fechar modal">
+                <button type="button" class="close" onclick="closeModal('edit-despesa-modal')"
+                    aria-label="Fechar modal">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </header>
-            
+
             <form id="edit-despesa-form" novalidate>
                 <div class="modal-body">
                     <div class="form-grid">
@@ -349,7 +322,7 @@
                             </label>
                             <input type="date" id="edit-despesa-data" class="form-input" required lang="pt-BR">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="edit-despesa-valor" class="form-label">
                                 <span class="label-icon">💰</span>
@@ -358,7 +331,8 @@
                             </label>
                             <div class="input-with-icon">
                                 <span class="input-icon">R$</span>
-                                <input type="number" step="0.01" id="edit-despesa-valor" class="form-input" required min="0.01">
+                                <input type="number" step="0.01" id="edit-despesa-valor" class="form-input" required
+                                    min="0.01">
                             </div>
                         </div>
 
@@ -368,9 +342,10 @@
                                 Descrição
                                 <span class="required">*</span>
                             </label>
-                            <input type="text" id="edit-despesa-descricao" class="form-input" required minlength="3" maxlength="500">
+                            <input type="text" id="edit-despesa-descricao" class="form-input" required minlength="3"
+                                maxlength="500">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="edit-despesa-tipo" class="form-label">
                                 <span class="label-icon">🏷️</span>
@@ -384,7 +359,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <footer class="modal-actions">
                     <button type="submit" class="btn btn-primary">
                         <span class="btn-icon">💾</span>
@@ -409,4 +384,5 @@
 
     <script src="js/despesas.js"></script>
 </body>
+
 </html>

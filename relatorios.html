@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Relatórios - Sistema de Vendas de Postes">
+    <title>Relatórios - Gerenciador de Vendas de Postes</title>
+    <link rel="stylesheet" href="css/relatorios.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header" role="banner">
+        <div class="header-content">
+            <h1>⚡ Gerenciador de Vendas de Postes</h1>
+            <p>Relatórios - Análise de Vendas por Poste</p>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="main-nav" role="navigation" aria-label="Navegação principal">
+        <div class="nav-container">
+            <a href="index.html" class="nav-item">
+                <span class="nav-icon" aria-hidden="true">📊</span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="vendas.html" class="nav-item">
+                <span class="nav-icon" aria-hidden="true">📋</span>
+                <span class="nav-text">Vendas</span>
+            </a>
+            <a href="despesas.html" class="nav-item">
+                <span class="nav-icon" aria-hidden="true">💸</span>
+                <span class="nav-text">Despesas</span>
+            </a>
+            <a href="postes.html" class="nav-item">
+                <span class="nav-icon" aria-hidden="true">⚡</span>
+                <span class="nav-text">Postes</span>
+            </a>
+            <a href="relatorios.html" class="nav-item active" aria-current="page">
+                <span class="nav-icon" aria-hidden="true">📈</span>
+                <span class="nav-text">Relatórios</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" role="main">
+        <div class="relatorios-page">
+
+            <!-- Filtros de Período -->
+            <section class="filter-section" aria-labelledby="filtros-titulo">
+                <header class="section-header">
+                    <h2 id="filtros-titulo">
+                        <span class="section-icon">📅</span>
+                        Período do Relatório
+                    </h2>
+                    <p class="section-description">Todos os postes cadastrados são exibidos, mesmo os sem vendas no período</p>
+                </header>
+                
+                <div class="filter-container">
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <label for="filtro-data-inicio" class="filter-label">
+                                <span class="label-icon">📅</span>
+                                Data Início
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
+                            <input 
+                                type="date" 
+                                id="filtro-data-inicio" 
+                                class="filter-input"
+                                lang="pt-BR"
+                                required
+                            >
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filtro-data-fim" class="filter-label">
+                                <span class="label-icon">📅</span>
+                                Data Fim
+                                <span class="required" aria-label="Campo obrigatório">*</span>
+                            </label>
+                            <input 
+                                type="date" 
+                                id="filtro-data-fim" 
+                                class="filter-input"
+                                lang="pt-BR"
+                                required
+                            >
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filtro-tipo-venda" class="filter-label">
+                                <span class="label-icon">🏷️</span>
+                                Tipo de Venda
+                            </label>
+                            <select id="filtro-tipo-venda" class="filter-input">
+                                <option value="">Todos os tipos</option>
+                                <option value="V">🛒 Vendas Normais (V)</option>
+                                <option value="L">🏪 Vendas Loja (L)</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-primary" onclick="gerarRelatorio()">
+                                <span class="btn-icon">📊</span>
+                                Gerar Relatório
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFiltros()">
+                                <span class="btn-icon">🧹</span>
+                                Limpar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Indicador do período selecionado -->
+                    <div id="periodo-info" class="period-info" style="display: none;">
+                        <div class="period-text">
+                            <span class="period-icon">📊</span>
+                            <span id="periodo-texto">Período selecionado</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Resumo do Relatório -->
+            <section class="summary-section" aria-labelledby="resumo-titulo" style="display: none;" id="resumo-section">
+                <header class="section-header">
+                    <h2 id="resumo-titulo">
+                        <span class="section-icon">📊</span>
+                        Resumo do Período
+                    </h2>
+                </header>
+
+                <div class="summary-cards">
+                    <article class="summary-card total">
+                        <div class="card-content">
+                            <div class="card-header">
+                                <span class="card-icon">⚡</span>
+                                <h3>Tipos de Postes</h3>
+                            </div>
+                            <div class="summary-value" id="total-tipos-postes" aria-live="polite">0</div>
+                            <small class="card-note">Todos os postes cadastrados</small>
+                        </div>
+                    </article>
+
+                    <article class="summary-card vendas">
+                        <div class="card-content">
+                            <div class="card-header">
+                                <span class="card-icon">📋</span>
+                                <h3>Total de Vendas</h3>
+                            </div>
+                            <div class="summary-value" id="total-vendas-periodo" aria-live="polite">0</div>
+                            <small class="card-note">Vendas realizadas</small>
+                        </div>
+                    </article>
+
+                    <article class="summary-card quantidade">
+                        <div class="card-content">
+                            <div class="card-header">
+                                <span class="card-icon">📦</span>
+                                <h3>Quantidade Total</h3>
+                            </div>
+                            <div class="summary-value" id="quantidade-total-postes" aria-live="polite">0</div>
+                            <small class="card-note">Postes vendidos</small>
+                        </div>
+                    </article>
+
+                    <article class="summary-card valor">
+                        <div class="card-content">
+                            <div class="card-header">
+                                <span class="card-icon">💰</span>
+                                <h3>Valor Arrecadado</h3>
+                            </div>
+                            <div class="summary-value" id="valor-total-periodo" aria-live="polite">R$ 0,00</div>
+                            <small class="card-note">Faturamento do período</small>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <!-- Relatório de Vendas por Poste -->
+            <section class="table-section" aria-labelledby="relatorio-titulo" style="display: none;" id="relatorio-section">
+                <header class="section-header">
+                    <h2 id="relatorio-titulo">
+                        <span class="section-icon">📈</span>
+                        Relatório Completo de Postes
+                    </h2>
+                    <div class="section-actions">
+                        <button type="button" class="btn btn-secondary btn-small" onclick="gerarRelatorio()">
+                            <span class="btn-icon">🔄</span>
+                            Atualizar
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="exportarRelatorio()">
+                            <span class="btn-icon">📊</span>
+                            Exportar CSV
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="imprimirRelatorio()">
+                            <span class="btn-icon">🖨️</span>
+                            Imprimir
+                        </button>
+                    </div>
+                </header>
+
+                <div class="table-container" role="region" aria-labelledby="relatorio-titulo" tabindex="0">
+                    <table id="relatorio-table" class="data-table" role="table">
+                        <thead>
+                            <tr role="row">
+                                <th scope="col">Código</th>
+                                <th scope="col">Descrição do Poste</th>
+                                <th scope="col">Preço Unitário</th>
+                                <th scope="col">Qtd. Vendida</th>
+                                <th scope="col">Valor Arrecadado</th>
+                                <th scope="col">% do Total</th>
+                                <th scope="col">Ranking</th>
+                            </tr>
+                        </thead>
+                        <tbody id="relatorio-tbody">
+                            <tr>
+                                <td colspan="7" class="empty-table">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">📊</div>
+                                        <h3>Nenhum relatório gerado</h3>
+                                        <p>Selecione um período e clique em "Gerar Relatório" para ver os dados.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Gráficos e Análises -->
+            <section class="charts-section" aria-labelledby="graficos-titulo" style="display: none;" id="graficos-section">
+                <header class="section-header">
+                    <h2 id="graficos-titulo">
+                        <span class="section-icon">📊</span>
+                        Análise Visual
+                    </h2>
+                </header>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Top 10 Postes Mais Vendidos</h3>
+                        </div>
+                        <div class="chart-content" id="top-postes-chart">
+                            <div class="chart-placeholder">
+                                <span class="chart-icon">📊</span>
+                                <p>Gráfico será exibido após gerar o relatório</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Distribuição por Faixa de Preço</h3>
+                        </div>
+                        <div class="chart-content" id="faixa-preco-chart">
+                            <div class="chart-placeholder">
+                                <span class="chart-icon">📊</span>
+                                <p>Gráfico será exibido após gerar o relatório</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Overlay de Carregamento -->
+    <div id="loading-overlay" class="loading-overlay" role="status" aria-live="polite" aria-hidden="true">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Gerando relatório...</p>
+    </div>
+
+    <!-- Container de Alertas -->
+    <div id="alert-container" class="alert-container" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+    <script src="js/relatorios.js"></script>
+</body>
+</html>

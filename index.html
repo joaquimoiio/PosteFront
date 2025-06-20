@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,6 +37,10 @@
                 <span class="nav-icon" aria-hidden="true">⚡</span>
                 <span class="nav-text">Postes</span>
             </a>
+            <a href="relatorios.html" class="nav-item">
+                <span class="nav-icon" aria-hidden="true">📈</span>
+                <span class="nav-text">Relatórios</span>
+            </a>
         </div>
     </nav>
 
@@ -56,12 +61,7 @@
                                 <span class="label-icon">📅</span>
                                 Data Início
                             </label>
-                            <input 
-                                type="date" 
-                                id="filtro-data-inicio" 
-                                class="filter-input"
-                                lang="pt-BR"
-                            >
+                            <input type="date" id="filtro-data-inicio" class="filter-input" lang="pt-BR">
                         </div>
 
                         <div class="filter-group">
@@ -69,28 +69,15 @@
                                 <span class="label-icon">📅</span>
                                 Data Fim
                             </label>
-                            <input 
-                                type="date" 
-                                id="filtro-data-fim" 
-                                class="filter-input"
-                                lang="pt-BR"
-                            >
+                            <input type="date" id="filtro-data-fim" class="filter-input" lang="pt-BR">
                         </div>
 
                         <div class="filter-actions">
-                            <button 
-                                type="button" 
-                                class="btn btn-primary" 
-                                onclick="applyPeriodFilter()"
-                            >
+                            <button type="button" class="btn btn-primary" onclick="applyPeriodFilter()">
                                 <span class="btn-icon">🔍</span>
                                 Aplicar Filtro
                             </button>
-                            <button 
-                                type="button" 
-                                class="btn btn-secondary" 
-                                onclick="clearPeriodFilter()"
-                            >
+                            <button type="button" class="btn btn-secondary" onclick="clearPeriodFilter()">
                                 <span class="btn-icon">🧹</span>
                                 Limpar
                             </button>
@@ -218,7 +205,7 @@
                         <div class="card-content">
                             <div class="card-header">
                                 <span class="card-icon">📦</span>
-                                <h3>Custo Total Postes (V)</h3>
+                                <h3>Custo Eletrons (V)</h3>
                             </div>
                             <div class="metric-value" id="total-venda-postes" aria-live="polite">R$ 0,00</div>
                         </div>
@@ -262,7 +249,8 @@
                                 <span class="card-icon">📋</span>
                                 <h3>Outras Despesas</h3>
                             </div>
-                            <div class="metric-value" id="total-outras-despesas-detalhado" aria-live="polite">R$ 0,00</div>
+                            <div class="metric-value" id="total-outras-despesas-detalhado" aria-live="polite">R$ 0,00
+                            </div>
                         </div>
                     </article>
 
@@ -272,7 +260,8 @@
                                 <span class="card-icon">👥</span>
                                 <h3>Despesas Funcionário</h3>
                             </div>
-                            <div class="metric-value" id="total-despesas-funcionario-detalhado" aria-live="polite">R$ 0,00</div>
+                            <div class="metric-value" id="total-despesas-funcionario-detalhado" aria-live="polite">R$
+                                0,00</div>
                         </div>
                     </article>
 
@@ -402,4 +391,5 @@
 
     <script src="js/index.js"></script>
 </body>
+
 </html>
