@@ -261,7 +261,7 @@ async function loadDashboardData() {
 }
 
 function calcularLucros(resumoVendas, despesas) {
-    console.log('🔢 Calculando lucros...');
+    console.log('🔢 Calculando lucros com novo método...');
     
     // Separar despesas por tipo
     const despesasFuncionario = despesas
@@ -275,11 +275,15 @@ function calcularLucros(resumoVendas, despesas) {
     // Usar dados do resumo de vendas
     const totalVendaPostes = parseFloat(resumoVendas.totalVendaPostes) || 0;
     const valorTotalVendas = parseFloat(resumoVendas.valorTotalVendas) || 0;
-    const totalContribuicoesExtras = parseFloat(resumoVendas.totalContribuicoesExtras) || 0;
+    const totalFreteEletrons = parseFloat(resumoVendas.totalFreteEletrons) || 0;
+    const valorTotalExtras = parseFloat(resumoVendas.valorTotalExtras) || 0;
 
-    // Cálculo principal
+    // NOVO CÁLCULO: Custo Eletrons - L (substituindo E + L)
+    const custoEletronsL = totalVendaPostes - totalFreteEletrons;
+
+    // Cálculo principal CORRIGIDO
     const lucroVendasNormais = valorTotalVendas - totalVendaPostes;
-    const lucroTotal = lucroVendasNormais + totalContribuicoesExtras - outrasDespesas;
+    const lucroTotal = lucroVendasNormais + valorTotalExtras + custoEletronsL - outrasDespesas;
 
     // Distribuição
     const metadeCicero = lucroTotal / 2;
@@ -288,10 +292,17 @@ function calcularLucros(resumoVendas, despesas) {
     const parteGilberto = parteGilbertoJeffersonLiquida / 2;
     const parteJefferson = parteGilbertoJeffersonLiquida / 2;
 
+    console.log('💡 Novo cálculo aplicado:', {
+        custoEletronsL: custoEletronsL,
+        lucroTotal: lucroTotal,
+        formulaUsada: 'Lucro V + Extras E + (Custo Eletrons - Frete L) - Outras Despesas'
+    });
+
     return {
         totalVendaPostes,
         valorTotalVendas,
-        totalContribuicoesExtras,
+        // MUDANÇA: substituir totalContribuicoesExtras por custoEletronsL
+        custoEletronsL,  // Nova propriedade
         despesasFuncionario,
         outrasDespesas,
         lucroVendasNormais,
@@ -299,8 +310,8 @@ function calcularLucros(resumoVendas, despesas) {
         parteCicero: metadeCicero,
         parteGilberto,
         parteJefferson,
-        valorTotalExtras: parseFloat(resumoVendas.valorTotalExtras) || 0,
-        totalFreteEletrons: parseFloat(resumoVendas.totalFreteEletrons) || 0,
+        valorTotalExtras,
+        totalFreteEletrons,
         totalVendasE: resumoVendas.totalVendasE || 0,
         totalVendasV: resumoVendas.totalVendasV || 0,
         totalVendasL: resumoVendas.totalVendasL || 0
@@ -383,12 +394,13 @@ async function fetchPostes() {
 }
 
 function updateResumoCards(lucros) {
-    console.log('📊 Atualizando cards de resumo...');
+    console.log('📊 Atualizando cards de resumo com novo método...');
     
     const cards = [
         { id: 'total-venda-postes', value: lucros.totalVendaPostes },
         { id: 'valor-total-vendas', value: lucros.valorTotalVendas },
-        { id: 'total-contribuicoes-extras', value: lucros.totalContribuicoesExtras },
+        // MUDANÇA: alterar de total-contribuicoes-extras para custo-eletrons-l
+        { id: 'custo-eletrons-l', value: lucros.custoEletronsL },
         { id: 'total-despesas', value: lucros.outrasDespesas },
         { id: 'lucro-total', value: lucros.lucroTotal },
         { id: 'parte-cicero', value: lucros.parteCicero },
@@ -411,8 +423,9 @@ function updateResumoCards(lucros) {
                 element.style.color = '#dc2626';
             } else if (card.id.includes('lucro') || card.id.includes('parte')) {
                 element.style.color = '#059669';
-            } else if (card.id.includes('contribuicoes')) {
-                element.style.color = '#f59e0b';
+            } else if (card.id.includes('custo-eletrons')) {
+                // Nova cor para o Custo Eletrons - L
+                element.style.color = '#8b5cf6';
             }
         }
     });
@@ -520,38 +533,43 @@ function mostrarDetalhesCalculo() {
     }
     
     const detalhes = `
-DETALHES DO CÁLCULO DE LUCROS:${periodoTexto}
+DETALHES DO CÁLCULO DE LUCROS (MÉTODO ATUALIZADO):${periodoTexto}
 1. Vendas Normais (Tipo V):
    - Custo dos postes: ${formatCurrency(lucros.totalVendaPostes)}
    - Valor arrecadado: ${formatCurrency(lucros.valorTotalVendas)}
    - Lucro vendas normais: ${formatCurrency(lucros.lucroVendasNormais)}
 
-2. Contribuições Extras:
+2. Valores por Tipo:
    - Tipo E (Extras): ${formatCurrency(lucros.valorTotalExtras)}
-   - Tipo L (Frete Loja): ${formatCurrency(lucros.totalFreteEletrons)}
-   - Total contribuições: ${formatCurrency(lucros.totalContribuicoesExtras)}
+   - Frete Loja (L): ${formatCurrency(lucros.totalFreteEletrons)}
 
-3. Despesas:
+3. NOVO CÁLCULO - Custo Eletrons - L:
+   - Fórmula: Custo Postes (V) - Frete Loja (L)
+   - Custo Eletrons - L: ${formatCurrency(lucros.custoEletronsL)}
+
+4. Despesas:
    - Outras despesas: ${formatCurrency(lucros.outrasDespesas)}
    - Despesas funcionário: ${formatCurrency(lucros.despesasFuncionario)}
 
-4. Cálculo do Lucro Total:
-   - Fórmula: (Lucro V + Contribuições E+L) - APENAS Outras Despesas
+5. Cálculo do Lucro Total (NOVO MÉTODO):
+   - Fórmula: Lucro V + Extras E + Custo Eletrons-L - Outras Despesas
    - Lucro total: ${formatCurrency(lucros.lucroTotal)}
 
-5. Distribuição:
+6. Distribuição:
    - Parte Cícero (50%): ${formatCurrency(lucros.parteCicero)}
    - Parte G&J antes funcionário: ${formatCurrency(lucros.lucroTotal / 2)}
    - Desconto funcionário: ${formatCurrency(lucros.despesasFuncionario)}
    - Gilberto (25%): ${formatCurrency(lucros.parteGilberto)}
    - Jefferson (25%): ${formatCurrency(lucros.parteJefferson)}
 
-6. Estatísticas do Período:
+7. Estatísticas do Período:
    - Vendas E: ${lucros.totalVendasE}
    - Vendas V: ${lucros.totalVendasV}
    - Vendas L: ${lucros.totalVendasL}
 
-OBSERVAÇÃO: Despesas de funcionário só afetam a divisão G&J, não o lucro total.
+MUDANÇA IMPLEMENTADA:
+❌ ANTES: Contribuições E + L = Extras + Frete
+✅ AGORA: Custo Eletrons - L = Custo Postes - Frete
     `;
 
     alert(detalhes);
