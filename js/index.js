@@ -278,7 +278,7 @@ function calcularLucros(resumoVendas, despesas) {
     const totalFreteEletrons = parseFloat(resumoVendas.totalFreteEletrons) || 0;
     const valorTotalExtras = parseFloat(resumoVendas.valorTotalExtras) || 0;
 
-    // NOVO CÁLCULO: Custo Eletrons - L (substituindo E + L)
+    // NOVO CÁLCULO: Custo Eletrons - Frete Loja (substituindo E + L)
     const custoEletronsL = totalVendaPostes - totalFreteEletrons;
 
     // Cálculo principal CORRIGIDO
@@ -424,8 +424,6 @@ function updateResumoCards(lucros) {
             } else if (card.id.includes('lucro') || card.id.includes('parte')) {
                 element.style.color = '#059669';
             } else if (card.id.includes('custo-eletrons')) {
-                // Nova cor para o Custo Eletrons - L
-                element.style.color = '#8b5cf6';
             }
         }
     });
@@ -543,9 +541,9 @@ DETALHES DO CÁLCULO DE LUCROS (MÉTODO ATUALIZADO):${periodoTexto}
    - Tipo E (Extras): ${formatCurrency(lucros.valorTotalExtras)}
    - Frete Loja (L): ${formatCurrency(lucros.totalFreteEletrons)}
 
-3. NOVO CÁLCULO - Custo Eletrons - L:
+3. NOVO CÁLCULO - Custo Eletrons - Frete Loja:
    - Fórmula: Custo Postes (V) - Frete Loja (L)
-   - Custo Eletrons - L: ${formatCurrency(lucros.custoEletronsL)}
+   - Custo Eletrons - Frete Loja: ${formatCurrency(lucros.custoEletronsL)}
 
 4. Despesas:
    - Outras despesas: ${formatCurrency(lucros.outrasDespesas)}
@@ -569,7 +567,7 @@ DETALHES DO CÁLCULO DE LUCROS (MÉTODO ATUALIZADO):${periodoTexto}
 
 MUDANÇA IMPLEMENTADA:
 ❌ ANTES: Contribuições E + L = Extras + Frete
-✅ AGORA: Custo Eletrons - L = Custo Postes - Frete
+✅ AGORA: Custo Eletrons - Frete Loja = Custo Postes - Frete
     `;
 
     alert(detalhes);
