@@ -1,4 +1,4 @@
-// Relatórios JavaScript - VENDAS POR POSTE
+// Relatórios JavaScript - VENDAS POR POSTE COM CUSTO ELETRONS
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -245,7 +245,8 @@ function gerarRelatorioPorPoste(vendas) {
                 quantidadeTotal: 0,
                 valorTotal: 0,
                 numeroVendas: 0,
-                precoUnitario: parseFloat(poste.preco)
+                precoUnitario: parseFloat(poste.preco),
+                custoEletrons: 0 // Nova propriedade para custo Eletrons
             };
         }
     });
@@ -269,8 +270,13 @@ function gerarRelatorioPorPoste(vendas) {
         }
     });
     
-    // Converter para array
+    // Converter para array e calcular custo Eletrons
     const relatorio = Object.values(relatorioPorPoste);
+    
+    // Calcular custo Eletrons para cada item (Preço Unitário × Quantidade Vendida)
+    relatorio.forEach(item => {
+        item.custoEletrons = item.precoUnitario * item.quantidadeTotal;
+    });
     
     // Ordenar: primeiro os com vendas (por quantidade), depois os sem vendas (por código)
     relatorio.sort((a, b) => {
@@ -351,7 +357,7 @@ function displayRelatorio(relatorio) {
     if (!relatorio || relatorio.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="empty-table">
+                <td colspan="8" class="empty-table">
                     <div class="empty-state">
                         <div class="empty-icon">📊</div>
                         <h3>Nenhum poste encontrado</h3>
@@ -389,6 +395,11 @@ function displayRelatorio(relatorio) {
                 ${item.quantidadeTotal === 0 ? 
                     '<span style="color: #6b7280;">0</span>' : 
                     `<strong>${item.quantidadeTotal}</strong>`}
+            </td>
+            <td class="currency" data-label="Custo Eletrons">
+                ${item.custoEletrons === 0 ? 
+                    '<span style="color: #6b7280;">R$ 0,00</span>' : 
+                    `<strong style="color: #dc2626;">${formatCurrency(item.custoEletrons)}</strong>`}
             </td>
             <td class="currency" data-label="Valor Total">
                 ${item.valorTotal === 0 ? 
@@ -568,6 +579,7 @@ function exportarRelatorio() {
         'Descrição': item.descricaoPoste || 'Descrição não disponível',
         'Preço Unitário': item.precoUnitario,
         'Quantidade Vendida': item.quantidadeTotal,
+        'Custo Eletrons': item.custoEletrons,
         'Valor Total': item.valorTotal,
         'Percentual do Total': `${item.percentualDoTotal.toFixed(1)}%`,
         'Número de Vendas': item.numeroVendas,
@@ -678,4 +690,4 @@ function exportToCSV(data, filename) {
     showAlert('Relatório exportado com sucesso!', 'success');
 }
 
-console.log('✅ Relatórios carregado');
+console.log('✅ Relatórios com Custo Eletrons carregado');

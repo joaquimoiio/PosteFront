@@ -1,809 +1,1059 @@
-// Vendas JavaScript - VERSÃO REFATORADA COM DATAS CORRIGIDAS
-const CONFIG = {
-    API_BASE: 'http://localhost:8080/api'
-};
-
-// Estado global
-let vendasData = {
-    vendas: [],
-    filteredVendas: [],
-    postes: [],
-    currentEditId: null,
-    filters: {
-        tipo: '',
-        dataInicio: '',
-        dataFim: ''
-    }
-};
-
-// Formatação de data
-function formatDateBR(dateString) {
-    if (!dateString) return '-';
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-// Inicialização
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🎯 Inicializando página de Vendas...');
-    
-    configurarLocaleBrasileiro();
-    
-    try {
-        await loadPostes();
-        await loadVendas();
-        await loadResumo();
-        setupEventListeners();
-        setupFilters();
-        setDefaultDateFilters();
-        applyFilters();
+// Vendas JavaScript - VERSÃO REFATORADA E OTIMIZADA
+class VendasManager {
+    constructor() {
+        this.config = {
+            API_BASE: 'http://localhost:8080/api',
+            DEBOUNCE_DELAY: 300,
+            ALERT_DURATION: 5000
+        };
         
-        console.log('✅ Página de Vendas carregada com sucesso');
-    } catch (error) {
-        console.error('❌ Erro ao carregar página de Vendas:', error);
-        showAlert('Erro ao carregar dados de vendas', 'error');
+        this.state = {
+            vendas: [],
+            filteredVendas: [],
+            postes: [],
+            currentEditId: null,
+            filters: {
+                tipo: '',
+                dataInicio: '',
+                dataFim: ''
+            },
+            isLoading: false
+        };
+        
+        this.elements = {};
+        this.init();
     }
-});
 
-function configurarLocaleBrasileiro() {
-    document.documentElement.lang = 'pt-BR';
-    
-    setTimeout(() => {
-        const inputs = document.querySelectorAll('input[type="date"], input[type="datetime-local"]');
-        inputs.forEach(input => {
-            input.setAttribute('lang', 'pt-BR');
+    // ===== INICIALIZAÇÃO =====
+    async init() {
+        console.log('🎯 Inicializando VendasManager...');
+        
+        try {
+            this.cacheElements();
+            this.configurarLocaleBrasileiro();
+            this.setupEventListeners();
+            this.setupFilters();
+            this.setDefaultDateTime();
+            this.setDefaultDateFilters();
+            
+            await this.loadData();
+            
+            console.log('✅ VendasManager inicializado com sucesso');
+        } catch (error) {
+            console.error('❌ Erro na inicialização:', error);
+            this.showAlert('Erro ao carregar dados de vendas', 'error');
+        }
+    }
+
+    cacheElements() {
+        this.elements = {
+            // Forms
+            vendaForm: document.getElementById('venda-form'),
+            editForm: document.getElementById('edit-venda-form'),
+            
+            // Form inputs
+            vendaTipo: document.getElementById('venda-tipo'),
+            vendaData: document.getElementById('venda-data'),
+            vendaObservacoes: document.getElementById('venda-observacoes'),
+            
+            // Tipo E
+            valorExtra: document.getElementById('venda-valor-extra'),
+            
+            // Tipo V
+            posteV: document.getElementById('venda-poste-v'),
+            quantidadeV: document.getElementById('venda-quantidade-v'),
+            valorTotalV: document.getElementById('venda-valor-total-v'),
+            
+            // Tipo L
+            posteL: document.getElementById('venda-poste-l'),
+            quantidadeL: document.getElementById('venda-quantidade-l'),
+            freteL: document.getElementById('venda-frete-l'),
+            
+            // Edit form
+            editTipoVenda: document.getElementById('edit-tipo-venda'),
+            editObservacoes: document.getElementById('edit-observacoes'),
+            editValorExtra: document.getElementById('edit-valor-extra'),
+            editValorTotal: document.getElementById('edit-valor-total'),
+            editFreteEletrons: document.getElementById('edit-frete-eletrons'),
+            
+            // Conditional fields
+            camposTipoE: document.getElementById('campos-tipo-e'),
+            camposTipoV: document.getElementById('campos-tipo-v'),
+            camposTipoL: document.getElementById('campos-tipo-l'),
+            
+            // Edit groups
+            editFreteGroup: document.getElementById('edit-frete-group'),
+            editValorGroup: document.getElementById('edit-valor-group'),
+            editExtraGroup: document.getElementById('edit-extra-group'),
+            
+            // Filters
+            filtroTipoVenda: document.getElementById('filtro-tipo-venda'),
+            filtroDataInicio: document.getElementById('filtro-data-inicio'),
+            filtroDataFim: document.getElementById('filtro-data-fim'),
+            
+            // Display
+            vendasTable: document.querySelector('#vendas-table tbody'),
+            loadingOverlay: document.getElementById('loading-overlay'),
+            alertContainer: document.getElementById('alert-container'),
+            editModal: document.getElementById('edit-venda-modal'),
+            
+            // Summary cards
+            totalVendasE: document.getElementById('total-vendas-e'),
+            totalVendasV: document.getElementById('total-vendas-v'),
+            totalVendasL: document.getElementById('total-vendas-l'),
+            totalVendasGeral: document.getElementById('total-vendas-geral')
+        };
+    }
+
+    configurarLocaleBrasileiro() {
+        document.documentElement.lang = 'pt-BR';
+        
+        setTimeout(() => {
+            const inputs = document.querySelectorAll('input[type="date"], input[type="datetime-local"]');
+            inputs.forEach(input => input.setAttribute('lang', 'pt-BR'));
+        }, 100);
+    }
+
+    setupEventListeners() {
+        // Main form events
+        if (this.elements.vendaForm) {
+            this.elements.vendaForm.addEventListener('submit', (e) => this.handleVendaSubmit(e));
+            this.elements.vendaForm.addEventListener('reset', () => this.resetForm());
+        }
+        
+        // Edit form events
+        if (this.elements.editForm) {
+            this.elements.editForm.addEventListener('submit', (e) => this.handleEditSubmit(e));
+        }
+        
+        // Tipo venda change
+        if (this.elements.vendaTipo) {
+            this.elements.vendaTipo.addEventListener('change', (e) => this.handleTipoVendaChange(e));
+        }
+        
+        if (this.elements.editTipoVenda) {
+            this.elements.editTipoVenda.addEventListener('change', (e) => this.handleEditTipoChange(e));
+        }
+        
+        // Calculation events for tipo V
+        if (this.elements.posteV && this.elements.quantidadeV) {
+            this.elements.posteV.addEventListener('change', () => this.calcularValorVenda());
+            this.elements.quantidadeV.addEventListener('input', () => this.calcularValorVenda());
+        }
+        
+        // Modal close events
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('close')) {
+                this.closeModal(this.elements.editModal);
+            }
         });
-    }, 100);
-}
-
-function setupEventListeners() {
-    const vendaForm = document.getElementById('venda-form');
-    if (vendaForm) {
-        vendaForm.addEventListener('submit', handleVendaSubmit);
-        vendaForm.addEventListener('reset', resetForm);
-    }
-    
-    const editForm = document.getElementById('edit-venda-form');
-    if (editForm) {
-        editForm.addEventListener('submit', handleEditSubmit);
-    }
-    
-    const tipoVenda = document.getElementById('venda-tipo');
-    if (tipoVenda) {
-        tipoVenda.addEventListener('change', handleTipoVendaChange);
-    }
-    
-    const editTipoVenda = document.getElementById('edit-tipo-venda');
-    if (editTipoVenda) {
-        editTipoVenda.addEventListener('change', handleEditTipoChange);
-    }
-    
-    const posteVSelect = document.getElementById('venda-poste-v');
-    const quantidadeV = document.getElementById('venda-quantidade-v');
-    
-    if (posteVSelect && quantidadeV) {
-        posteVSelect.addEventListener('change', calcularValorVenda);
-        quantidadeV.addEventListener('input', calcularValorVenda);
-    }
-    
-    setDefaultDateTime();
-}
-
-function setupFilters() {
-    const filterElements = {
-        'filtro-tipo-venda': 'tipo',
-        'filtro-data-inicio': 'dataInicio',
-        'filtro-data-fim': 'dataFim'
-    };
-    
-    Object.entries(filterElements).forEach(([elementId, filterKey]) => {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.addEventListener('input', debounce(() => {
-                vendasData.filters[filterKey] = element.value;
-                applyFilters();
-            }, 300));
-        }
-    });
-}
-
-function setDefaultDateFilters() {
-    const hoje = new Date();
-    const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    
-    const filtroDataInicio = document.getElementById('filtro-data-inicio');
-    if (filtroDataInicio) {
-        filtroDataInicio.value = dateToInputValue(primeiroDiaMes);
-        vendasData.filters.dataInicio = filtroDataInicio.value;
-    }
-    
-    const filtroDataFim = document.getElementById('filtro-data-fim');
-    if (filtroDataFim) {
-        filtroDataFim.value = dateToInputValue(hoje);
-        vendasData.filters.dataFim = filtroDataFim.value;
-    }
-}
-
-function setDefaultDateTime() {
-    const vendaData = document.getElementById('venda-data');
-    if (vendaData) {
-        const agora = new Date();
-        const dataFormatada = agora.getFullYear() + '-' + 
-            String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
-            String(agora.getDate()).padStart(2, '0') + 'T' + 
-            String(agora.getHours()).padStart(2, '0') + ':' + 
-            String(agora.getMinutes()).padStart(2, '0');
         
-        vendaData.value = dataFormatada;
+        // Keyboard events
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.elements.editModal.style.display === 'block') {
+                this.closeModal(this.elements.editModal);
+            }
+        });
     }
-}
 
-function handleTipoVendaChange(e) {
-    const tipo = e.target.value;
-    
-    document.getElementById('campos-tipo-e').style.display = 'none';
-    document.getElementById('campos-tipo-v').style.display = 'none';
-    document.getElementById('campos-tipo-l').style.display = 'none';
-    
-    if (tipo) {
-        const camposDiv = document.getElementById(`campos-tipo-${tipo.toLowerCase()}`);
-        if (camposDiv) {
-            camposDiv.style.display = 'block';
+    setupFilters() {
+        const filterConfig = {
+            'filtro-tipo-venda': 'tipo',
+            'filtro-data-inicio': 'dataInicio',
+            'filtro-data-fim': 'dataFim'
+        };
+        
+        Object.entries(filterConfig).forEach(([elementId, filterKey]) => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.addEventListener('input', 
+                    this.debounce(() => {
+                        this.state.filters[filterKey] = element.value;
+                        this.applyFilters();
+                    }, this.config.DEBOUNCE_DELAY)
+                );
+            }
+        });
+    }
+
+    // ===== DATA MANAGEMENT =====
+    async loadData() {
+        try {
+            this.setLoading(true);
+            
+            await Promise.all([
+                this.loadPostes(),
+                this.loadVendas()
+            ]);
+            
+            this.updateResumo();
+            this.applyFilters();
+            
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+            throw error;
+        } finally {
+            this.setLoading(false);
         }
     }
-    
-    clearOtherTypeFields(tipo);
-}
 
-function handleEditTipoChange(e) {
-    const tipo = e.target.value;
-    
-    const freteGroup = document.getElementById('edit-frete-group');
-    const valorGroup = document.getElementById('edit-valor-group');
-    const extraGroup = document.getElementById('edit-extra-group');
-    
-    if (freteGroup) freteGroup.style.display = 'block';
-    if (valorGroup) valorGroup.style.display = 'block';
-    if (extraGroup) extraGroup.style.display = 'none';
-    
-    if (tipo === 'E') {
-        if (freteGroup) freteGroup.style.display = 'none';
-        if (valorGroup) valorGroup.style.display = 'none';
-        if (extraGroup) extraGroup.style.display = 'block';
-    } else if (tipo === 'V') {
-        if (freteGroup) freteGroup.style.display = 'none';
+    async loadPostes() {
+        try {
+            const postes = await this.apiRequest('/postes');
+            this.state.postes = postes.filter(p => p.ativo);
+            this.populatePosteSelects();
+        } catch (error) {
+            console.error('Erro ao carregar postes:', error);
+            this.showAlert('Erro ao carregar lista de postes', 'warning');
+        }
     }
-}
 
-function clearOtherTypeFields(currentType) {
-    const allFields = {
-        'E': ['venda-valor-extra'],
-        'V': ['venda-poste-v', 'venda-quantidade-v', 'venda-valor-total-v'],
-        'L': ['venda-poste-l', 'venda-quantidade-l', 'venda-frete-l']
-    };
-    
-    Object.entries(allFields).forEach(([tipo, campos]) => {
-        if (tipo !== currentType) {
-            campos.forEach(campo => {
-                const element = document.getElementById(campo);
-                if (element) {
-                    element.value = '';
+    async loadVendas() {
+        try {
+            const vendas = await this.apiRequest('/vendas');
+            this.state.vendas = vendas || [];
+            this.state.filteredVendas = [...this.state.vendas];
+        } catch (error) {
+            console.error('Erro ao carregar vendas:', error);
+            this.displayVendasError();
+            throw error;
+        }
+    }
+
+    // ===== API METHODS =====
+    async apiRequest(endpoint, options = {}) {
+        try {
+            const response = await fetch(`${this.config.API_BASE}${endpoint}`, options);
+            
+            // Handle DELETE responses
+            if (options.method === 'DELETE') {
+                if (response.status === 204 || response.status === 200) {
+                    return null;
                 }
-            });
-        }
-    });
-}
-
-function calcularValorVenda() {
-    const posteSelect = document.getElementById('venda-poste-v');
-    const quantidadeInput = document.getElementById('venda-quantidade-v');
-    const valorInput = document.getElementById('venda-valor-total-v');
-    
-    if (!posteSelect || !quantidadeInput || !valorInput) return;
-    
-    const posteId = parseInt(posteSelect.value);
-    const quantidade = parseInt(quantidadeInput.value) || 1;
-    
-    if (posteId) {
-        const poste = vendasData.postes.find(p => p.id === posteId);
-        if (poste) {
-            const valorCalculado = poste.preco * quantidade;
-            valorInput.value = valorCalculado.toFixed(2);
-        }
-    }
-}
-
-function applyFilters() {
-    const { tipo, dataInicio, dataFim } = vendasData.filters;
-    
-    let filtered = [...vendasData.vendas];
-    
-    if (tipo) {
-        filtered = filtered.filter(v => v.tipoVenda === tipo);
-    }
-    
-    if (dataInicio) {
-        const dataInicioObj = new Date(dataInicio + 'T00:00:00');
-        filtered = filtered.filter(v => {
-            const dataVenda = new Date(v.dataVenda);
-            return dataVenda >= dataInicioObj;
-        });
-    }
-    
-    if (dataFim) {
-        const dataFimObj = new Date(dataFim + 'T23:59:59');
-        filtered = filtered.filter(v => {
-            const dataVenda = new Date(v.dataVenda);
-            return dataVenda <= dataFimObj;
-        });
-    }
-    
-    vendasData.filteredVendas = filtered;
-    displayVendas(filtered);
-}
-
-// Funções de API
-async function apiRequest(endpoint, options = {}) {
-    try {
-        const response = await fetch(`${CONFIG.API_BASE}${endpoint}`, options);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error(`Erro na requisição ${endpoint}:`, error);
-        throw error;
-    }
-}
-
-async function loadPostes() {
-    try {
-        const postes = await apiRequest('/postes');
-        vendasData.postes = postes.filter(p => p.ativo);
-        populatePosteSelects();
-    } catch (error) {
-        console.error('Erro ao carregar postes:', error);
-        showAlert('Erro ao carregar lista de postes', 'warning');
-    }
-}
-
-function populatePosteSelects() {
-    const selects = ['venda-poste-v', 'venda-poste-l'];
-    
-    selects.forEach(selectId => {
-        const select = document.getElementById(selectId);
-        if (select) {
-            while (select.children.length > 1) {
-                select.removeChild(select.lastChild);
             }
             
-            vendasData.postes.forEach(poste => {
-                const option = document.createElement('option');
-                option.value = poste.id;
-                option.textContent = `${poste.codigo} - ${poste.descricao} (${formatCurrency(poste.preco)})`;
-                select.appendChild(option);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            }
+            
+            return null;
+        } catch (error) {
+            console.error(`Erro na requisição ${endpoint}:`, error);
+            throw error;
+        }
+    }
+
+    // ===== FORM HANDLERS =====
+    async handleVendaSubmit(e) {
+        e.preventDefault();
+        
+        try {
+            const formData = this.buildFormData();
+            
+            if (!this.validateFormData(formData)) {
+                return;
+            }
+            
+            this.setLoading(true);
+            
+            await this.apiRequest('/vendas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
             });
+            
+            this.showAlert('Venda criada com sucesso!', 'success');
+            this.resetForm();
+            await this.loadData();
+            
+        } catch (error) {
+            console.error('Erro ao criar venda:', error);
+            this.showAlert('Erro ao criar venda: ' + error.message, 'error');
+        } finally {
+            this.setLoading(false);
         }
-    });
-}
-
-async function loadVendas() {
-    try {
-        showLoading(true);
-        const vendas = await apiRequest('/vendas');
-        vendasData.vendas = vendas;
-        vendasData.filteredVendas = [...vendas];
-        displayVendas(vendas);
-    } catch (error) {
-        console.error('Erro ao carregar vendas:', error);
-        displayVendasError();
-    } finally {
-        showLoading(false);
     }
-}
 
-async function loadResumo() {
-    try {
-        const vendas = vendasData.vendas;
+    async handleEditSubmit(e) {
+        e.preventDefault();
         
-        const totalE = vendas.filter(v => v.tipoVenda === 'E').length;
-        const totalV = vendas.filter(v => v.tipoVenda === 'V').length;
-        const totalL = vendas.filter(v => v.tipoVenda === 'L').length;
-        const totalGeral = vendas.length;
+        try {
+            const formData = this.buildEditFormData();
+            
+            if (!this.validateEditFormData(formData)) {
+                return;
+            }
+            
+            this.setLoading(true);
+            
+            await this.apiRequest(`/vendas/${this.state.currentEditId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            
+            this.showAlert('Venda atualizada com sucesso!', 'success');
+            this.closeModal(this.elements.editModal);
+            await this.loadData();
+            
+        } catch (error) {
+            console.error('Erro ao atualizar venda:', error);
+            this.showAlert('Erro ao atualizar venda: ' + error.message, 'error');
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    buildFormData() {
+        const tipoVenda = this.elements.vendaTipo.value;
+        const dataVenda = this.elements.vendaData.value;
+        const observacoes = this.elements.vendaObservacoes.value.trim();
         
-        updateResumoCards({
-            totalE,
-            totalV,
-            totalL,
-            totalGeral
+        let formData = {
+            tipoVenda,
+            dataVenda,
+            observacoes: observacoes || null
+        };
+        
+        switch (tipoVenda) {
+            case 'E':
+                formData.valorExtra = parseFloat(this.elements.valorExtra.value);
+                break;
+                
+            case 'V':
+                formData.posteId = parseInt(this.elements.posteV.value);
+                formData.quantidade = parseInt(this.elements.quantidadeV.value) || 1;
+                formData.valorVenda = parseFloat(this.elements.valorTotalV.value);
+                break;
+                
+            case 'L':
+                formData.posteId = parseInt(this.elements.posteL.value);
+                formData.quantidade = parseInt(this.elements.quantidadeL.value) || 1;
+                formData.freteEletrons = parseFloat(this.elements.freteL.value) || 0;
+                break;
+        }
+        
+        return formData;
+    }
+
+    buildEditFormData() {
+        const tipoVenda = this.elements.editTipoVenda.value;
+        const observacoes = this.elements.editObservacoes.value.trim();
+        
+        let formData = {
+            observacoes: observacoes || null
+        };
+        
+        switch (tipoVenda) {
+            case 'E':
+                formData.valorExtra = parseFloat(this.elements.editValorExtra.value);
+                break;
+            case 'V':
+                formData.valorVenda = parseFloat(this.elements.editValorTotal.value);
+                break;
+            case 'L':
+                formData.freteEletrons = parseFloat(this.elements.editFreteEletrons.value) || 0;
+                break;
+        }
+        
+        return formData;
+    }
+
+    // ===== VALIDATION =====
+    validateFormData(data) {
+        const validationRules = {
+            common: [
+                { condition: !data.tipoVenda || !data.dataVenda, message: 'Tipo de venda e data são obrigatórios' }
+            ],
+            E: [
+                { condition: !data.valorExtra || data.valorExtra <= 0, message: 'Valor extra deve ser maior que zero' }
+            ],
+            V: [
+                { condition: !data.posteId, message: 'Selecione um poste para venda normal' },
+                { condition: !data.valorVenda || data.valorVenda <= 0, message: 'Valor de venda deve ser maior que zero' }
+            ],
+            L: [
+                { condition: !data.posteId, message: 'Selecione um poste de referência para venda loja' }
+            ]
+        };
+        
+        return this.runValidation(validationRules, data);
+    }
+
+    validateEditFormData(data) {
+        const tipoVenda = this.elements.editTipoVenda.value;
+        
+        const validationRules = {
+            E: [
+                { condition: !data.valorExtra || data.valorExtra <= 0, message: 'Valor extra deve ser maior que zero' }
+            ],
+            V: [
+                { condition: !data.valorVenda || data.valorVenda <= 0, message: 'Valor de venda deve ser maior que zero' }
+            ]
+        };
+        
+        if (validationRules[tipoVenda]) {
+            return this.runValidation({ [tipoVenda]: validationRules[tipoVenda] }, data);
+        }
+        
+        return true;
+    }
+
+    runValidation(rules, data) {
+        const tipoVenda = data.tipoVenda || this.elements.editTipoVenda.value;
+        
+        // Check common rules
+        if (rules.common) {
+            for (const rule of rules.common) {
+                if (rule.condition) {
+                    this.showAlert(rule.message, 'warning');
+                    return false;
+                }
+            }
+        }
+        
+        // Check type-specific rules
+        if (rules[tipoVenda]) {
+            for (const rule of rules[tipoVenda]) {
+                if (rule.condition) {
+                    this.showAlert(rule.message, 'warning');
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+
+    // ===== CRUD OPERATIONS =====
+    async editVenda(id) {
+        try {
+            const venda = this.state.vendas.find(v => v.id === id);
+            
+            if (!venda) {
+                throw new Error('Venda não encontrada');
+            }
+            
+            this.populateEditForm(venda);
+            this.state.currentEditId = id;
+            this.showModal(this.elements.editModal);
+            
+        } catch (error) {
+            console.error('Erro ao carregar venda para edição:', error);
+            this.showAlert('Erro ao carregar dados da venda', 'error');
+        }
+    }
+
+    async deleteVenda(id) {
+        try {
+            if (!this.validateId(id)) return;
+            
+            const confirmed = await this.showConfirmDialog(
+                'Confirmar Exclusão',
+                'Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.'
+            );
+            
+            if (!confirmed) return;
+            
+            this.setLoading(true);
+            console.log(`🗑️ Deletando venda ID: ${id}`);
+            
+            await this.apiRequest(`/vendas/${id}`, { method: 'DELETE' });
+            
+            console.log(`✅ Venda ${id} deletada com sucesso`);
+            this.showAlert('Venda excluída com sucesso!', 'success');
+            
+            await this.loadData();
+            
+        } catch (error) {
+            console.error(`❌ Erro ao excluir venda ${id}:`, error);
+            this.handleDeleteError(error);
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    // ===== UI HELPERS =====
+    handleTipoVendaChange(e) {
+        const tipo = e.target.value;
+        
+        this.hideAllConditionalFields();
+        
+        if (tipo) {
+            const camposDiv = document.getElementById(`campos-tipo-${tipo.toLowerCase()}`);
+            if (camposDiv) {
+                camposDiv.style.display = 'block';
+            }
+        }
+        
+        this.clearOtherTypeFields(tipo);
+    }
+
+    handleEditTipoChange(e) {
+        const tipo = e.target.value;
+        
+        // Show/hide edit groups based on type
+        const groupsConfig = {
+            E: { frete: false, valor: false, extra: true },
+            V: { frete: false, valor: true, extra: false },
+            L: { frete: true, valor: true, extra: false }
+        };
+        
+        const config = groupsConfig[tipo] || { frete: true, valor: true, extra: false };
+        
+        if (this.elements.editFreteGroup) this.elements.editFreteGroup.style.display = config.frete ? 'block' : 'none';
+        if (this.elements.editValorGroup) this.elements.editValorGroup.style.display = config.valor ? 'block' : 'none';
+        if (this.elements.editExtraGroup) this.elements.editExtraGroup.style.display = config.extra ? 'block' : 'none';
+    }
+
+    hideAllConditionalFields() {
+        [this.elements.camposTipoE, this.elements.camposTipoV, this.elements.camposTipoL]
+            .forEach(el => el && (el.style.display = 'none'));
+    }
+
+    clearOtherTypeFields(currentType) {
+        const fieldGroups = {
+            'E': [this.elements.valorExtra],
+            'V': [this.elements.posteV, this.elements.quantidadeV, this.elements.valorTotalV],
+            'L': [this.elements.posteL, this.elements.quantidadeL, this.elements.freteL]
+        };
+        
+        Object.entries(fieldGroups).forEach(([tipo, campos]) => {
+            if (tipo !== currentType) {
+                campos.forEach(campo => campo && (campo.value = ''));
+            }
         });
+    }
+
+    calcularValorVenda() {
+        if (!this.elements.posteV || !this.elements.quantidadeV || !this.elements.valorTotalV) return;
         
-    } catch (error) {
-        console.error('Erro ao calcular resumo:', error);
-    }
-}
-
-function updateResumoCards(resumo) {
-    const elements = {
-        'total-vendas-e': resumo.totalE,
-        'total-vendas-v': resumo.totalV,
-        'total-vendas-l': resumo.totalL,
-        'total-vendas-geral': resumo.totalGeral
-    };
-    
-    Object.entries(elements).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value.toString();
+        const posteId = parseInt(this.elements.posteV.value);
+        const quantidade = parseInt(this.elements.quantidadeV.value) || 1;
+        
+        if (posteId) {
+            const poste = this.state.postes.find(p => p.id === posteId);
+            if (poste) {
+                const valorCalculado = poste.preco * quantidade;
+                this.elements.valorTotalV.value = valorCalculado.toFixed(2);
+            }
         }
-    });
-}
-
-function displayVendas(vendas) {
-    const tbody = document.querySelector('#vendas-table tbody');
-    if (!tbody) return;
-    
-    if (!vendas || vendas.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="empty-table">
-                    <div class="empty-table-icon">📋</div>
-                    <p>Nenhuma venda encontrada</p>
-                    <button class="btn btn-primary" onclick="scrollToForm()">Cadastrar Primeira Venda</button>
-                </td>
-            </tr>
-        `;
-        return;
     }
-    
-    tbody.innerHTML = '';
-    
-    vendas.forEach(venda => {
+
+    populatePosteSelects() {
+        [this.elements.posteV, this.elements.posteL]
+            .filter(select => select)
+            .forEach(select => {
+                // Clear existing options except first
+                while (select.children.length > 1) {
+                    select.removeChild(select.lastChild);
+                }
+                
+                // Add poste options
+                this.state.postes.forEach(poste => {
+                    const option = document.createElement('option');
+                    option.value = poste.id;
+                    option.textContent = `${poste.codigo} - ${poste.descricao} (${this.formatCurrency(poste.preco)})`;
+                    select.appendChild(option);
+                });
+            });
+    }
+
+    populateEditForm(venda) {
+        this.elements.editTipoVenda.value = venda.tipoVenda;
+        this.elements.editObservacoes.value = venda.observacoes || '';
+        
+        switch (venda.tipoVenda) {
+            case 'E':
+                this.elements.editValorExtra.value = venda.valorExtra || '';
+                break;
+            case 'V':
+                this.elements.editValorTotal.value = venda.valorVenda || '';
+                break;
+            case 'L':
+                this.elements.editFreteEletrons.value = venda.freteEletrons || '';
+                break;
+        }
+        
+        this.handleEditTipoChange({ target: { value: venda.tipoVenda } });
+    }
+
+    // ===== DISPLAY METHODS =====
+    displayVendas(vendas) {
+        if (!this.elements.vendasTable) return;
+        
+        if (!vendas || vendas.length === 0) {
+            this.displayEmptyState();
+            return;
+        }
+        
+        this.elements.vendasTable.innerHTML = '';
+        
+        vendas.forEach(venda => {
+            const row = this.createVendaRow(venda);
+            this.elements.vendasTable.appendChild(row);
+        });
+    }
+
+    createVendaRow(venda) {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="date" data-label="Data">${formatDateBR(venda.dataVenda)}</td>
+            <td class="date" data-label="Data">${this.formatDateBR(venda.dataVenda)}</td>
             <td data-label="Tipo">
                 <span class="status ${venda.tipoVenda.toLowerCase()}">
-                    ${getTipoVendaLabel(venda.tipoVenda)}
+                    ${this.getTipoVendaLabel(venda.tipoVenda)}
                 </span>
             </td>
-            <td data-label="Poste/Descrição">
-                ${getPosteDescricao(venda)}
-            </td>
-            <td class="currency" data-label="Frete">${formatCurrency(venda.freteEletrons || 0)}</td>
-            <td class="currency" data-label="Valor">${getValorVenda(venda)}</td>
+            <td data-label="Poste/Descrição">${this.getPosteDescricao(venda)}</td>
+            <td class="currency" data-label="Frete">${this.formatCurrency(venda.freteEletrons || 0)}</td>
+            <td class="currency" data-label="Valor">${this.getValorVenda(venda)}</td>
             <td data-label="Observações">
-                <div style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${venda.observacoes || ''}">
+                <div class="observacoes-cell" title="${venda.observacoes || ''}">
                     ${venda.observacoes || '-'}
                 </div>
             </td>
             <td data-label="Ações">
                 <div class="table-actions">
-                    <button class="btn btn-primary btn-small" onclick="editVenda(${venda.id})" title="Editar">
+                    <button class="btn btn-primary btn-small" onclick="vendasManager.editVenda(${venda.id})" title="Editar">
                         <span class="btn-icon">✏️</span>
                         Editar
                     </button>
-                    <button class="btn btn-danger btn-small" onclick="deleteVenda(${venda.id})" title="Excluir">
+                    <button class="btn btn-danger btn-small" onclick="vendasManager.deleteVenda(${venda.id})" title="Excluir">
                         <span class="btn-icon">🗑️</span>
                         Excluir
                     </button>
                 </div>
             </td>
         `;
-        tbody.appendChild(row);
-    });
-}
-
-function getTipoVendaLabel(tipo) {
-    const labels = {
-        'E': '📈 Extra',
-        'V': '🛒 Normal',
-        'L': '🏪 Loja'
-    };
-    return labels[tipo] || tipo;
-}
-
-function getPosteDescricao(venda) {
-    if (venda.tipoVenda === 'E') {
-        return '<em>Venda Extra</em>';
+        return row;
     }
-    
-    if (venda.codigoPoste) {
-        const quantidade = venda.quantidade || 1;
-        return `${venda.codigoPoste} ${quantidade > 1 ? `(${quantidade}x)` : ''}`;
-    }
-    
-    return 'Poste não encontrado';
-}
 
-function getValorVenda(venda) {
-    if (venda.tipoVenda === 'E') {
-        return formatCurrency(venda.valorExtra || 0);
-    } else if (venda.tipoVenda === 'L') {
-        return '<em>Só frete</em>';
-    } else {
-        return formatCurrency(venda.valorVenda || 0);
-    }
-}
-
-function displayVendasError() {
-    const tbody = document.querySelector('#vendas-table tbody');
-    if (tbody) {
-        tbody.innerHTML = `
+    displayEmptyState() {
+        this.elements.vendasTable.innerHTML = `
             <tr>
                 <td colspan="7" class="empty-table">
-                    <div class="empty-table-icon">❌</div>
-                    <p>Erro ao carregar vendas</p>
-                    <button class="btn btn-secondary" onclick="loadVendas()">Tentar Novamente</button>
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <h3>Nenhuma venda encontrada</h3>
+                        <p>Comece cadastrando sua primeira venda no formulário acima.</p>
+                        <button class="btn btn-primary" onclick="vendasManager.scrollToForm()">
+                            Cadastrar Primeira Venda
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
     }
-}
 
-async function handleVendaSubmit(e) {
-    e.preventDefault();
-    
-    const tipoVenda = document.getElementById('venda-tipo').value;
-    const dataVenda = document.getElementById('venda-data').value;
-    const observacoes = document.getElementById('venda-observacoes').value;
-    
-    if (!tipoVenda || !dataVenda) {
-        showAlert('Tipo de venda e data são obrigatórios', 'warning');
-        return;
-    }
-    
-    let formData = {
-        tipoVenda,
-        dataVenda,
-        observacoes: observacoes.trim() || null
-    };
-    
-    try {
-        if (tipoVenda === 'E') {
-            const valorExtra = parseFloat(document.getElementById('venda-valor-extra').value);
-            if (!valorExtra || valorExtra <= 0) {
-                showAlert('Valor extra deve ser maior que zero', 'warning');
-                return;
-            }
-            formData.valorExtra = valorExtra;
-            
-        } else if (tipoVenda === 'V') {
-            const posteId = parseInt(document.getElementById('venda-poste-v').value);
-            const quantidade = parseInt(document.getElementById('venda-quantidade-v').value) || 1;
-            const valorTotal = parseFloat(document.getElementById('venda-valor-total-v').value);
-            
-            if (!posteId) {
-                showAlert('Selecione um poste para venda normal', 'warning');
-                return;
-            }
-            
-            if (!valorTotal || valorTotal <= 0) {
-                showAlert('Valor de venda deve ser maior que zero', 'warning');
-                return;
-            }
-            
-            formData.posteId = posteId;
-            formData.quantidade = quantidade;
-            formData.valorVenda = valorTotal;
-            
-        } else if (tipoVenda === 'L') {
-            const posteId = parseInt(document.getElementById('venda-poste-l').value);
-            const quantidade = parseInt(document.getElementById('venda-quantidade-l').value) || 1;
-            const frete = parseFloat(document.getElementById('venda-frete-l').value) || 0;
-            
-            if (!posteId) {
-                showAlert('Selecione um poste de referência para venda loja', 'warning');
-                return;
-            }
-            
-            formData.posteId = posteId;
-            formData.quantidade = quantidade;
-            formData.freteEletrons = frete;
-        }
-        
-        showLoading(true);
-        await apiRequest('/vendas', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-        
-        showAlert('Venda criada com sucesso!', 'success');
-        
-        resetForm();
-        await loadVendas();
-        await loadResumo();
-        
-    } catch (error) {
-        console.error('Erro ao criar venda:', error);
-        showAlert('Erro ao criar venda', 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-function resetForm() {
-    const form = document.getElementById('venda-form');
-    if (form) {
-        form.reset();
-        
-        document.getElementById('campos-tipo-e').style.display = 'none';
-        document.getElementById('campos-tipo-v').style.display = 'none';
-        document.getElementById('campos-tipo-l').style.display = 'none';
-        
-        setDefaultDateTime();
-    }
-}
-
-async function editVenda(id) {
-    try {
-        const venda = vendasData.vendas.find(v => v.id === id);
-        
-        if (!venda) {
-            throw new Error('Venda não encontrada');
-        }
-        
-        document.getElementById('edit-tipo-venda').value = venda.tipoVenda;
-        document.getElementById('edit-observacoes').value = venda.observacoes || '';
-        
-        if (venda.tipoVenda === 'E') {
-            document.getElementById('edit-valor-extra').value = venda.valorExtra || '';
-        } else if (venda.tipoVenda === 'V') {
-            document.getElementById('edit-valor-total').value = venda.valorVenda || '';
-        } else if (venda.tipoVenda === 'L') {
-            document.getElementById('edit-frete-eletrons').value = venda.freteEletrons || '';
-        }
-        
-        handleEditTipoChange({ target: { value: venda.tipoVenda } });
-        
-        vendasData.currentEditId = id;
-        document.getElementById('edit-venda-modal').style.display = 'block';
-        
-    } catch (error) {
-        console.error('Erro ao carregar venda para edição:', error);
-        showAlert('Erro ao carregar dados da venda', 'error');
-    }
-}
-
-async function handleEditSubmit(e) {
-    e.preventDefault();
-    
-    const tipoVenda = document.getElementById('edit-tipo-venda').value;
-    const observacoes = document.getElementById('edit-observacoes').value;
-    
-    let formData = {
-        observacoes: observacoes.trim() || null
-    };
-    
-    if (tipoVenda === 'E') {
-        const valorExtra = parseFloat(document.getElementById('edit-valor-extra').value);
-        if (!valorExtra || valorExtra <= 0) {
-            showAlert('Valor extra deve ser maior que zero', 'warning');
-            return;
-        }
-        formData.valorExtra = valorExtra;
-        
-    } else if (tipoVenda === 'V') {
-        const valorTotal = parseFloat(document.getElementById('edit-valor-total').value);
-        if (!valorTotal || valorTotal <= 0) {
-            showAlert('Valor de venda deve ser maior que zero', 'warning');
-            return;
-        }
-        formData.valorVenda = valorTotal;
-        
-    } else if (tipoVenda === 'L') {
-        const frete = parseFloat(document.getElementById('edit-frete-eletrons').value) || 0;
-        formData.freteEletrons = frete;
-    }
-    
-    try {
-        showLoading(true);
-        await apiRequest(`/vendas/${vendasData.currentEditId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-        
-        showAlert('Venda atualizada com sucesso!', 'success');
-        
-        closeModal('edit-venda-modal');
-        await loadVendas();
-        await loadResumo();
-        
-    } catch (error) {
-        console.error('Erro ao atualizar venda:', error);
-        showAlert('Erro ao atualizar venda', 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-async function deleteVenda(id) {
-    const confirmed = await confirm(
-        'Tem certeza que deseja excluir esta venda?'
-    );
-    
-    if (!confirmed) return;
-    
-    try {
-        showLoading(true);
-        await apiRequest(`/vendas/${id}`, {
-            method: 'DELETE'
-        });
-        
-        showAlert('Venda excluída com sucesso!', 'success');
-        
-        await loadVendas();
-        await loadResumo();
-        
-    } catch (error) {
-        console.error('Erro ao excluir venda:', error);
-        showAlert('Erro ao excluir venda', 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-function exportarVendas() {
-    if (!vendasData.filteredVendas || vendasData.filteredVendas.length === 0) {
-        showAlert('Nenhuma venda para exportar', 'warning');
-        return;
-    }
-    
-    const dadosExportar = vendasData.filteredVendas.map(venda => ({
-        'Data': formatDateBR(venda.dataVenda),
-        'Tipo': getTipoVendaLabel(venda.tipoVenda),
-        'Poste': getPosteDescricao(venda),
-        'Quantidade': venda.quantidade || 1,
-        'Frete': venda.freteEletrons || 0,
-        'Valor': venda.tipoVenda === 'E' ? venda.valorExtra : 
-                 venda.tipoVenda === 'V' ? venda.valorVenda : 0,
-        'Observações': venda.observacoes || ''
-    }));
-    
-    exportToCSV(dadosExportar, `vendas_${new Date().toISOString().split('T')[0]}`);
-}
-
-function limparFiltros() {
-    document.getElementById('filtro-tipo-venda').value = '';
-    document.getElementById('filtro-data-inicio').value = '';
-    document.getElementById('filtro-data-fim').value = '';
-    
-    vendasData.filters = {
-        tipo: '',
-        dataInicio: '',
-        dataFim: ''
-    };
-    
-    applyFilters();
-    showAlert('Filtros limpos', 'success');
-}
-
-function scrollToForm() {
-    const form = document.getElementById('venda-form');
-    if (form) {
-        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        
-        const firstInput = form.querySelector('input, select, textarea');
-        if (firstInput) {
-            firstInput.focus();
+    displayVendasError() {
+        if (this.elements.vendasTable) {
+            this.elements.vendasTable.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty-table">
+                        <div class="empty-state">
+                            <div class="empty-icon">❌</div>
+                            <h3>Erro ao carregar vendas</h3>
+                            <button class="btn btn-secondary" onclick="vendasManager.loadData()">
+                                Tentar Novamente
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
         }
     }
-}
 
-// Utilitários
-function formatCurrency(value) {
-    if (value == null || isNaN(value)) return 'R$ 0,00';
-    
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(value);
-}
-
-function dateToInputValue(date) {
-    if (!date) return '';
-    
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    
-    return `${year}-${month}-${day}`;
-}
-
-function showLoading(show) {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = show ? 'flex' : 'none';
-    }
-}
-
-function showAlert(message, type = 'success', duration = 5000) {
-    const alertContainer = document.getElementById('alert-container');
-    
-    if (!alertContainer) {
-        console.warn('Container de alertas não encontrado');
-        return;
-    }
-    
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
-    
-    alertContainer.appendChild(alert);
-    
-    setTimeout(() => {
-        if (alert.parentNode) {
-            alert.remove();
-        }
-    }, duration);
-    
-    console.log(`📢 Alerta: ${message} (${type})`);
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
+    updateResumo() {
+        const vendas = this.state.vendas;
+        
+        const resumo = {
+            totalE: vendas.filter(v => v.tipoVenda === 'E').length,
+            totalV: vendas.filter(v => v.tipoVenda === 'V').length,
+            totalL: vendas.filter(v => v.tipoVenda === 'L').length,
+            totalGeral: vendas.length
         };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-function exportToCSV(data, filename) {
-    if (!data || data.length === 0) {
-        showAlert('Nenhum dado para exportar', 'warning');
-        return;
+        
+        this.updateResumoCards(resumo);
     }
 
-    const headers = Object.keys(data[0]);
-    const csv = [
-        headers.join(','),
-        ...data.map(row => 
-            headers.map(header => {
-                let value = row[header] || '';
-                if (typeof value === 'string' && value.includes(',')) {
-                    value = `"${value.replace(/"/g, '""')}"`;
-                }
-                return value;
-            }).join(',')
-        )
-    ].join('\n');
+    updateResumoCards(resumo) {
+        const cardElements = {
+            'total-vendas-e': resumo.totalE,
+            'total-vendas-v': resumo.totalV,
+            'total-vendas-l': resumo.totalL,
+            'total-vendas-geral': resumo.totalGeral
+        };
+        
+        Object.entries(cardElements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value.toString();
+            }
+        });
+    }
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = `${filename}.csv`;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showAlert('Dados exportados com sucesso!', 'success');
+    // ===== FILTERS =====
+    applyFilters() {
+        const { tipo, dataInicio, dataFim } = this.state.filters;
+        
+        let filtered = [...this.state.vendas];
+        
+        if (tipo) {
+            filtered = filtered.filter(v => v.tipoVenda === tipo);
+        }
+        
+        if (dataInicio) {
+            const dataInicioObj = new Date(dataInicio + 'T00:00:00');
+            filtered = filtered.filter(v => new Date(v.dataVenda) >= dataInicioObj);
+        }
+        
+        if (dataFim) {
+            const dataFimObj = new Date(dataFim + 'T23:59:59');
+            filtered = filtered.filter(v => new Date(v.dataVenda) <= dataFimObj);
+        }
+        
+        this.state.filteredVendas = filtered;
+        this.displayVendas(filtered);
+    }
+
+    limparFiltros() {
+        // Reset filter inputs
+        if (this.elements.filtroTipoVenda) this.elements.filtroTipoVenda.value = '';
+        if (this.elements.filtroDataInicio) this.elements.filtroDataInicio.value = '';
+        if (this.elements.filtroDataFim) this.elements.filtroDataFim.value = '';
+        
+        // Reset state
+        this.state.filters = { tipo: '', dataInicio: '', dataFim: '' };
+        
+        this.applyFilters();
+        this.showAlert('Filtros limpos', 'success');
+    }
+
+    // ===== UTILITY METHODS =====
+    setDefaultDateTime() {
+        if (this.elements.vendaData) {
+            const agora = new Date();
+            const dataFormatada = agora.getFullYear() + '-' + 
+                String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(agora.getDate()).padStart(2, '0') + 'T' + 
+                String(agora.getHours()).padStart(2, '0') + ':' + 
+                String(agora.getMinutes()).padStart(2, '0');
+            
+            this.elements.vendaData.value = dataFormatada;
+        }
+    }
+
+    setDefaultDateFilters() {
+        const hoje = new Date();
+        const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        
+        if (this.elements.filtroDataInicio) {
+            this.elements.filtroDataInicio.value = this.dateToInputValue(primeiroDiaMes);
+            this.state.filters.dataInicio = this.elements.filtroDataInicio.value;
+        }
+        
+        if (this.elements.filtroDataFim) {
+            this.elements.filtroDataFim.value = this.dateToInputValue(hoje);
+            this.state.filters.dataFim = this.elements.filtroDataFim.value;
+        }
+    }
+
+    resetForm() {
+        if (this.elements.vendaForm) {
+            this.elements.vendaForm.reset();
+            this.hideAllConditionalFields();
+            this.setDefaultDateTime();
+        }
+    }
+
+    validateId(id) {
+        if (!id || id <= 0) {
+            this.showAlert('ID da venda inválido', 'error');
+            return false;
+        }
+        return true;
+    }
+
+    handleDeleteError(error) {
+        if (error.message.includes('404')) {
+            this.showAlert('Venda não encontrada', 'error');
+        } else if (error.message.includes('400')) {
+            this.showAlert('Dados inválidos para exclusão', 'error');
+        } else if (error.message.includes('500')) {
+            this.showAlert('Erro interno do servidor', 'error');
+        } else {
+            this.showAlert('Erro ao excluir venda: ' + error.message, 'error');
+        }
+    }
+
+    scrollToForm() {
+        if (this.elements.vendaForm) {
+            this.elements.vendaForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            const firstInput = this.elements.vendaForm.querySelector('input, select, textarea');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        }
+    }
+
+    exportarVendas() {
+        if (!this.state.filteredVendas || this.state.filteredVendas.length === 0) {
+            this.showAlert('Nenhuma venda para exportar', 'warning');
+            return;
+        }
+        
+        const dadosExportar = this.state.filteredVendas.map(venda => ({
+            'Data': this.formatDateBR(venda.dataVenda),
+            'Tipo': this.getTipoVendaLabel(venda.tipoVenda),
+            'Poste': this.getPosteDescricao(venda),
+            'Quantidade': venda.quantidade || 1,
+            'Frete': venda.freteEletrons || 0,
+            'Valor': venda.tipoVenda === 'E' ? venda.valorExtra : 
+                     venda.tipoVenda === 'V' ? venda.valorVenda : 0,
+            'Observações': venda.observacoes || ''
+        }));
+        
+        this.exportToCSV(dadosExportar, `vendas_${new Date().toISOString().split('T')[0]}`);
+    }
+
+    // ===== FORMATTERS =====
+    formatDateBR(dateString) {
+        if (!dateString) return '-';
+        
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    formatCurrency(value) {
+        if (value == null || isNaN(value)) return 'R$ 0,00';
+        
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
+    }
+
+    dateToInputValue(date) {
+        if (!date) return '';
+        
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+    }
+
+    getTipoVendaLabel(tipo) {
+        const labels = {
+            'E': '📈 Extra',
+            'V': '🛒 Normal',
+            'L': '🏪 Loja'
+        };
+        return labels[tipo] || tipo;
+    }
+
+    getPosteDescricao(venda) {
+        if (venda.tipoVenda === 'E') {
+            return '<em>Venda Extra</em>';
+        }
+        
+        if (venda.codigoPoste) {
+            const quantidade = venda.quantidade || 1;
+            return `${venda.codigoPoste} ${quantidade > 1 ? `(${quantidade}x)` : ''}`;
+        }
+        
+        return 'Poste não encontrado';
+    }
+
+    getValorVenda(venda) {
+        if (venda.tipoVenda === 'E') {
+            return this.formatCurrency(venda.valorExtra || 0);
+        } else if (venda.tipoVenda === 'L') {
+            return '<em>Só frete</em>';
+        } else {
+            return this.formatCurrency(venda.valorVenda || 0);
+        }
+    }
+
+    // ===== UI HELPERS =====
+    setLoading(show) {
+        this.state.isLoading = show;
+        
+        if (this.elements.loadingOverlay) {
+            this.elements.loadingOverlay.style.display = show ? 'flex' : 'none';
+            this.elements.loadingOverlay.setAttribute('aria-hidden', !show);
+        }
+    }
+
+    showAlert(message, type = 'success', duration = this.config.ALERT_DURATION) {
+        if (!this.elements.alertContainer) {
+            console.warn('Container de alertas não encontrado');
+            return;
+        }
+        
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        alert.setAttribute('role', 'alert');
+        
+        this.elements.alertContainer.appendChild(alert);
+        
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, duration);
+        
+        console.log(`📢 Alerta: ${message} (${type})`);
+    }
+
+    showConfirmDialog(title, message) {
+        return new Promise((resolve) => {
+            const result = confirm(`${title}\n\n${message}`);
+            resolve(result);
+        });
+    }
+
+    showModal(modal) {
+        if (modal) {
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+            
+            // Focus management
+            const firstInput = modal.querySelector('input, select, textarea, button');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        }
+    }
+
+    closeModal(modal) {
+        if (modal) {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    exportToCSV(data, filename) {
+        if (!data || data.length === 0) {
+            this.showAlert('Nenhum dado para exportar', 'warning');
+            return;
+        }
+
+        const headers = Object.keys(data[0]);
+        const csv = [
+            headers.join(','),
+            ...data.map(row => 
+                headers.map(header => {
+                    let value = row[header] || '';
+                    if (typeof value === 'string' && value.includes(',')) {
+                        value = `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                }).join(',')
+            )
+        ].join('\n');
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `${filename}.csv`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        this.showAlert('Dados exportados com sucesso!', 'success');
+    }
+
+    // ===== PUBLIC API METHODS =====
+    async refresh() {
+        console.log('🔄 Atualizando dados de vendas...');
+        await this.loadData();
+        this.showAlert('Dados atualizados!', 'success');
+    }
+
+    getState() {
+        return { ...this.state };
+    }
+
+    getFilteredVendas() {
+        return [...this.state.filteredVendas];
+    }
+
+    // ===== ERROR HANDLING =====
+    handleError(error, context = 'Operação') {
+        console.error(`Erro em ${context}:`, error);
+        
+        const userMessage = this.getUserFriendlyErrorMessage(error);
+        this.showAlert(`${context}: ${userMessage}`, 'error');
+    }
+
+    getUserFriendlyErrorMessage(error) {
+        if (error.message.includes('fetch')) {
+            return 'Erro de conexão com o servidor';
+        }
+        if (error.message.includes('404')) {
+            return 'Recurso não encontrado';
+        }
+        if (error.message.includes('400')) {
+            return 'Dados inválidos';
+        }
+        if (error.message.includes('500')) {
+            return 'Erro interno do servidor';
+        }
+        
+        return error.message || 'Erro desconhecido';
+    }
 }
 
-console.log('✅ Vendas refatorado carregado');
+// ===== GLOBAL FUNCTIONS (for backward compatibility) =====
+let vendasManager;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    vendasManager = new VendasManager();
+});
+
+// Global functions for onclick handlers
+window.editVenda = (id) => vendasManager?.editVenda(id);
+window.deleteVenda = (id) => vendasManager?.deleteVenda(id);
+window.exportarVendas = () => vendasManager?.exportarVendas();
+window.limparFiltros = () => vendasManager?.limparFiltros();
+window.scrollToForm = () => vendasManager?.scrollToForm();
+window.closeModal = (modalId) => {
+    const modal = document.getElementById(modalId);
+    vendasManager?.closeModal(modal);
+};
+
+// Utility functions
+window.loadVendas = () => vendasManager?.loadData();
+
+console.log('✅ VendasManager refatorado carregado com sucesso');
