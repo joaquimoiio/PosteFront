@@ -1,351 +1,196 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Gerenciamento de Postes - Sistema de Vendas de Postes">
-    <title>Postes - Gerenciador de Vendas de Postes</title>
+    <title>📱 Postes - Sistema de Postes</title>
     <link rel="stylesheet" href="css/postes.css">
 </head>
-
 <body>
-    <!-- Header -->
-    <header class="header" role="banner">
+    <!-- Header Mobile -->
+    <header class="header">
         <div class="header-content">
-            <h1>⚡ Gerenciador de Vendas de Postes</h1>
-            <p>Postes - Gerenciamento de Postes</p>
+            <h1>⚡ Postes</h1>
+            <p>Gerenciamento de Postes</p>
         </div>
     </header>
 
-    <!-- Navigation -->
-    <nav class="main-nav" role="navigation" aria-label="Navegação principal">
+    <!-- Navigation Mobile -->
+    <nav class="main-nav">
         <div class="nav-container">
             <a href="index.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">📊</span>
-                <span class="nav-text">Dashboard</span>
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
             </a>
             <a href="vendas.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">📋</span>
-                <span class="nav-text">Vendas</span>
+                <span class="nav-icon">📋</span>
+                <span>Vendas</span>
             </a>
             <a href="despesas.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">💸</span>
-                <span class="nav-text">Despesas</span>
+                <span class="nav-icon">💸</span>
+                <span>Despesas</span>
             </a>
-            <a href="postes.html" class="nav-item active" aria-current="page">
-                <span class="nav-icon" aria-hidden="true">⚡</span>
-                <span class="nav-text">Postes</span>
+            <a href="postes.html" class="nav-item active">
+                <span class="nav-icon">⚡</span>
+                <span>Postes</span>
             </a>
-            <a href="estoque.html" class="nav-item" aria-current="page">
-                <span class="nav-icon" aria-hidden="true">📦</span>
-                <span class="nav-text">Estoque</span>
+            <a href="estoque.html" class="nav-item">
+                <span class="nav-icon">📦</span>
+                <span>Estoque</span>
             </a>
             <a href="relatorios.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">📈</span>
-                <span class="nav-text">Relatórios</span>
+                <span class="nav-icon">📈</span>
+                <span>Relatórios</span>
             </a>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="main-content" role="main">
-        <div class="postes-page">
-
-            <!-- Novo Poste -->
-            <section class="form-section" aria-labelledby="novo-poste-titulo">
-                <header class="section-header">
-                    <h2 id="novo-poste-titulo">
-                        <span class="section-icon">➕</span>
-                        Cadastrar Novo Poste
-                    </h2>
-                    <p class="section-description">Registre um novo poste no sistema</p>
-                </header>
-
-                <form id="poste-form" class="form-container" novalidate>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="poste-codigo" class="form-label">
-                                <span class="label-icon">🏷️</span>
-                                Código do Poste
-                                <span class="required" aria-label="Campo obrigatório">*</span>
-                            </label>
-                            <input type="text" id="poste-codigo" class="form-input" required
-                                placeholder="Ex: 4199, 91450" minlength="1" maxlength="50">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="poste-preco" class="form-label">
-                                <span class="label-icon">💰</span>
-                                Preço
-                                <span class="required" aria-label="Campo obrigatório">*</span>
-                            </label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">R$</span>
-                                <input type="number" step="0.01" id="poste-preco" class="form-input" required
-                                    placeholder="0,00" min="0.01">
-                            </div>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="poste-descricao" class="form-label">
-                                <span class="label-icon">📝</span>
-                                Descrição do Poste
-                                <span class="required" aria-label="Campo obrigatório">*</span>
-                            </label>
-                            <input type="text" id="poste-descricao" class="form-input" required
-                                placeholder="Ex: Kit Poste 7m 1 Cx Mono Saída Aérea" minlength="3" maxlength="500">
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <span class="btn-icon">💾</span>
-                            Salvar Poste
-                        </button>
-                        <button type="reset" class="btn btn-secondary">
-                            <span class="btn-icon">🔄</span>
-                            Limpar Campos
-                        </button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Estatísticas dos Postes -->
-            <section class="summary-section" aria-labelledby="resumo-titulo">
-                <header class="section-header">
-                    <h2 id="resumo-titulo">
-                        <span class="section-icon">📊</span>
-                        Estatísticas dos Postes
-                    </h2>
-                    <p class="section-description">Visão geral dos postes cadastrados</p>
-                </header>
-
-                <div class="summary-cards">
-                    <article class="summary-card total">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">⚡</span>
-                                <h3>Total de Postes</h3>
-                            </div>
-                            <div class="summary-value" id="total-postes" aria-live="polite">0</div>
-                            <small class="card-note">Ativos e inativos</small>
-                        </div>
-                    </article>
-
-                    <article class="summary-card ativo">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">✅</span>
-                                <h3>Postes Ativos</h3>
-                            </div>
-                            <div class="summary-value" id="postes-ativos" aria-live="polite">0</div>
-                            <small class="card-note">Disponíveis para venda</small>
-                        </div>
-                    </article>
-
-                    <article class="summary-card media">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">💰</span>
-                                <h3>Preço Médio</h3>
-                            </div>
-                            <div class="summary-value" id="preco-medio" aria-live="polite">R$ 0,00</div>
-                            <small class="card-note">Baseado em postes ativos</small>
-                        </div>
-                    </article>
+    <main class="main-content">
+        <!-- Novo Poste -->
+        <section class="form-section">
+            <h2>➕ Novo Poste</h2>
+            <form id="poste-form">
+                <div class="form-group">
+                    <label for="poste-codigo">Código *</label>
+                    <input type="text" id="poste-codigo" required placeholder="Ex: 4199">
                 </div>
-            </section>
 
-            <!-- Filtros -->
-            <section class="filter-section" aria-labelledby="filtros-titulo">
-                <header class="section-header">
-                    <h2 id="filtros-titulo">
-                        <span class="section-icon">🔍</span>
-                        Filtros de Busca
-                    </h2>
-                    <p class="section-description">Encontre postes específicos</p>
-                </header>
-
-                <div class="filter-container">
-                    <div class="filter-grid">
-                        <div class="filter-group">
-                            <label for="filtro-status" class="filter-label">
-                                <span class="label-icon">🏷️</span>
-                                Status
-                            </label>
-                            <select id="filtro-status" class="filter-input">
-                                <option value="">Todos os status</option>
-                                <option value="true">✅ Ativos</option>
-                                <option value="false">❌ Inativos</option>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="filtro-codigo" class="filter-label">
-                                <span class="label-icon">🔍</span>
-                                Código
-                            </label>
-                            <input type="text" id="filtro-codigo" class="filter-input"
-                                placeholder="Buscar por código...">
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="filtro-descricao" class="filter-label">
-                                <span class="label-icon">🔍</span>
-                                Descrição
-                            </label>
-                            <input type="text" id="filtro-descricao" class="filter-input"
-                                placeholder="Buscar na descrição...">
-                        </div>
-
-                        <div class="filter-actions">
-                            <button type="button" class="btn btn-secondary btn-small" onclick="limparFiltros()">
-                                <span class="btn-icon">🧹</span>
-                                Limpar Filtros
-                            </button>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label for="poste-descricao">Descrição *</label>
+                    <input type="text" id="poste-descricao" required 
+                           placeholder="Ex: Kit Poste 7m 1 Cx Mono">
                 </div>
-            </section>
 
-            <!-- Lista de Postes -->
-            <section class="table-section" aria-labelledby="lista-titulo">
-                <header class="section-header">
-                    <h2 id="lista-titulo">
-                        <span class="section-icon">⚡</span>
-                        Postes Cadastrados
-                    </h2>
-                    <div class="section-actions">
-                        <button type="button" class="btn btn-secondary btn-small" onclick="loadPostes()">
-                            <span class="btn-icon">🔄</span>
-                            Atualizar
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="exportarPostes()">
-                            <span class="btn-icon">📊</span>
-                            Exportar
-                        </button>
-                    </div>
-                </header>
-
-                <div class="table-container" role="region" aria-labelledby="lista-titulo" tabindex="0">
-                    <table id="postes-table" class="data-table" role="table">
-                        <thead>
-                            <tr role="row">
-                                <th scope="col">Código</th>
-                                <th scope="col">Descrição</th>
-                                <th scope="col">Preço</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="5" class="empty-table">
-                                    <div class="empty-state">
-                                        <div class="empty-icon">⚡</div>
-                                        <h3>Nenhum poste encontrado</h3>
-                                        <p>Comece cadastrando seu primeiro poste no formulário acima.</p>
-                                        <button type="button" class="btn btn-primary" onclick="scrollToForm()">
-                                            Cadastrar Primeiro Poste
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="form-group">
+                    <label for="poste-preco">Preço *</label>
+                    <input type="number" step="0.01" id="poste-preco" required 
+                           placeholder="R$ 0,00" min="0.01">
                 </div>
-            </section>
 
-        </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span> Salvar Poste
+                    </button>
+                    <button type="reset" class="btn btn-secondary">
+                        <span>🔄</span> Limpar
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Resumo -->
+        <section class="summary-section">
+            <h2>📊 Resumo dos Postes</h2>
+            <div class="stats-grid">
+                <div class="stat-item total">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-number" id="total-postes">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-item ativo">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-number" id="postes-ativos">0</div>
+                    <div class="stat-label">Ativos</div>
+                </div>
+                <div class="stat-item inativo">
+                    <div class="stat-icon">❌</div>
+                    <div class="stat-number" id="postes-inativos">0</div>
+                    <div class="stat-label">Inativos</div>
+                </div>
+                <div class="stat-item media">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-number" id="preco-medio">R$ 0,00</div>
+                    <div class="stat-label">Preço Médio</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filtros -->
+        <section class="filter-section">
+            <h2>🔍 Filtros</h2>
+            <div class="filter-grid">
+                <select id="filtro-status">
+                    <option value="">Todos os status</option>
+                    <option value="true">✅ Ativos</option>
+                    <option value="false">❌ Inativos</option>
+                </select>
+                <input type="text" id="filtro-codigo" placeholder="Buscar código...">
+                <input type="text" id="filtro-descricao" placeholder="Buscar descrição...">
+                <button class="btn btn-secondary" onclick="limparFiltros()">
+                    <span>🧹</span> Limpar
+                </button>
+            </div>
+        </section>
+
+        <!-- Lista de Postes -->
+        <section class="table-section">
+            <div class="section-header">
+                <h2>⚡ Postes Cadastrados</h2>
+                <div class="section-actions">
+                    <button class="btn btn-small" onclick="loadPostes()">🔄</button>
+                    <button class="btn btn-small" onclick="exportarPostes()">📊</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <div id="postes-list" class="mobile-list">
+                    <!-- Postes serão carregados aqui -->
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Modal de Edição -->
-    <div id="edit-poste-modal" class="modal" role="dialog" aria-labelledby="modal-titulo" aria-hidden="true">
+    <div id="edit-modal" class="modal" style="display: none;">
         <div class="modal-content">
-            <header class="modal-header">
-                <h2 id="modal-titulo">
-                    <span class="modal-icon">✏️</span>
-                    Editar Poste
-                </h2>
-                <button type="button" class="close" onclick="closeModal('edit-poste-modal')" aria-label="Fechar modal">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </header>
-
-            <form id="edit-poste-form" novalidate>
+            <div class="modal-header">
+                <h3>✏️ Editar Poste</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="edit-form">
                 <div class="modal-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="edit-poste-codigo" class="form-label">
-                                <span class="label-icon">🏷️</span>
-                                Código
-                                <span class="required">*</span>
-                            </label>
-                            <input type="text" id="edit-poste-codigo" class="form-input" required minlength="1"
-                                maxlength="50">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="edit-poste-preco" class="form-label">
-                                <span class="label-icon">💰</span>
-                                Preço
-                                <span class="required">*</span>
-                            </label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">R$</span>
-                                <input type="number" step="0.01" id="edit-poste-preco" class="form-input" required
-                                    min="0.01">
-                            </div>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="edit-poste-descricao" class="form-label">
-                                <span class="label-icon">📝</span>
-                                Descrição
-                                <span class="required">*</span>
-                            </label>
-                            <input type="text" id="edit-poste-descricao" class="form-input" required minlength="3"
-                                maxlength="500">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="edit-poste-ativo" class="form-label">
-                                <span class="label-icon">🏷️</span>
-                                Status
-                                <span class="required">*</span>
-                            </label>
-                            <select id="edit-poste-ativo" class="form-input" required>
-                                <option value="true">✅ Ativo</option>
-                                <option value="false">❌ Inativo</option>
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label for="edit-poste-codigo">Código *</label>
+                        <input type="text" id="edit-poste-codigo" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-poste-descricao">Descrição *</label>
+                        <input type="text" id="edit-poste-descricao" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-poste-preco">Preço *</label>
+                        <input type="number" step="0.01" id="edit-poste-preco" required min="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-poste-ativo">Status *</label>
+                        <select id="edit-poste-ativo" required>
+                            <option value="true">✅ Ativo</option>
+                            <option value="false">❌ Inativo</option>
+                        </select>
                     </div>
                 </div>
-
-                <footer class="modal-actions">
-                    <button type="submit" class="btn btn-primary">
-                        <span class="btn-icon">💾</span>
-                        Salvar Alterações
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-poste-modal')">
-                        Cancelar
-                    </button>
-                </footer>
+                
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- Overlay de Carregamento -->
-    <div id="loading-overlay" class="loading-overlay" role="status" aria-live="polite" aria-hidden="true">
-        <div class="spinner" aria-hidden="true"></div>
-        <p>Carregando dados dos postes...</p>
+    <!-- Loading -->
+    <div id="loading" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Carregando...</p>
     </div>
 
-    <!-- Container de Alertas -->
-    <div id="alert-container" class="alert-container" role="alert" aria-live="assertive" aria-atomic="true"></div>
+    <!-- Alerts -->
+    <div id="alert-container" class="alert-container"></div>
 
     <script src="js/postes.js"></script>
 </body>
-
 </html>

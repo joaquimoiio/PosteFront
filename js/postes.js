@@ -1,254 +1,118 @@
-// Postes JavaScript - VERSÃO REFATORADA
-const CONFIG = {
-    API_BASE: 'http://localhost:8080/api'
-};
+// Postes JavaScript Mobile-First - Versão Refatorada
+const API_BASE = 'http://localhost:8080/api';
 
-// Estado global
-let postesData = {
+// Estado global simplificado
+const state = {
     postes: [],
-    filteredPostes: [],
     currentEditId: null,
-    filters: {
-        status: '',
-        codigo: '',
-        descricao: ''
-    }
+    filters: { status: '', codigo: '', descricao: '' }
 };
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🎯 Inicializando página de Postes...');
+    console.log('🎯 Inicializando Postes Mobile...');
     
     try {
-        await loadPostes();
-        await loadEstatisticas();
-        setupEventListeners();
-        setupFilters();
-        
-        console.log('✅ Página de Postes carregada com sucesso');
+        configurarEventos();
+        await carregarDados();
+        console.log('✅ Postes carregado');
     } catch (error) {
-        console.error('❌ Erro ao carregar página de Postes:', error);
-        showAlert('Erro ao carregar dados de postes', 'error');
+        console.error('❌ Erro ao carregar:', error);
+        showAlert('Erro ao carregar dados', 'error');
     }
 });
 
-function setupEventListeners() {
+// Configuração de eventos
+function configurarEventos() {
+    // Form principal
     const posteForm = document.getElementById('poste-form');
     if (posteForm) {
         posteForm.addEventListener('submit', handlePosteSubmit);
+        posteForm.addEventListener('reset', resetForm);
     }
     
-    const editForm = document.getElementById('edit-poste-form');
+    // Form de edição
+    const editForm = document.getElementById('edit-form');
     if (editForm) {
         editForm.addEventListener('submit', handleEditSubmit);
     }
+    
+    // Filtros
+    setupFilters();
 }
 
 function setupFilters() {
-    const filterElements = {
+    const filters = {
         'filtro-status': 'status',
         'filtro-codigo': 'codigo',
         'filtro-descricao': 'descricao'
     };
     
-    Object.entries(filterElements).forEach(([elementId, filterKey]) => {
+    Object.entries(filters).forEach(([elementId, filterKey]) => {
         const element = document.getElementById(elementId);
         if (element) {
             element.addEventListener('input', debounce(() => {
-                postesData.filters[filterKey] = element.value;
+                state.filters[filterKey] = element.value;
                 applyFilters();
             }, 300));
         }
     });
 }
 
-function applyFilters() {
-    const { status, codigo, descricao } = postesData.filters;
-    
-    let filtered = [...postesData.postes];
-    
-    if (status !== '') {
-        const isActive = status === 'true';
-        filtered = filtered.filter(p => p.ativo === isActive);
-    }
-    
-    if (codigo) {
-        const searchTerm = codigo.toLowerCase();
-        filtered = filtered.filter(p => p.codigo.toLowerCase().includes(searchTerm));
-    }
-    
-    if (descricao) {
-        const searchTerm = descricao.toLowerCase();
-        filtered = filtered.filter(p => p.descricao.toLowerCase().includes(searchTerm));
-    }
-    
-    postesData.filteredPostes = filtered;
-    displayPostes(filtered);
-}
-
-// Funções de API
-async function apiRequest(endpoint, options = {}) {
-    try {
-        const response = await fetch(`${CONFIG.API_BASE}${endpoint}`, options);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error(`Erro na requisição ${endpoint}:`, error);
-        throw error;
-    }
-}
-
-async function loadPostes() {
+// Carregamento de dados
+async function carregarDados() {
     try {
         showLoading(true);
-        const postes = await apiRequest('/postes');
-        postesData.postes = postes;
-        postesData.filteredPostes = [...postes];
-        displayPostes(postes);
+        
+        const postes = await fetchPostes();
+        state.postes = postes;
+        
+        updateResumo();
+        applyFilters();
+        
     } catch (error) {
-        console.error('Erro ao carregar postes:', error);
-        displayPostesError();
+        console.error('Erro ao carregar dados:', error);
+        throw error;
     } finally {
         showLoading(false);
     }
 }
 
-async function loadEstatisticas() {
-    try {
-        const postes = postesData.postes;
-        const ativo = postes.filter(p => p.ativo).length;
-        const total = postes.length;
-        const precoMedio = postes.length > 0 ? 
-            postes.reduce((sum, p) => sum + (p.preco || 0), 0) / postes.length : 0;
-        
-        updateEstatisticasCards({
-            total,
-            ativo,
-            precoMedio
-        });
-        
-    } catch (error) {
-        console.error('Erro ao calcular estatísticas:', error);
+// API calls
+async function apiRequest(endpoint, options = {}) {
+    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+    return await response.json();
 }
 
-function updateEstatisticasCards(stats) {
-    const elements = {
-        'total-postes': stats.total.toString(),
-        'postes-ativos': stats.ativo.toString(),
-        'preco-medio': formatCurrency(stats.precoMedio)
-    };
-    
-    Object.entries(elements).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-        }
-    });
+async function fetchPostes() {
+    return await apiRequest('/postes');
 }
 
-function displayPostes(postes) {
-    const tbody = document.querySelector('#postes-table tbody');
-    if (!tbody) return;
-    
-    if (!postes || postes.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="empty-table">
-                    <div class="empty-table-icon">⚡</div>
-                    <p>Nenhum poste encontrado</p>
-                    <button class="btn btn-primary" onclick="scrollToForm()">Cadastrar Primeiro Poste</button>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    tbody.innerHTML = '';
-    
-    postes.forEach(poste => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td data-label="Código"><strong>${poste.codigo}</strong></td>
-            <td data-label="Descrição">
-                <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;" title="${poste.descricao}">
-                    ${poste.descricao}
-                </div>
-            </td>
-            <td class="currency" data-label="Preço">${formatCurrency(poste.preco)}</td>
-            <td data-label="Status">
-                <span class="status ${poste.ativo ? 'ativo' : 'inativo'}">
-                    ${poste.ativo ? '✅ Ativo' : '❌ Inativo'}
-                </span>
-            </td>
-            <td data-label="Ações">
-                <div class="table-actions">
-                    <button class="btn btn-primary btn-small" onclick="editPoste(${poste.id})" title="Editar">
-                        <span class="btn-icon">✏️</span>
-                        Editar
-                    </button>
-                    <button class="btn ${poste.ativo ? 'btn-secondary' : 'btn-success'} btn-small" 
-                            onclick="togglePosteStatus(${poste.id})" 
-                            title="${poste.ativo ? 'Inativar' : 'Ativar'}">
-                        <span class="btn-icon">${poste.ativo ? '❌' : '✅'}</span>
-                        ${poste.ativo ? 'Inativar' : 'Ativar'}
-                    </button>
-                </div>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-function displayPostesError() {
-    const tbody = document.querySelector('#postes-table tbody');
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="empty-table">
-                    <div class="empty-table-icon">❌</div>
-                    <p>Erro ao carregar postes</p>
-                    <button class="btn btn-secondary" onclick="loadPostes()">Tentar Novamente</button>
-                </td>
-            </tr>
-        `;
-    }
-}
-
+// Manipulação do formulário
 async function handlePosteSubmit(e) {
     e.preventDefault();
     
-    const formData = {
-        codigo: document.getElementById('poste-codigo').value.trim(),
-        descricao: document.getElementById('poste-descricao').value.trim(),
-        preco: parseFloat(document.getElementById('poste-preco').value),
-        ativo: true
-    };
-    
-    const erros = validarPoste(formData);
-    if (erros.length > 0) {
-        showAlert(erros.join(', '), 'warning');
-        return;
-    }
-    
     try {
+        const formData = buildFormData();
+        
+        if (!validateFormData(formData)) {
+            return;
+        }
+        
         showLoading(true);
+        
         await apiRequest('/postes', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
         
         showAlert('Poste criado com sucesso!', 'success');
-        
-        e.target.reset();
-        
-        await loadPostes();
-        await loadEstatisticas();
+        resetForm();
+        await carregarDados();
         
     } catch (error) {
         console.error('Erro ao criar poste:', error);
@@ -258,38 +122,152 @@ async function handlePosteSubmit(e) {
     }
 }
 
-async function handleEditSubmit(e) {
-    e.preventDefault();
-    
-    const formData = {
-        codigo: document.getElementById('edit-poste-codigo').value.trim(),
-        descricao: document.getElementById('edit-poste-descricao').value.trim(),
-        preco: parseFloat(document.getElementById('edit-poste-preco').value),
-        ativo: document.getElementById('edit-poste-ativo').value === 'true'
+function buildFormData() {
+    return {
+        codigo: document.getElementById('poste-codigo').value.trim(),
+        descricao: document.getElementById('poste-descricao').value.trim(),
+        preco: parseFloat(document.getElementById('poste-preco').value),
+        ativo: true
     };
+}
+
+function validateFormData(data) {
+    if (!data.codigo || data.codigo.length < 1) {
+        showAlert('Código é obrigatório', 'warning');
+        return false;
+    }
     
-    const erros = validarPoste(formData);
-    if (erros.length > 0) {
-        showAlert(erros.join(', '), 'warning');
+    if (!data.descricao || data.descricao.length < 3) {
+        showAlert('Descrição deve ter pelo menos 3 caracteres', 'warning');
+        return false;
+    }
+    
+    if (!data.preco || data.preco <= 0) {
+        showAlert('Preço deve ser maior que zero', 'warning');
+        return false;
+    }
+    
+    // Verificar código duplicado
+    const codigoExistente = state.postes.find(p => 
+        p.codigo.toLowerCase() === data.codigo.toLowerCase() && 
+        (!state.currentEditId || p.id !== state.currentEditId)
+    );
+    
+    if (codigoExistente) {
+        showAlert('Código já existe', 'warning');
+        return false;
+    }
+    
+    return true;
+}
+
+// Display postes
+function displayPostes(postes) {
+    const container = document.getElementById('postes-list');
+    if (!container) return;
+    
+    if (!postes || postes.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⚡</div>
+                <h3>Nenhum poste encontrado</h3>
+                <p>Comece cadastrando seu primeiro poste.</p>
+                <button class="btn btn-primary" onclick="scrollToForm()">
+                    Cadastrar Primeiro Poste
+                </button>
+            </div>
+        `;
         return;
     }
     
+    container.innerHTML = '';
+    
+    postes.forEach(poste => {
+        const item = createPosteItem(poste);
+        container.appendChild(item);
+    });
+}
+
+function createPosteItem(poste) {
+    const item = document.createElement('div');
+    item.className = `mobile-list-item ${poste.ativo ? 'ativo' : 'inativo'}`;
+    
+    const statusLabel = poste.ativo ? '✅ Ativo' : '❌ Inativo';
+    const statusClass = poste.ativo ? 'ativo' : 'inativo';
+    
+    item.innerHTML = `
+        <div class="item-header">
+            <span class="item-status ${statusClass}">
+                ${statusLabel}
+            </span>
+            <span class="item-code">${poste.codigo}</span>
+        </div>
+        
+        <div class="item-content">
+            <div class="item-price">${formatCurrency(poste.preco)}</div>
+            <div class="item-title">${poste.descricao}</div>
+        </div>
+        
+        <div class="item-actions">
+            <button class="btn btn-small btn-primary" onclick="editPoste(${poste.id})">
+                ✏️ Editar
+            </button>
+            <button class="btn btn-small ${poste.ativo ? 'btn-secondary' : 'btn-success'}" 
+                    onclick="togglePosteStatus(${poste.id})">
+                ${poste.ativo ? '❌ Inativar' : '✅ Ativar'}
+            </button>
+        </div>
+    `;
+    
+    return item;
+}
+
+// CRUD operations
+async function editPoste(id) {
     try {
+        const poste = state.postes.find(p => p.id === id);
+        if (!poste) {
+            throw new Error('Poste não encontrado');
+        }
+        
+        populateEditForm(poste);
+        state.currentEditId = id;
+        showModal();
+        
+    } catch (error) {
+        console.error('Erro ao carregar poste para edição:', error);
+        showAlert('Erro ao carregar dados do poste', 'error');
+    }
+}
+
+function populateEditForm(poste) {
+    document.getElementById('edit-poste-codigo').value = poste.codigo;
+    document.getElementById('edit-poste-descricao').value = poste.descricao;
+    document.getElementById('edit-poste-preco').value = poste.preco;
+    document.getElementById('edit-poste-ativo').value = poste.ativo.toString();
+}
+
+async function handleEditSubmit(e) {
+    e.preventDefault();
+    
+    try {
+        const formData = buildEditFormData();
+        
+        if (!validateFormData(formData)) {
+            return;
+        }
+        
         showLoading(true);
-        await apiRequest(`/postes/${postesData.currentEditId}`, {
+        
+        await apiRequest(`/postes/${state.currentEditId}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
         
         showAlert('Poste atualizado com sucesso!', 'success');
-        
-        closeModal('edit-poste-modal');
-        
-        await loadPostes();
-        await loadEstatisticas();
+        closeModal();
+        await carregarDados();
         
     } catch (error) {
         console.error('Erro ao atualizar poste:', error);
@@ -299,31 +277,18 @@ async function handleEditSubmit(e) {
     }
 }
 
-async function editPoste(id) {
-    try {
-        const poste = postesData.postes.find(p => p.id === id);
-        
-        if (!poste) {
-            throw new Error('Poste não encontrado');
-        }
-        
-        document.getElementById('edit-poste-codigo').value = poste.codigo;
-        document.getElementById('edit-poste-descricao').value = poste.descricao;
-        document.getElementById('edit-poste-preco').value = poste.preco;
-        document.getElementById('edit-poste-ativo').value = poste.ativo.toString();
-        
-        postesData.currentEditId = id;
-        document.getElementById('edit-poste-modal').style.display = 'block';
-        
-    } catch (error) {
-        console.error('Erro ao carregar poste para edição:', error);
-        showAlert('Erro ao carregar dados do poste', 'error');
-    }
+function buildEditFormData() {
+    return {
+        codigo: document.getElementById('edit-poste-codigo').value.trim(),
+        descricao: document.getElementById('edit-poste-descricao').value.trim(),
+        preco: parseFloat(document.getElementById('edit-poste-preco').value),
+        ativo: document.getElementById('edit-poste-ativo').value === 'true'
+    };
 }
 
 async function togglePosteStatus(id) {
     try {
-        const poste = postesData.postes.find(p => p.id === id);
+        const poste = state.postes.find(p => p.id === id);
         if (!poste) {
             throw new Error('Poste não encontrado');
         }
@@ -331,25 +296,20 @@ async function togglePosteStatus(id) {
         const novoStatus = !poste.ativo;
         const acao = novoStatus ? 'ativar' : 'inativar';
         
-        const confirmed = await confirm(
-            `Tem certeza que deseja ${acao} este poste?`
-        );
-        
-        if (!confirmed) return;
+        if (!confirm(`Tem certeza que deseja ${acao} este poste?`)) {
+            return;
+        }
         
         showLoading(true);
+        
         await apiRequest(`/postes/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...poste, ativo: novoStatus })
         });
         
         showAlert(`Poste ${acao}do com sucesso!`, 'success');
-        
-        await loadPostes();
-        await loadEstatisticas();
+        await carregarDados();
         
     } catch (error) {
         console.error('Erro ao alterar status do poste:', error);
@@ -359,40 +319,80 @@ async function togglePosteStatus(id) {
     }
 }
 
-function validarPoste(dados) {
-    const erros = [];
+// Filtros e resumo
+function applyFilters() {
+    const { status, codigo, descricao } = state.filters;
     
-    if (!dados.codigo || dados.codigo.trim().length < 1) {
-        erros.push('Código é obrigatório');
+    let filtered = [...state.postes];
+    
+    if (status !== '') {
+        const isActive = status === 'true';
+        filtered = filtered.filter(p => p.ativo === isActive);
     }
     
-    if (!dados.descricao || dados.descricao.trim().length < 3) {
-        erros.push('Descrição deve ter pelo menos 3 caracteres');
-    }
-    
-    if (!dados.preco || dados.preco <= 0) {
-        erros.push('Preço deve ser maior que zero');
-    }
-    
-    if (!postesData.currentEditId) {
-        const codigoExistente = postesData.postes.find(p => 
-            p.codigo.toLowerCase() === dados.codigo.toLowerCase()
+    if (codigo) {
+        const searchTerm = codigo.toLowerCase();
+        filtered = filtered.filter(p => 
+            p.codigo.toLowerCase().includes(searchTerm)
         );
-        if (codigoExistente) {
-            erros.push('Código já existe');
-        }
     }
     
-    return erros;
+    if (descricao) {
+        const searchTerm = descricao.toLowerCase();
+        filtered = filtered.filter(p => 
+            p.descricao.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    displayPostes(filtered);
 }
 
-function exportarPostes() {
-    if (!postesData.postes || postesData.postes.length === 0) {
+function updateResumo() {
+    const postes = state.postes;
+    
+    const total = postes.length;
+    const ativos = postes.filter(p => p.ativo).length;
+    const inativos = total - ativos;
+    const precoMedio = total > 0 ? 
+        postes.reduce((sum, p) => sum + (p.preco || 0), 0) / total : 0;
+    
+    updateElement('total-postes', total);
+    updateElement('postes-ativos', ativos);
+    updateElement('postes-inativos', inativos);
+    updateElement('preco-medio', formatCurrency(precoMedio));
+}
+
+// Utilitários
+function resetForm() {
+    document.getElementById('poste-form').reset();
+}
+
+function limparFiltros() {
+    document.getElementById('filtro-status').value = '';
+    document.getElementById('filtro-codigo').value = '';
+    document.getElementById('filtro-descricao').value = '';
+    
+    state.filters = { status: '', codigo: '', descricao: '' };
+    applyFilters();
+    showAlert('Filtros limpos', 'success');
+}
+
+function scrollToForm() {
+    const form = document.getElementById('poste-form');
+    if (form) {
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const firstInput = form.querySelector('input, select, textarea');
+        if (firstInput) firstInput.focus();
+    }
+}
+
+async function exportarPostes() {
+    if (!state.postes || state.postes.length === 0) {
         showAlert('Nenhum poste para exportar', 'warning');
         return;
     }
     
-    const dadosExportar = postesData.postes.map(poste => ({
+    const dadosExportar = state.postes.map(poste => ({
         'Código': poste.codigo,
         'Descrição': poste.descricao,
         'Preço': poste.preco,
@@ -402,78 +402,60 @@ function exportarPostes() {
     exportToCSV(dadosExportar, `postes_${new Date().toISOString().split('T')[0]}`);
 }
 
-function limparFiltros() {
-    document.getElementById('filtro-status').value = '';
-    document.getElementById('filtro-codigo').value = '';
-    document.getElementById('filtro-descricao').value = '';
-    
-    postesData.filters = {
-        status: '',
-        codigo: '',
-        descricao: ''
-    };
-    
-    applyFilters();
-    showAlert('Filtros limpos', 'success');
+async function loadPostes() {
+    await carregarDados();
+    showAlert('Dados atualizados!', 'success');
 }
 
-function scrollToForm() {
-    const form = document.getElementById('poste-form');
-    if (form) {
-        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        
-        const firstInput = form.querySelector('input, select, textarea');
-        if (firstInput) {
-            firstInput.focus();
-        }
+// Modal functions
+function showModal() {
+    const modal = document.getElementById('edit-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        const firstInput = modal.querySelector('input, select, textarea');
+        if (firstInput) firstInput.focus();
     }
 }
 
-// Utilitários
+function closeModal() {
+    const modal = document.getElementById('edit-modal');
+    if (modal) modal.style.display = 'none';
+    state.currentEditId = null;
+}
+
+// Formatters
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
-    
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL'
     }).format(value);
 }
 
-function showLoading(show) {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = show ? 'flex' : 'none';
-    }
+// Helper functions
+function updateElement(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value.toString();
 }
 
-function showAlert(message, type = 'success', duration = 5000) {
-    const alertContainer = document.getElementById('alert-container');
-    
-    if (!alertContainer) {
-        console.warn('Container de alertas não encontrado');
-        return;
-    }
+function showLoading(show) {
+    const loading = document.getElementById('loading');
+    if (loading) loading.style.display = show ? 'flex' : 'none';
+}
+
+function showAlert(message, type = 'success', duration = 3000) {
+    const container = document.getElementById('alert-container');
+    if (!container) return;
     
     const alert = document.createElement('div');
     alert.className = `alert alert-${type}`;
     alert.textContent = message;
     
-    alertContainer.appendChild(alert);
+    container.appendChild(alert);
     
     setTimeout(() => {
-        if (alert.parentNode) {
-            alert.remove();
-        }
+        if (alert.parentNode) alert.remove();
     }, duration);
-    
-    console.log(`📢 Alerta: ${message} (${type})`);
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-    }
 }
 
 function debounce(func, wait) {
@@ -521,4 +503,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Postes refatorado carregado');
+console.log('✅ Postes Mobile carregado');
