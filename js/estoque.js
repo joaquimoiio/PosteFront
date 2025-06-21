@@ -1,4 +1,4 @@
-// Estoque JavaScript - Sistema de Controle de Estoque
+// Estoque JavaScript - VERSÃO SIMPLIFICADA SEM VALIDAÇÕES
 const CONFIG = {
     API_BASE: 'http://localhost:8080/api'
 };
@@ -8,7 +8,6 @@ let estoqueData = {
     estoque: [],
     filteredEstoque: [],
     postes: [],
-    currentEditId: null,
     filters: {
         status: '',
         codigo: '',
@@ -38,18 +37,13 @@ function setupEventListeners() {
     if (estoqueForm) {
         estoqueForm.addEventListener('submit', handleEstoqueSubmit);
     }
-    
-    const definirMinimoForm = document.getElementById('definir-minimo-form');
-    if (definirMinimoForm) {
-        definirMinimoForm.addEventListener('submit', handleDefinirMinimoSubmit);
-    }
 }
 
 function setupFilters() {
     const filterElements = {
-        'filtro-status-estoque': 'status',
-        'filtro-codigo-estoque': 'codigo',
-        'filtro-descricao-estoque': 'descricao'
+        'filtro-status': 'status',
+        'filtro-codigo': 'codigo',
+        'filtro-descricao': 'descricao'
     };
     
     Object.entries(filterElements).forEach(([elementId, filterKey]) => {
@@ -70,13 +64,14 @@ function applyFilters() {
     
     if (status) {
         filtered = filtered.filter(item => {
+            const quantidade = item.quantidadeAtual || 0;
             switch (status) {
-                case 'com-estoque':
-                    return item.quantidadeAtual > 0;
-                case 'sem-estoque':
-                    return item.quantidadeAtual === 0;
-                case 'abaixo-minimo':
-                    return item.estoqueAbaixoMinimo;
+                case 'positivo':
+                    return quantidade > 0;
+                case 'zero':
+                    return quantidade === 0;
+                case 'negativo':
+                    return quantidade < 0;
                 default:
                     return true;
             }
@@ -86,14 +81,14 @@ function applyFilters() {
     if (codigo) {
         const searchTerm = codigo.toLowerCase();
         filtered = filtered.filter(item => 
-            item.codigoPoste.toLowerCase().includes(searchTerm)
+            item.codigoPoste && item.codigoPoste.toLowerCase().includes(searchTerm)
         );
     }
     
     if (descricao) {
         const searchTerm = descricao.toLowerCase();
         filtered = filtered.filter(item => 
-            item.descricaoPoste.toLowerCase().includes(searchTerm)
+            item.descricaoPoste && item.descricaoPoste.toLowerCase().includes(searchTerm)
         );
     }
     
@@ -130,10 +125,13 @@ async function loadEstoque() {
     try {
         showLoading(true);
         const estoque = await apiRequest('/estoque');
-        estoqueData.estoque = estoque;
-        estoqueData.filteredEstoque = [...estoque];
-        displayEstoque(estoque);
-        updateResumo(estoque);
+        estoqueData.estoque = estoque || [];
+        estoqueData.filteredEstoque = [...estoqueData.estoque];
+        
+        updateResumo();
+        updateAlertas();
+        displayEstoque(estoqueData.estoque);
+        
     } catch (error) {
         console.error('Erro ao carregar estoque:', error);
         displayEstoqueError();
@@ -146,7 +144,7 @@ function populatePosteSelect() {
     const select = document.getElementById('estoque-poste');
     if (!select) return;
     
-    // Limpar opções existentes (exceto a primeira)
+    // Limpar opções existentes exceto a primeira
     while (select.children.length > 1) {
         select.removeChild(select.lastChild);
     }
@@ -160,25 +158,116 @@ function populatePosteSelect() {
     });
 }
 
-function updateResumo(estoque) {
-    const totalItens = estoque.reduce((sum, item) => sum + item.quantidadeAtual, 0);
-    const postesComEstoque = estoque.filter(item => item.quantidadeAtual > 0).length;
-    const postesSemEstoque = estoque.filter(item => item.quantidadeAtual === 0).length;
-    const postesAbaixoMinimo = estoque.filter(item => item.estoqueAbaixoMinimo).length;
+async function handleEstoqueSubmit(e) {
+    e.preventDefault();
     
-    const elements = {
-        'total-itens-estoque': totalItens.toString(),
-        'postes-com-estoque': postesComEstoque.toString(),
-        'postes-sem-estoque': postesSemEstoque.toString(),
-        'postes-abaixo-minimo': postesAbaixoMinimo.toString()
+    const formData = {
+        posteId: parseInt(document.getElementById('estoque-poste').value),
+        quantidade: parseInt(document.getElementById('estoque-quantidade').value),
+        observacao: document.getElementById('estoque-observacao').value.trim() || null
     };
     
-    Object.entries(elements).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-        }
+    if (!formData.posteId || !formData.quantidade || formData.quantidade <= 0) {
+        showAlert('Selecione um poste e informe uma quantidade válida', 'warning');
+        return;
+    }
+    
+    try {
+        showLoading(true);
+        
+        await apiRequest('/estoque/adicionar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        
+        showAlert('Estoque adicionado com sucesso!', 'success');
+        
+        e.target.reset();
+        await loadEstoque();
+        
+    } catch (error) {
+        console.error('Erro ao adicionar estoque:', error);
+        showAlert('Erro ao adicionar estoque', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function updateResumo() {
+    const estoque = estoqueData.estoque;
+    
+    const totalTipos = estoque.length;
+    const estoquePositivo = estoque.filter(item => (item.quantidadeAtual || 0) > 0).length;
+    const estoqueNegativo = estoque.filter(item => (item.quantidadeAtual || 0) < 0).length;
+    const estoqueZero = estoque.filter(item => (item.quantidadeAtual || 0) === 0).length;
+    
+    updateElement('total-tipos-postes', totalTipos);
+    updateElement('total-estoque-positivo', estoquePositivo);
+    updateElement('total-estoque-negativo', estoqueNegativo);
+    updateElement('total-estoque-zero', estoqueZero);
+}
+
+function updateAlertas() {
+    const alertasContainer = document.getElementById('estoque-alertas');
+    if (!alertasContainer) return;
+    
+    const estoqueNegativo = estoqueData.estoque.filter(item => (item.quantidadeAtual || 0) < 0);
+    const estoqueZero = estoqueData.estoque.filter(item => (item.quantidadeAtual || 0) === 0);
+    
+    alertasContainer.innerHTML = '';
+    
+    if (estoqueNegativo.length === 0 && estoqueZero.length === 0) {
+        alertasContainer.innerHTML = `
+            <div class="alert-placeholder">
+                <span class="alert-icon">✅</span>
+                <p>Nenhum alerta de estoque no momento</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Alertas de estoque negativo
+    estoqueNegativo.forEach(item => {
+        const alertCard = document.createElement('div');
+        alertCard.className = 'alert-card negativo';
+        alertCard.innerHTML = `
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-info">
+                <h4>Estoque Negativo</h4>
+                <p><strong>${item.codigoPoste}</strong> - Quantidade: ${item.quantidadeAtual}</p>
+            </div>
+        `;
+        alertasContainer.appendChild(alertCard);
     });
+    
+    // Alertas de estoque zero (máximo 5)
+    estoqueZero.slice(0, 5).forEach(item => {
+        const alertCard = document.createElement('div');
+        alertCard.className = 'alert-card zerado';
+        alertCard.innerHTML = `
+            <span class="alert-icon">📦</span>
+            <div class="alert-info">
+                <h4>Estoque Esgotado</h4>
+                <p><strong>${item.codigoPoste}</strong> - Quantidade: 0</p>
+            </div>
+        `;
+        alertasContainer.appendChild(alertCard);
+    });
+    
+    // Se há mais itens em estoque zero
+    if (estoqueZero.length > 5) {
+        const alertCard = document.createElement('div');
+        alertCard.className = 'alert-card zerado';
+        alertCard.innerHTML = `
+            <span class="alert-icon">📦</span>
+            <div class="alert-info">
+                <h4>Mais Itens</h4>
+                <p>+${estoqueZero.length - 5} outros postes com estoque zero</p>
+            </div>
+        `;
+        alertasContainer.appendChild(alertCard);
+    }
 }
 
 function displayEstoque(estoque) {
@@ -188,11 +277,11 @@ function displayEstoque(estoque) {
     if (!estoque || estoque.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty-table">
+                <td colspan="5" class="empty-table">
                     <div class="empty-state">
                         <div class="empty-icon">📦</div>
-                        <h3>Nenhum item no estoque</h3>
-                        <p>Adicione produtos ao estoque usando o formulário acima.</p>
+                        <h3>Nenhum estoque encontrado</h3>
+                        <p>Adicione postes ao estoque usando o formulário acima.</p>
                     </div>
                 </td>
             </tr>
@@ -202,72 +291,69 @@ function displayEstoque(estoque) {
     
     tbody.innerHTML = '';
     
-    estoque.forEach(item => {
-        const row = document.createElement('tr');
+    // Ordenar: negativos primeiro, depois zeros, depois positivos (decrescente)
+    const estoqueOrdenado = [...estoque].sort((a, b) => {
+        const qA = a.quantidadeAtual || 0;
+        const qB = b.quantidadeAtual || 0;
         
-        // Aplicar classes baseadas no status do estoque
-        if (item.quantidadeAtual === 0) {
-            row.classList.add('sem-estoque-row');
-        } else if (item.estoqueAbaixoMinimo) {
-            row.classList.add('alerta-row');
+        // Se ambos negativos, o mais negativo primeiro
+        if (qA < 0 && qB < 0) return qA - qB;
+        
+        // Negativos sempre primeiro
+        if (qA < 0 && qB >= 0) return -1;
+        if (qA >= 0 && qB < 0) return 1;
+        
+        // Depois zeros e positivos por quantidade decrescente
+        return qB - qA;
+    });
+    
+    estoqueOrdenado.forEach(item => {
+        const row = document.createElement('tr');
+        const quantidade = item.quantidadeAtual || 0;
+        
+        // Aplicar classe CSS baseada na quantidade
+        if (quantidade > 0) {
+            row.className = 'estoque-positivo';
+        } else if (quantidade < 0) {
+            row.className = 'estoque-negativo';
+        } else {
+            row.className = 'estoque-zero';
         }
         
         row.innerHTML = `
-            <td data-label="Código">
-                <strong>${item.codigoPoste}</strong>
-            </td>
+            <td data-label="Código"><strong>${item.codigoPoste || 'N/A'}</strong></td>
             <td data-label="Descrição">
                 <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;" 
-                     title="${item.descricaoPoste}">
-                    ${item.descricaoPoste}
+                     title="${item.descricaoPoste || 'Descrição não disponível'}">
+                    ${item.descricaoPoste || 'Descrição não disponível'}
                 </div>
             </td>
-            <td class="currency" data-label="Preço">${formatCurrency(item.precoPoste)}</td>
-            <td class="quantity ${getQuantityClass(item)}" data-label="Qtd. Atual">
-                <strong>${item.quantidadeAtual}</strong>
-            </td>
-            <td class="quantity" data-label="Qtd. Mínima">
-                ${item.quantidadeMinima || 0}
+            <td class="quantidade ${getQuantidadeClass(quantidade)}" data-label="Quantidade">
+                ${quantidade}
             </td>
             <td data-label="Status">
-                <span class="status ${getStatusClass(item)}">
-                    ${getStatusText(item)}
+                <span class="status ${getQuantidadeClass(quantidade)}">
+                    ${getStatusText(quantidade)}
                 </span>
             </td>
             <td class="date" data-label="Última Atualização">
-                ${item.dataAtualizacao ? formatDateBR(item.dataAtualizacao) : '-'}
-            </td>
-            <td data-label="Ações">
-                <div class="table-actions">
-                    <button class="btn btn-warning btn-small" 
-                            onclick="abrirDefinirMinimo(${item.posteId}, '${item.codigoPoste}', ${item.quantidadeMinima || 0})" 
-                            title="Definir quantidade mínima">
-                        <span class="btn-icon">⚙️</span>
-                        Mínimo
-                    </button>
-                </div>
+                ${formatDateBR(item.dataAtualizacao)}
             </td>
         `;
         tbody.appendChild(row);
     });
 }
 
-function getQuantityClass(item) {
-    if (item.quantidadeAtual === 0) return 'zero';
-    if (item.estoqueAbaixoMinimo) return 'low';
-    return 'ok';
+function getQuantidadeClass(quantidade) {
+    if (quantidade > 0) return 'positivo';
+    if (quantidade < 0) return 'negativo';
+    return 'zero';
 }
 
-function getStatusClass(item) {
-    if (item.quantidadeAtual === 0) return 'sem-estoque';
-    if (item.estoqueAbaixoMinimo) return 'alerta';
-    return 'com-estoque';
-}
-
-function getStatusText(item) {
-    if (item.quantidadeAtual === 0) return '❌ Sem estoque';
-    if (item.estoqueAbaixoMinimo) return '⚠️ Abaixo do mínimo';
-    return '✅ Com estoque';
+function getStatusText(quantidade) {
+    if (quantidade > 0) return '✅ Disponível';
+    if (quantidade < 0) return '⚠️ Negativo';
+    return '📦 Esgotado';
 }
 
 function displayEstoqueError() {
@@ -275,7 +361,7 @@ function displayEstoqueError() {
     if (tbody) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty-table">
+                <td colspan="5" class="empty-table">
                     <div class="empty-state">
                         <div class="empty-icon">❌</div>
                         <h3>Erro ao carregar estoque</h3>
@@ -287,125 +373,27 @@ function displayEstoqueError() {
     }
 }
 
-async function handleEstoqueSubmit(e) {
-    e.preventDefault();
-    
-    const formData = {
-        posteId: parseInt(document.getElementById('estoque-poste').value),
-        quantidade: parseInt(document.getElementById('estoque-quantidade').value),
-        observacao: document.getElementById('estoque-observacao').value.trim()
-    };
-    
-    const erros = validarEstoque(formData);
-    if (erros.length > 0) {
-        showAlert(erros.join(', '), 'warning');
-        return;
-    }
-    
-    try {
-        showLoading(true);
-        await apiRequest('/estoque/adicionar', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-        
-        showAlert('Estoque adicionado com sucesso!', 'success');
-        
-        e.target.reset();
-        
-        await loadEstoque();
-        
-    } catch (error) {
-        console.error('Erro ao adicionar estoque:', error);
-        showAlert('Erro ao adicionar estoque: ' + error.message, 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-async function handleDefinirMinimoSubmit(e) {
-    e.preventDefault();
-    
-    const quantidadeMinima = parseInt(document.getElementById('modal-quantidade-minima').value);
-    
-    if (quantidadeMinima < 0) {
-        showAlert('Quantidade mínima não pode ser negativa', 'warning');
-        return;
-    }
-    
-    try {
-        showLoading(true);
-        await apiRequest(`/estoque/quantidade-minima/${estoqueData.currentEditId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ quantidadeMinima })
-        });
-        
-        showAlert('Quantidade mínima definida com sucesso!', 'success');
-        
-        closeModal('definir-minimo-modal');
-        
-        await loadEstoque();
-        
-    } catch (error) {
-        console.error('Erro ao definir quantidade mínima:', error);
-        showAlert('Erro ao definir quantidade mínima', 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-function abrirDefinirMinimo(posteId, codigoPoste, quantidadeAtual) {
-    document.getElementById('modal-poste-codigo').value = `${codigoPoste} - Definir Mínimo`;
-    document.getElementById('modal-quantidade-minima').value = quantidadeAtual;
-    
-    estoqueData.currentEditId = posteId;
-    document.getElementById('definir-minimo-modal').style.display = 'block';
-}
-
-function validarEstoque(dados) {
-    const erros = [];
-    
-    if (!dados.posteId || dados.posteId <= 0) {
-        erros.push('Selecione um poste válido');
-    }
-    
-    if (!dados.quantidade || dados.quantidade <= 0) {
-        erros.push('Quantidade deve ser maior que zero');
-    }
-    
-    return erros;
-}
-
 function exportarEstoque() {
     if (!estoqueData.filteredEstoque || estoqueData.filteredEstoque.length === 0) {
-        showAlert('Nenhum item no estoque para exportar', 'warning');
+        showAlert('Nenhum estoque para exportar', 'warning');
         return;
     }
     
     const dadosExportar = estoqueData.filteredEstoque.map(item => ({
-        'Código': item.codigoPoste,
-        'Descrição': item.descricaoPoste,
-        'Preço Unitário': item.precoPoste,
-        'Quantidade Atual': item.quantidadeAtual,
-        'Quantidade Mínima': item.quantidadeMinima || 0,
-        'Status': getStatusText(item),
-        'Última Atualização': item.dataAtualizacao ? formatDateBR(item.dataAtualizacao) : '-',
-        'Poste Ativo': item.posteAtivo ? 'Sim' : 'Não'
+        'Código': item.codigoPoste || 'N/A',
+        'Descrição': item.descricaoPoste || 'Descrição não disponível',
+        'Quantidade Atual': item.quantidadeAtual || 0,
+        'Status': getStatusText(item.quantidadeAtual || 0),
+        'Última Atualização': formatDateBR(item.dataAtualizacao)
     }));
     
     exportToCSV(dadosExportar, `estoque_${new Date().toISOString().split('T')[0]}`);
 }
 
 function limparFiltros() {
-    document.getElementById('filtro-status-estoque').value = '';
-    document.getElementById('filtro-codigo-estoque').value = '';
-    document.getElementById('filtro-descricao-estoque').value = '';
+    document.getElementById('filtro-status').value = '';
+    document.getElementById('filtro-codigo').value = '';
+    document.getElementById('filtro-descricao').value = '';
     
     estoqueData.filters = {
         status: '',
@@ -417,24 +405,14 @@ function limparFiltros() {
     showAlert('Filtros limpos', 'success');
 }
 
-async function verificarEstoqueDisponivel(posteId, quantidade) {
-    try {
-        const response = await apiRequest('/estoque/verificar-disponibilidade', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ posteId, quantidade })
-        });
-        
-        return response.disponivel;
-    } catch (error) {
-        console.error('Erro ao verificar disponibilidade:', error);
-        return false;
+// Utilitários
+function updateElement(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = value.toString();
     }
 }
 
-// Utilitários
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
     
@@ -487,13 +465,6 @@ function showAlert(message, type = 'success', duration = 5000) {
     console.log(`📢 Alerta: ${message} (${type})`);
 }
 
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -539,34 +510,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-// Eventos do modal
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('close')) {
-        const modal = e.target.closest('.modal');
-        if (modal) {
-            closeModal(modal.id);
-        }
-    }
-});
-
-// Fechar modal com ESC
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(modal => {
-            if (modal.style.display === 'block') {
-                closeModal(modal.id);
-            }
-        });
-    }
-});
-
-// Funções globais para os botões
-window.loadEstoque = loadEstoque;
-window.exportarEstoque = exportarEstoque;
-window.limparFiltros = limparFiltros;
-window.abrirDefinirMinimo = abrirDefinirMinimo;
-window.closeModal = closeModal;
-window.verificarEstoqueDisponivel = verificarEstoqueDisponivel;
-
-console.log('✅ Estoque JavaScript carregado com sucesso');
+console.log('✅ Estoque simplificado carregado');

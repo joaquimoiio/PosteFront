@@ -32,12 +32,12 @@
     --gray-900: #0f172a;
     
     /* Cores específicas para estoque */
-    --com-estoque: #059669;
-    --com-estoque-light: #f0fdf4;
-    --sem-estoque: #dc2626;
-    --sem-estoque-light: #fef2f2;
-    --alerta: #f59e0b;
-    --alerta-light: #fef3c7;
+    --positivo: #059669;
+    --positivo-light: #dcfce7;
+    --negativo: #dc2626;
+    --negativo-light: #fef2f2;
+    --zerado: #6b7280;
+    --zerado-light: #f3f4f6;
     
     /* Layout */
     --header-height: 70px;
@@ -276,13 +276,6 @@ select.form-input {
     padding-right: calc(var(--space-3) + 2em);
 }
 
-.form-help {
-    font-size: var(--font-xs);
-    color: var(--gray-500);
-    margin-top: var(--space-1);
-    font-style: italic;
-}
-
 .form-actions {
     display: flex;
     gap: var(--space-3);
@@ -326,19 +319,19 @@ select.form-input {
     background: var(--gray-100);
 }
 
-.summary-card.com-estoque {
-    border-left: 4px solid var(--com-estoque);
-    background: var(--com-estoque-light);
+.summary-card.positivo {
+    border-left: 4px solid var(--positivo);
+    background: var(--positivo-light);
 }
 
-.summary-card.sem-estoque {
-    border-left: 4px solid var(--sem-estoque);
-    background: var(--sem-estoque-light);
+.summary-card.negativo {
+    border-left: 4px solid var(--negativo);
+    background: var(--negativo-light);
 }
 
-.summary-card.alerta {
-    border-left: 4px solid var(--alerta);
-    background: var(--alerta-light);
+.summary-card.zerado {
+    border-left: 4px solid var(--zerado);
+    background: var(--zerado-light);
 }
 
 .card-content {
@@ -378,13 +371,71 @@ select.form-input {
     margin-top: var(--space-1);
 }
 
+/* Alert Section */
+.alert-section {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    border-left: 4px solid var(--warning);
+}
+
+.alert-cards {
+    padding: var(--space-6);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-4);
+}
+
+.alert-card {
+    background: var(--warning-light);
+    border: 1px solid var(--warning);
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.alert-card.negativo {
+    background: var(--negativo-light);
+    border-color: var(--negativo);
+}
+
+.alert-card.zerado {
+    background: var(--zerado-light);
+    border-color: var(--zerado);
+}
+
+.alert-placeholder {
+    text-align: center;
+    color: var(--gray-500);
+    grid-column: 1 / -1;
+    padding: var(--space-8);
+}
+
+.alert-icon {
+    font-size: 1.5em;
+    opacity: 0.8;
+}
+
+.alert-info h4 {
+    font-weight: 600;
+    margin-bottom: var(--space-1);
+}
+
+.alert-info p {
+    font-size: var(--font-sm);
+    margin: 0;
+}
+
 /* Filter Section */
 .filter-section {
     background: white;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-md);
     overflow: hidden;
-    border-left: 4px solid var(--warning);
+    border-left: 4px solid var(--info);
 }
 
 .filter-container {
@@ -453,7 +504,7 @@ select.form-input {
     border-collapse: collapse;
     background: white;
     font-size: var(--font-sm);
-    min-width: 800px;
+    min-width: 600px;
 }
 
 .data-table thead {
@@ -494,28 +545,35 @@ select.form-input {
     background: var(--gray-100);
 }
 
-.data-table .currency {
-    font-weight: 600;
-    color: var(--success);
-    white-space: nowrap;
+/* Estoque específico - Linhas com cores baseadas na quantidade */
+.data-table tbody tr.estoque-positivo {
+    background: var(--positivo-light);
 }
 
-.data-table .quantity {
-    font-weight: 600;
-    text-align: center;
+.data-table tbody tr.estoque-negativo {
+    background: var(--negativo-light);
+}
+
+.data-table tbody tr.estoque-zero {
+    background: var(--zerado-light);
+}
+
+.data-table .quantidade {
+    font-weight: 700;
     font-size: var(--font-lg);
+    text-align: center;
 }
 
-.data-table .quantity.zero {
-    color: var(--sem-estoque);
+.data-table .quantidade.positivo {
+    color: var(--positivo);
 }
 
-.data-table .quantity.low {
-    color: var(--alerta);
+.data-table .quantidade.negativo {
+    color: var(--negativo);
 }
 
-.data-table .quantity.ok {
-    color: var(--com-estoque);
+.data-table .quantidade.zero {
+    color: var(--zerado);
 }
 
 .data-table .date {
@@ -534,32 +592,19 @@ select.form-input {
     text-align: center;
 }
 
-.data-table .status.com-estoque {
-    background: var(--com-estoque-light);
-    color: var(--com-estoque);
+.data-table .status.positivo {
+    background: var(--positivo-light);
+    color: var(--positivo);
 }
 
-.data-table .status.sem-estoque {
-    background: var(--sem-estoque-light);
-    color: var(--sem-estoque);
+.data-table .status.negativo {
+    background: var(--negativo-light);
+    color: var(--negativo);
 }
 
-.data-table .status.alerta {
-    background: var(--alerta-light);
-    color: var(--alerta);
-}
-
-.table-actions {
-    display: flex;
-    gap: var(--space-2);
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.table-actions .btn {
-    padding: var(--space-2);
-    font-size: var(--font-xs);
-    min-width: auto;
+.data-table .status.zero {
+    background: var(--zerado-light);
+    color: var(--zerado);
 }
 
 /* Empty State */
@@ -589,81 +634,6 @@ select.form-input {
 .empty-state p {
     font-size: var(--font-base);
     margin-bottom: var(--space-4);
-}
-
-/* Modal */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-}
-
-.modal-content {
-    background: white;
-    margin: 2% auto;
-    border-radius: var(--border-radius);
-    width: 90%;
-    max-width: 500px;
-    box-shadow: var(--shadow-lg);
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.modal-header {
-    padding: var(--space-5) var(--space-6);
-    border-bottom: 1px solid var(--gray-200);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--gray-50);
-}
-
-.modal-header h2 {
-    font-size: var(--font-lg);
-    font-weight: 600;
-    color: var(--gray-900);
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-.modal-icon {
-    font-size: 1.1em;
-}
-
-.close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--gray-500);
-    cursor: pointer;
-    padding: var(--space-2);
-    border-radius: var(--border-radius-sm);
-    transition: all 0.2s ease;
-}
-
-.close:hover {
-    background: var(--gray-200);
-    color: var(--gray-700);
-}
-
-.modal-body {
-    padding: var(--space-6);
-}
-
-.modal-actions {
-    padding: var(--space-5) var(--space-6);
-    border-top: 1px solid var(--gray-200);
-    display: flex;
-    gap: var(--space-3);
-    justify-content: flex-end;
-    background: var(--gray-50);
 }
 
 /* Buttons */
@@ -710,15 +680,6 @@ select.form-input {
 .btn-secondary:hover {
     background: var(--gray-200);
     border-color: var(--gray-400);
-}
-
-.btn-warning {
-    background: var(--warning);
-    color: white;
-}
-
-.btn-warning:hover {
-    background: #d97706;
 }
 
 .btn-small {
@@ -845,6 +806,12 @@ select.form-input {
         padding: var(--space-4);
     }
     
+    .alert-cards {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+        padding: var(--space-4);
+    }
+    
     .filter-container {
         padding: var(--space-4);
     }
@@ -873,22 +840,6 @@ select.form-input {
         padding: var(--space-2);
     }
     
-    .modal-content {
-        width: 95%;
-        margin: 5% auto;
-    }
-    
-    .modal-header,
-    .modal-body,
-    .modal-actions {
-        padding: var(--space-4);
-    }
-    
-    .modal-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
     .alert-container {
         top: var(--space-3);
         right: var(--space-3);
@@ -906,12 +857,12 @@ select.form-input {
         font-size: var(--font-lg);
     }
     
-    .table-actions {
+    .section-actions {
         flex-direction: column;
         align-items: stretch;
     }
     
-    .table-actions .btn {
+    .btn {
         justify-content: center;
     }
 }
@@ -948,8 +899,7 @@ select.form-input {
     .form-section,
     .filter-section,
     .loading-overlay,
-    .alert-container,
-    .modal {
+    .alert-container {
         display: none !important;
     }
     
@@ -959,7 +909,8 @@ select.form-input {
     }
     
     .summary-section,
-    .table-section {
+    .table-section,
+    .alert-section {
         box-shadow: none;
         border: 1px solid var(--gray-300);
         break-inside: avoid;
