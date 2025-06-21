@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Dashboard Mobile - Sistema de Vendas de Postes">
     <title>📱 Dashboard - Vendas de Postes</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="css/universal.css">
+    <script src="js/theme-manager.js"></script>
 </head>
 
 <body>
@@ -49,15 +49,16 @@
 
     <main class="main-content">
         <section class="filter-section">
-            <h2>📅 Período</h2>
+            <h2>📅 Período de Análise</h2>
+            <p>Por padrão, mostra dados do mês atual</p>
             <div class="filter-grid">
                 <div class="filter-group">
-                    <label for="data-inicio">Data Inicial</label>
-                    <input type="date" id="data-inicio" class="filter-input" title="Início do período para análise">
+                    <label for="data-inicio">Data Início</label>
+                    <input type="date" id="data-inicio" title="Início do período para análise">
                 </div>
                 <div class="filter-group">
-                    <label for="data-fim">Data Final</label>
-                    <input type="date" id="data-fim" class="filter-input" title="Fim do período para análise">
+                    <label for="data-fim">Data Fim</label>
+                    <input type="date" id="data-fim" title="Fim do período para análise">
                 </div>
                 <div class="filter-actions">
                     <button class="btn btn-primary" onclick="applyPeriodFilter()">
@@ -109,7 +110,7 @@
         </section>
 
         <section class="summary-section">
-            <h2>💰 Valores</h2>
+            <h2>💰 Valores Financeiros</h2>
             <div class="cards-grid">
                 <div class="metric-card success">
                     <div class="card-icon">💵</div>
@@ -177,7 +178,7 @@
         </section>
 
         <section class="stats-section">
-            <h2>📈 Estatísticas</h2>
+            <h2>📈 Estatísticas Gerais</h2>
             <div class="stats-grid">
                 <div class="stat-item">
                     <div class="stat-icon">⚡</div>
@@ -205,12 +206,47 @@
 
     <div id="loading-overlay" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
-        <p>Carregando...</p>
+        <p>Carregando dados...</p>
     </div>
 
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/index.js"></script>
+    
+    <script>
+        // Atualizar indicador de período
+        function updatePeriodIndicator() {
+            const dataInicio = document.getElementById('data-inicio').value;
+            const dataFim = document.getElementById('data-fim').value;
+            const indicator = document.getElementById('current-period');
+            const text = document.getElementById('current-period-text');
+            
+            if (dataInicio || dataFim) {
+                const inicio = dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : 'Início';
+                const fim = dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : 'Fim';
+                
+                if (dataInicio && dataFim) {
+                    text.textContent = `Período: ${inicio} até ${fim}`;
+                } else if (dataInicio) {
+                    text.textContent = `A partir de: ${inicio}`;
+                } else {
+                    text.textContent = `Até: ${fim}`;
+                }
+                
+                indicator.style.display = 'flex';
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+        
+        // Listeners para atualizar indicador
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('data-inicio')?.addEventListener('change', updatePeriodIndicator);
+            document.getElementById('data-fim')?.addEventListener('change', updatePeriodIndicator);
+            
+            console.log('📊 Dashboard carregado com dark mode');
+        });
+    </script>
 </body>
 
 </html>

@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📱 Despesas - Sistema de Postes</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="css/universal.css">
+    <script src="js/theme-manager.js"></script>
 </head>
 
 <body>
@@ -157,13 +157,18 @@
             <div class="section-header">
                 <h2>📋 Despesas Cadastradas</h2>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="loadDespesas()">🔄</button>
-                    <button class="btn btn-small" onclick="exportarDespesas()">📊</button>
+                    <button class="btn btn-small" onclick="loadDespesas()" title="Atualizar dados">
+                        <span>🔄</span>
+                    </button>
+                    <button class="btn btn-small" onclick="exportarDespesas()" title="Exportar para CSV">
+                        <span>📊</span>
+                    </button>
                 </div>
             </div>
 
             <div class="table-container">
                 <div id="despesas-list" class="mobile-list">
+                    <!-- Conteúdo será carregado dinamicamente -->
                 </div>
             </div>
         </section>
@@ -173,7 +178,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>✏️ Editar Despesa</h3>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <button class="close-btn" onclick="closeModal()" aria-label="Fechar modal">&times;</button>
             </div>
             <form id="edit-form">
                 <div class="modal-body">
@@ -184,12 +189,12 @@
 
                     <div class="form-group">
                         <label for="edit-despesa-valor">Valor *</label>
-                        <input type="number" step="0.01" id="edit-despesa-valor" required min="0.01">
+                        <input type="number" step="0.01" id="edit-despesa-valor" required min="0.01" placeholder="R$ 0,00">
                     </div>
 
                     <div class="form-group">
                         <label for="edit-despesa-descricao">Descrição *</label>
-                        <input type="text" id="edit-despesa-descricao" required minlength="3" maxlength="500">
+                        <input type="text" id="edit-despesa-descricao" required minlength="3" maxlength="500" placeholder="Descrição da despesa">
                     </div>
 
                     <div class="form-group">
@@ -202,8 +207,12 @@
                 </div>
 
                 <div class="modal-actions">
-                    <button type="submit" class="btn btn-primary">💾 Salvar</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span> Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                        Cancelar
+                    </button>
                 </div>
             </form>
         </div>
@@ -217,6 +226,41 @@
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/despesas.js"></script>
+    
+    <script>
+        // Atualizar indicador de período
+        function updatePeriodIndicator() {
+            const dataInicio = document.getElementById('filtro-data-inicio').value;
+            const dataFim = document.getElementById('filtro-data-fim').value;
+            const indicator = document.getElementById('period-indicator');
+            const text = document.getElementById('period-text');
+            
+            if (dataInicio || dataFim) {
+                const inicio = dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : 'Início';
+                const fim = dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : 'Fim';
+                
+                if (dataInicio && dataFim) {
+                    text.textContent = `Período: ${inicio} até ${fim}`;
+                } else if (dataInicio) {
+                    text.textContent = `A partir de: ${inicio}`;
+                } else {
+                    text.textContent = `Até: ${fim}`;
+                }
+                
+                indicator.style.display = 'flex';
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+        
+        // Listeners para atualizar indicador
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('filtro-data-inicio')?.addEventListener('change', updatePeriodIndicator);
+            document.getElementById('filtro-data-fim')?.addEventListener('change', updatePeriodIndicator);
+            
+            console.log('💸 Despesas carregadas com dark mode');
+        });
+    </script>
 </body>
 
 </html>

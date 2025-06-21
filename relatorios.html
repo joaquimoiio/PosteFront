@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📱 Relatórios - Sistema de Postes</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="css/universal.css">
+    <script src="js/theme-manager.js"></script>
 </head>
 
 <body>
@@ -52,12 +52,12 @@
             <form id="relatorio-form">
                 <div class="form-group">
                     <label for="data-inicio">Data Início *</label>
-                    <input type="date" id="data-inicio" required>
+                    <input type="date" id="data-inicio" required title="Selecione a data de início do período">
                 </div>
 
                 <div class="form-group">
                     <label for="data-fim">Data Fim *</label>
-                    <input type="date" id="data-fim" required>
+                    <input type="date" id="data-fim" required title="Selecione a data final do período">
                 </div>
 
                 <div class="form-group">
@@ -79,7 +79,8 @@
                 </div>
             </form>
 
-            <div id="periodo-info" class="period-info" style="display: none;">
+            <div id="periodo-info" class="period-indicator" style="display: none;">
+                <span class="period-icon">📊</span>
                 <span id="periodo-texto">Período selecionado</span>
             </div>
         </section>
@@ -114,13 +115,18 @@
             <div class="section-header">
                 <h2>📈 Relatório por Poste</h2>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="gerarRelatorio()">🔄</button>
-                    <button class="btn btn-small" onclick="exportarRelatorio()">📊</button>
+                    <button class="btn btn-small" onclick="gerarRelatorio()" title="Atualizar relatório">
+                        <span>🔄</span>
+                    </button>
+                    <button class="btn btn-small" onclick="exportarRelatorio()" title="Exportar para CSV">
+                        <span>📊</span>
+                    </button>
                 </div>
             </div>
 
             <div class="table-container">
                 <div id="relatorio-list" class="mobile-list">
+                    <!-- Conteúdo será carregado dinamicamente -->
                 </div>
             </div>
         </section>
@@ -128,6 +134,7 @@
         <section class="charts-section" id="charts-section" style="display: none;">
             <h2>📊 Top 10 Mais Vendidos</h2>
             <div id="top-chart" class="chart-container">
+                <!-- Gráfico será carregado dinamicamente -->
             </div>
         </section>
     </main>
@@ -140,6 +147,39 @@
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/relatorios.js"></script>
+    
+    <script>
+        // Atualizar indicador de período
+        function updatePeriodIndicator() {
+            const dataInicio = document.getElementById('data-inicio').value;
+            const dataFim = document.getElementById('data-fim').value;
+            const periodoInfo = document.getElementById('periodo-info');
+            const periodoTexto = document.getElementById('periodo-texto');
+            
+            if (dataInicio && dataFim) {
+                const inicio = new Date(dataInicio).toLocaleDateString('pt-BR');
+                const fim = new Date(dataFim).toLocaleDateString('pt-BR');
+                
+                if (dataInicio === dataFim) {
+                    periodoTexto.textContent = `📊 Relatório para ${inicio}`;
+                } else {
+                    periodoTexto.textContent = `📊 Relatório de ${inicio} até ${fim}`;
+                }
+                
+                periodoInfo.style.display = 'flex';
+            } else {
+                periodoInfo.style.display = 'none';
+            }
+        }
+        
+        // Listeners para atualizar indicador
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('data-inicio')?.addEventListener('change', updatePeriodIndicator);
+            document.getElementById('data-fim')?.addEventListener('change', updatePeriodIndicator);
+            
+            console.log('📈 Relatórios carregados com dark mode');
+        });
+    </script>
 </body>
 
 </html>

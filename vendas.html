@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📱 Vendas - Sistema de Postes</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="css/universal.css">
+    <script src="js/theme-manager.js"></script>
 </head>
 
 <body>
@@ -69,7 +69,7 @@
                     <h3>📈 Venda Extra</h3>
                     <div class="form-group">
                         <label for="venda-valor-extra">Valor Extra *</label>
-                        <input type="number" step="0.01" id="venda-valor-extra" placeholder="R$ 0,00">
+                        <input type="number" step="0.01" id="venda-valor-extra" placeholder="R$ 0,00" min="0.01">
                     </div>
                 </div>
 
@@ -83,11 +83,11 @@
                     </div>
                     <div class="form-group">
                         <label for="venda-quantidade-v">Quantidade</label>
-                        <input type="number" id="venda-quantidade-v" min="1" value="1">
+                        <input type="number" id="venda-quantidade-v" min="1" value="1" placeholder="Quantidade">
                     </div>
                     <div class="form-group">
                         <label for="venda-valor-total-v">Valor de Venda *</label>
-                        <input type="number" step="0.01" id="venda-valor-total-v" placeholder="R$ 0,00">
+                        <input type="number" step="0.01" id="venda-valor-total-v" placeholder="R$ 0,00" min="0.01">
                     </div>
                 </div>
 
@@ -101,17 +101,17 @@
                     </div>
                     <div class="form-group">
                         <label for="venda-quantidade-l">Quantidade</label>
-                        <input type="number" id="venda-quantidade-l" min="1" value="1">
+                        <input type="number" id="venda-quantidade-l" min="1" value="1" placeholder="Quantidade">
                     </div>
                     <div class="form-group">
                         <label for="venda-frete-l">Frete Eletrons</label>
-                        <input type="number" step="0.01" id="venda-frete-l" placeholder="R$ 0,00" value="0">
+                        <input type="number" step="0.01" id="venda-frete-l" placeholder="R$ 0,00" value="0" min="0">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="venda-observacoes">Observações</label>
-                    <textarea id="venda-observacoes" rows="3" placeholder="Observações sobre a venda..."></textarea>
+                    <textarea id="venda-observacoes" rows="3" placeholder="Observações sobre a venda..." maxlength="500"></textarea>
                 </div>
 
                 <div class="form-actions">
@@ -151,11 +151,13 @@
             </div>
         </section>
 
+        <!-- FILTROS PADRONIZADOS CONFORME SOLICITADO -->
         <section class="filter-section">
             <h2>🔍 Filtros</h2>
+            <p>Por padrão, mostra vendas do mês atual</p>
             <div class="filter-grid">
                 <div class="filter-group">
-                    <label for="filtro-tipo-venda">Tipo</label>
+                    <label for="filtro-tipo-venda">Tipo de Venda</label>
                     <select id="filtro-tipo-venda">
                         <option value="">Todos os tipos</option>
                         <option value="E">📈 Extra (E)</option>
@@ -164,12 +166,16 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filtro-data-inicio">De</label>
-                    <input type="date" id="filtro-data-inicio" title="Data inicial do período">
+                    <label for="filtro-data-inicio">Data Início</label>
+                    <input type="date" id="filtro-data-inicio" title="Selecione a data de início">
                 </div>
                 <div class="filter-group">
-                    <label for="filtro-data-fim">Até</label>
-                    <input type="date" id="filtro-data-fim" title="Data final do período">
+                    <label for="filtro-data-fim">Data Fim</label>
+                    <input type="date" id="filtro-data-fim" title="Selecione a data final">
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-cliente">Cliente</label>
+                    <input type="text" id="filtro-cliente" placeholder="Buscar cliente...">
                 </div>
                 <div class="filter-actions">
                     <button class="btn btn-secondary" onclick="limparFiltros()">
@@ -187,23 +193,29 @@
             <div class="section-header">
                 <h2>📋 Vendas Realizadas</h2>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="loadVendas()">🔄</button>
-                    <button class="btn btn-small" onclick="exportarVendas()">📊</button>
+                    <button class="btn btn-small" onclick="loadVendas()" title="Atualizar dados">
+                        <span>🔄</span>
+                    </button>
+                    <button class="btn btn-small" onclick="exportarVendas()" title="Exportar para CSV">
+                        <span>📊</span>
+                    </button>
                 </div>
             </div>
 
             <div class="table-container">
                 <div id="vendas-list" class="mobile-list">
+                    <!-- Conteúdo será carregado dinamicamente -->
                 </div>
             </div>
         </section>
     </main>
 
+    <!-- MODAL DE EDIÇÃO -->
     <div id="edit-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>✏️ Editar Venda</h3>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <button class="close-btn" onclick="closeModal()" aria-label="Fechar modal">&times;</button>
             </div>
             <form id="edit-form">
                 <div class="modal-body">
@@ -218,41 +230,94 @@
 
                     <div class="form-group" id="edit-frete-group">
                         <label for="edit-frete-eletrons">Frete Eletrons</label>
-                        <input type="number" step="0.01" id="edit-frete-eletrons">
+                        <input type="number" step="0.01" id="edit-frete-eletrons" placeholder="R$ 0,00" min="0">
                     </div>
 
                     <div class="form-group" id="edit-valor-group">
                         <label for="edit-valor-total">Valor de Venda</label>
-                        <input type="number" step="0.01" id="edit-valor-total">
+                        <input type="number" step="0.01" id="edit-valor-total" placeholder="R$ 0,00" min="0.01">
                     </div>
 
                     <div class="form-group" id="edit-extra-group">
                         <label for="edit-valor-extra">Valor Extra</label>
-                        <input type="number" step="0.01" id="edit-valor-extra">
+                        <input type="number" step="0.01" id="edit-valor-extra" placeholder="R$ 0,00" min="0.01">
                     </div>
 
                     <div class="form-group">
                         <label for="edit-observacoes">Observações</label>
-                        <textarea id="edit-observacoes" rows="3"></textarea>
+                        <textarea id="edit-observacoes" rows="3" placeholder="Observações sobre a venda..." maxlength="500"></textarea>
                     </div>
                 </div>
 
                 <div class="modal-actions">
-                    <button type="submit" class="btn btn-primary">💾 Salvar</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span> Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                        Cancelar
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- LOADING OVERLAY -->
     <div id="loading" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
         <p>Carregando...</p>
     </div>
 
+    <!-- ALERT CONTAINER -->
     <div id="alert-container" class="alert-container"></div>
 
+    <!-- SCRIPTS -->
     <script src="js/vendas.js"></script>
+    
+    <!-- Script adicional para funcionalidades específicas -->
+    <script>
+        // Atualizar indicador de período
+        function updatePeriodIndicator() {
+            const dataInicio = document.getElementById('filtro-data-inicio').value;
+            const dataFim = document.getElementById('filtro-data-fim').value;
+            const indicator = document.getElementById('period-indicator');
+            const text = document.getElementById('period-text');
+            
+            if (dataInicio || dataFim) {
+                const inicio = dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : 'Início';
+                const fim = dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : 'Fim';
+                
+                if (dataInicio && dataFim) {
+                    text.textContent = `Período: ${inicio} até ${fim}`;
+                } else if (dataInicio) {
+                    text.textContent = `A partir de: ${inicio}`;
+                } else {
+                    text.textContent = `Até: ${fim}`;
+                }
+                
+                indicator.style.display = 'flex';
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+        
+        // Event listeners e inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            // Adicionar listeners aos filtros de data
+            document.getElementById('filtro-data-inicio')?.addEventListener('change', updatePeriodIndicator);
+            document.getElementById('filtro-data-fim')?.addEventListener('change', updatePeriodIndicator);
+            
+            // Listener para mudanças de tema (exemplo de integração)
+            window.addEventListener('themeChanged', (event) => {
+                const { theme, effectiveTheme } = event.detail;
+                console.log(`Tema alterado para: ${theme} (efetivo: ${effectiveTheme})`);
+                
+                // Aqui você pode fazer ajustes específicos se necessário
+                // Por exemplo, recarregar gráficos que não se adaptam automaticamente
+            });
+            
+            console.log('📋 Vendas carregadas com dark mode e filtros padronizados');
+        });
+    </script>
 </body>
 
 </html>

@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📱 Estoque - Sistema de Postes</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="css/universal.css">
+    <script src="js/theme-manager.js"></script>
 </head>
 
 <body>
@@ -64,7 +64,7 @@
 
                 <div class="form-group">
                     <label for="estoque-observacao">Observação</label>
-                    <input type="text" id="estoque-observacao" placeholder="Ex: Compra, devolução...">
+                    <input type="text" id="estoque-observacao" placeholder="Ex: Compra, devolução..." maxlength="255">
                 </div>
 
                 <div class="form-actions">
@@ -107,6 +107,7 @@
         <section class="alert-section" id="alertas-section" style="display: none;">
             <h2>⚠️ Alertas de Estoque</h2>
             <div id="alertas-list" class="mobile-list">
+                <!-- Alertas serão carregados dinamicamente -->
             </div>
         </section>
 
@@ -142,13 +143,18 @@
             <div class="section-header">
                 <h2>📦 Inventário Atual</h2>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="loadEstoque()">🔄</button>
-                    <button class="btn btn-small" onclick="exportarEstoque()">📊</button>
+                    <button class="btn btn-small" onclick="loadEstoque()" title="Atualizar dados">
+                        <span>🔄</span>
+                    </button>
+                    <button class="btn btn-small" onclick="exportarEstoque()" title="Exportar para CSV">
+                        <span>📊</span>
+                    </button>
                 </div>
             </div>
 
             <div class="table-container">
                 <div id="estoque-list" class="mobile-list">
+                    <!-- Conteúdo será carregado dinamicamente -->
                 </div>
             </div>
         </section>
@@ -162,6 +168,12 @@
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/estoque.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📦 Estoque carregado com dark mode');
+        });
+    </script>
 </body>
 
 </html>
