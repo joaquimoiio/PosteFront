@@ -154,17 +154,32 @@
         <section class="filter-section">
             <h2>🔍 Filtros</h2>
             <div class="filter-grid">
-                <select id="filtro-tipo-venda">
-                    <option value="">Todos os tipos</option>
-                    <option value="E">📈 Extra (E)</option>
-                    <option value="V">🛒 Normal (V)</option>
-                    <option value="L">🏪 Loja (L)</option>
-                </select>
-                <input type="date" id="filtro-data-inicio" placeholder="Data início">
-                <input type="date" id="filtro-data-fim" placeholder="Data fim">
-                <button class="btn btn-secondary" onclick="limparFiltros()">
-                    <span>🧹</span> Limpar
-                </button>
+                <div class="filter-group">
+                    <label for="filtro-tipo-venda">Tipo</label>
+                    <select id="filtro-tipo-venda">
+                        <option value="">Todos os tipos</option>
+                        <option value="E">📈 Extra (E)</option>
+                        <option value="V">🛒 Normal (V)</option>
+                        <option value="L">🏪 Loja (L)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-data-inicio">De</label>
+                    <input type="date" id="filtro-data-inicio" title="Data inicial do período">
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-data-fim">Até</label>
+                    <input type="date" id="filtro-data-fim" title="Data final do período">
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-secondary" onclick="limparFiltros()">
+                        <span>🧹</span> Limpar
+                    </button>
+                </div>
+            </div>
+            <div id="period-indicator" class="period-indicator" style="display: none;">
+                <span class="period-icon">📅</span>
+                <span id="period-text">Período selecionado</span>
             </div>
         </section>
 

@@ -121,17 +121,35 @@
             <h2>🔍 Filtros</h2>
             <p>Por padrão, mostra despesas do mês atual</p>
             <div class="filter-grid">
-                <select id="filtro-tipo">
-                    <option value="">Todas as categorias</option>
-                    <option value="FUNCIONARIO">👥 Funcionário</option>
-                    <option value="OUTRAS">📋 Outras</option>
-                </select>
-                <input type="date" id="filtro-data-inicio" placeholder="Data início">
-                <input type="date" id="filtro-data-fim" placeholder="Data fim">
-                <input type="text" id="filtro-descricao" placeholder="Buscar descrição...">
-                <button class="btn btn-secondary" onclick="limparFiltros()">
-                    <span>🧹</span> Limpar
-                </button>
+                <div class="filter-group">
+                    <label for="filtro-tipo">Categoria</label>
+                    <select id="filtro-tipo">
+                        <option value="">Todas as categorias</option>
+                        <option value="FUNCIONARIO">👥 Funcionário</option>
+                        <option value="OUTRAS">📋 Outras</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-data-inicio">Data Início</label>
+                    <input type="date" id="filtro-data-inicio" title="Selecione a data de início">
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-data-fim">Data Fim</label>
+                    <input type="date" id="filtro-data-fim" title="Selecione a data final">
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-descricao">Descrição</label>
+                    <input type="text" id="filtro-descricao" placeholder="Buscar descrição...">
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-secondary" onclick="limparFiltros()">
+                        <span>🧹</span> Limpar
+                    </button>
+                </div>
+            </div>
+            <div id="period-indicator" class="period-indicator" style="display: none;">
+                <span class="period-icon">📅</span>
+                <span id="period-text">Período selecionado</span>
             </div>
         </section>
 

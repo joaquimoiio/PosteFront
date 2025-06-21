@@ -113,17 +113,28 @@
         <section class="filter-section">
             <h2>🔍 Filtros</h2>
             <div class="filter-grid">
-                <select id="filtro-status">
-                    <option value="">Todos os status</option>
-                    <option value="positivo">✅ Positivo (> 0)</option>
-                    <option value="zero">📦 Zero (= 0)</option>
-                    <option value="negativo">⚠️ Negativo (< 0)</option>
-                </select>
-                <input type="text" id="filtro-codigo" placeholder="Buscar código...">
-                <input type="text" id="filtro-descricao" placeholder="Buscar descrição...">
-                <button class="btn btn-secondary" onclick="limparFiltros()">
-                    <span>🧹</span> Limpar
-                </button>
+                <div class="filter-group">
+                    <label for="filtro-status">Status</label>
+                    <select id="filtro-status">
+                        <option value="">Todos os status</option>
+                        <option value="positivo">✅ Positivo (> 0)</option>
+                        <option value="zero">📦 Zero (= 0)</option>
+                        <option value="negativo">⚠️ Negativo (< 0)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-codigo">Código</label>
+                    <input type="text" id="filtro-codigo" placeholder="Buscar código...">
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-descricao">Descrição</label>
+                    <input type="text" id="filtro-descricao" placeholder="Buscar descrição...">
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-secondary" onclick="limparFiltros()">
+                        <span>🧹</span> Limpar
+                    </button>
+                </div>
             </div>
         </section>
 

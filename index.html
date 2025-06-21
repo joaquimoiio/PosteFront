@@ -51,14 +51,26 @@
         <section class="filter-section">
             <h2>📅 Período</h2>
             <div class="filter-grid">
-                <input type="date" id="data-inicio" class="filter-input">
-                <input type="date" id="data-fim" class="filter-input">
-                <button class="btn btn-primary" onclick="applyPeriodFilter()">
-                    <span>🔍</span> Filtrar
-                </button>
-                <button class="btn btn-secondary" onclick="clearPeriodFilter()">
-                    <span>🧹</span> Limpar
-                </button>
+                <div class="filter-group">
+                    <label for="data-inicio">Data Inicial</label>
+                    <input type="date" id="data-inicio" class="filter-input" title="Início do período para análise">
+                </div>
+                <div class="filter-group">
+                    <label for="data-fim">Data Final</label>
+                    <input type="date" id="data-fim" class="filter-input" title="Fim do período para análise">
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-primary" onclick="applyPeriodFilter()">
+                        <span>🔍</span> Filtrar
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearPeriodFilter()">
+                        <span>🧹</span> Limpar
+                    </button>
+                </div>
+            </div>
+            <div id="current-period" class="period-indicator" style="display: none;">
+                <span class="period-icon">📊</span>
+                <span id="current-period-text">Período atual</span>
             </div>
         </section>
 
