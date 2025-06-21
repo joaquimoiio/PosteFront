@@ -1,298 +1,166 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Gerenciamento de Estoque - Sistema de Vendas de Postes">
-    <title>Estoque - Gerenciador de Vendas de Postes</title>
+    <title>📱 Estoque - Sistema de Postes</title>
     <link rel="stylesheet" href="css/estoque.css">
 </head>
-
 <body>
-    <!-- Header -->
-    <header class="header" role="banner">
+    <!-- Header Mobile -->
+    <header class="header">
         <div class="header-content">
-            <h1>⚡ Gerenciador de Vendas de Postes</h1>
-            <p>Estoque - Controle de Inventário (Permite Estoque Negativo)</p>
+            <h1>📦 Estoque</h1>
+            <p>Controle de Inventário</p>
         </div>
     </header>
 
-    <!-- Navigation -->
-    <nav class="main-nav" role="navigation" aria-label="Navegação principal">
+    <!-- Navigation Mobile -->
+    <nav class="main-nav">
         <div class="nav-container">
             <a href="index.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">📊</span>
-                <span class="nav-text">Dashboard</span>
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
             </a>
             <a href="vendas.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">📋</span>
-                <span class="nav-text">Vendas</span>
+                <span class="nav-icon">📋</span>
+                <span>Vendas</span>
             </a>
             <a href="despesas.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">💸</span>
-                <span class="nav-text">Despesas</span>
+                <span class="nav-icon">💸</span>
+                <span>Despesas</span>
             </a>
             <a href="postes.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">⚡</span>
-                <span class="nav-text">Postes</span>
+                <span class="nav-icon">⚡</span>
+                <span>Postes</span>
             </a>
-            <a href="estoque.html" class="nav-item active" aria-current="page">
-                <span class="nav-icon" aria-hidden="true">📦</span>
-                <span class="nav-text">Estoque</span>
+            <a href="estoque.html" class="nav-item active">
+                <span class="nav-icon">📦</span>
+                <span>Estoque</span>
             </a>
             <a href="relatorios.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">📈</span>
-                <span class="nav-text">Relatórios</span>
+                <span class="nav-icon">📈</span>
+                <span>Relatórios</span>
             </a>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="main-content" role="main">
-        <div class="estoque-page">
-
-            <!-- Adicionar Estoque -->
-            <section class="form-section" aria-labelledby="adicionar-titulo">
-                <header class="section-header">
-                    <h2 id="adicionar-titulo">
-                        <span class="section-icon">➕</span>
-                        Adicionar ao Estoque
-                    </h2>
-                    <p class="section-description">Registrar entrada de postes no estoque</p>
-                </header>
-
-                <form id="estoque-form" class="form-container" novalidate>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="estoque-poste" class="form-label">
-                                <span class="label-icon">⚡</span>
-                                Poste
-                                <span class="required" aria-label="Campo obrigatório">*</span>
-                            </label>
-                            <select id="estoque-poste" class="form-input" required>
-                                <option value="">Selecione um poste</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="estoque-quantidade" class="form-label">
-                                <span class="label-icon">📦</span>
-                                Quantidade
-                                <span class="required" aria-label="Campo obrigatório">*</span>
-                            </label>
-                            <input type="number" id="estoque-quantidade" class="form-input" required
-                                placeholder="Ex: 10" min="1">
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="estoque-observacao" class="form-label">
-                                <span class="label-icon">📝</span>
-                                Observação
-                            </label>
-                            <input type="text" id="estoque-observacao" class="form-input"
-                                placeholder="Ex: Compra, devolução, ajuste..." maxlength="500">
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <span class="btn-icon">📦</span>
-                            Adicionar ao Estoque
-                        </button>
-                        <button type="reset" class="btn btn-secondary">
-                            <span class="btn-icon">🔄</span>
-                            Limpar
-                        </button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Resumo do Estoque -->
-            <section class="summary-section" aria-labelledby="resumo-titulo">
-                <header class="section-header">
-                    <h2 id="resumo-titulo">
-                        <span class="section-icon">📊</span>
-                        Resumo do Estoque
-                    </h2>
-                    <p class="section-description">Visão geral do inventário atual</p>
-                </header>
-
-                <div class="summary-cards">
-                    <article class="summary-card total">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">⚡</span>
-                                <h3>Total de Tipos</h3>
-                            </div>
-                            <div class="summary-value" id="total-tipos-postes" aria-live="polite">0</div>
-                            <small class="card-note">Postes diferentes cadastrados</small>
-                        </div>
-                    </article>
-
-                    <article class="summary-card positivo">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">✅</span>
-                                <h3>Estoque Positivo</h3>
-                            </div>
-                            <div class="summary-value" id="total-estoque-positivo" aria-live="polite">0</div>
-                            <small class="card-note">Postes com quantidade > 0</small>
-                        </div>
-                    </article>
-
-                    <article class="summary-card negativo">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">⚠️</span>
-                                <h3>Estoque Negativo</h3>
-                            </div>
-                            <div class="summary-value" id="total-estoque-negativo" aria-live="polite">0</div>
-                            <small class="card-note">Postes com quantidade < 0</small>
-                        </div>
-                    </article>
-
-                    <article class="summary-card zerado">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">📦</span>
-                                <h3>Estoque Zero</h3>
-                            </div>
-                            <div class="summary-value" id="total-estoque-zero" aria-live="polite">0</div>
-                            <small class="card-note">Postes com quantidade = 0</small>
-                        </div>
-                    </article>
+    <main class="main-content">
+        <!-- Adicionar Estoque -->
+        <section class="form-section">
+            <h2>➕ Adicionar Estoque</h2>
+            <form id="estoque-form">
+                <div class="form-group">
+                    <label for="estoque-poste">Poste *</label>
+                    <select id="estoque-poste" required>
+                        <option value="">Selecione um poste</option>
+                    </select>
                 </div>
-            </section>
 
-            <!-- Alertas de Estoque -->
-            <section class="alert-section" aria-labelledby="alertas-titulo">
-                <header class="section-header">
-                    <h2 id="alertas-titulo">
-                        <span class="section-icon">⚠️</span>
-                        Alertas de Estoque
-                    </h2>
-                    <p class="section-description">Postes que necessitam atenção</p>
-                </header>
-
-                <div class="alert-cards" id="estoque-alertas">
-                    <div class="alert-placeholder">
-                        <span class="alert-icon">📦</span>
-                        <p>Carregando alertas de estoque...</p>
-                    </div>
+                <div class="form-group">
+                    <label for="estoque-quantidade">Quantidade *</label>
+                    <input type="number" id="estoque-quantidade" required 
+                           placeholder="Ex: 10" min="1">
                 </div>
-            </section>
 
-            <!-- Filtros -->
-            <section class="filter-section" aria-labelledby="filtros-titulo">
-                <header class="section-header">
-                    <h2 id="filtros-titulo">
-                        <span class="section-icon">🔍</span>
-                        Filtros de Busca
-                    </h2>
-                </header>
-
-                <div class="filter-container">
-                    <div class="filter-grid">
-                        <div class="filter-group">
-                            <label for="filtro-status" class="filter-label">
-                                <span class="label-icon">📊</span>
-                                Status do Estoque
-                            </label>
-                            <select id="filtro-status" class="filter-input">
-                                <option value="">Todos os status</option>
-                                <option value="positivo">✅ Positivo (> 0)</option>
-                                <option value="zero">📦 Zero (= 0)</option>
-                                <option value="negativo">⚠️ Negativo (< 0)</option>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="filtro-codigo" class="filter-label">
-                                <span class="label-icon">🔍</span>
-                                Código do Poste
-                            </label>
-                            <input type="text" id="filtro-codigo" class="filter-input"
-                                placeholder="Buscar por código...">
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="filtro-descricao" class="filter-label">
-                                <span class="label-icon">🔍</span>
-                                Descrição
-                            </label>
-                            <input type="text" id="filtro-descricao" class="filter-input"
-                                placeholder="Buscar na descrição...">
-                        </div>
-
-                        <div class="filter-actions">
-                            <button type="button" class="btn btn-secondary btn-small" onclick="limparFiltros()">
-                                <span class="btn-icon">🧹</span>
-                                Limpar Filtros
-                            </button>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label for="estoque-observacao">Observação</label>
+                    <input type="text" id="estoque-observacao" 
+                           placeholder="Ex: Compra, devolução...">
                 </div>
-            </section>
 
-            <!-- Lista de Estoque -->
-            <section class="table-section" aria-labelledby="lista-titulo">
-                <header class="section-header">
-                    <h2 id="lista-titulo">
-                        <span class="section-icon">📦</span>
-                        Inventário Atual
-                    </h2>
-                    <div class="section-actions">
-                        <button type="button" class="btn btn-secondary btn-small" onclick="loadEstoque()">
-                            <span class="btn-icon">🔄</span>
-                            Atualizar
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="exportarEstoque()">
-                            <span class="btn-icon">📊</span>
-                            Exportar
-                        </button>
-                    </div>
-                </header>
-
-                <div class="table-container" role="region" aria-labelledby="lista-titulo" tabindex="0">
-                    <table id="estoque-table" class="data-table" role="table">
-                        <thead>
-                            <tr role="row">
-                                <th scope="col">Código</th>
-                                <th scope="col">Descrição do Poste</th>
-                                <th scope="col">Quantidade Atual</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Última Atualização</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="5" class="empty-table">
-                                    <div class="empty-state">
-                                        <div class="empty-icon">📦</div>
-                                        <h3>Carregando estoque...</h3>
-                                        <p>Aguarde enquanto carregamos os dados do estoque.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>📦</span> Adicionar ao Estoque
+                    </button>
+                    <button type="reset" class="btn btn-secondary">
+                        <span>🔄</span> Limpar
+                    </button>
                 </div>
-            </section>
+            </form>
+        </section>
 
-        </div>
+        <!-- Resumo do Estoque -->
+        <section class="summary-section">
+            <h2>📊 Resumo do Estoque</h2>
+            <div class="stats-grid">
+                <div class="stat-item total">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-number" id="total-tipos">0</div>
+                    <div class="stat-label">Tipos de Postes</div>
+                </div>
+                <div class="stat-item positivo">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-number" id="estoque-positivo">0</div>
+                    <div class="stat-label">Estoque Positivo</div>
+                </div>
+                <div class="stat-item negativo">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-number" id="estoque-negativo">0</div>
+                    <div class="stat-label">Estoque Negativo</div>
+                </div>
+                <div class="stat-item zero">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-number" id="estoque-zero">0</div>
+                    <div class="stat-label">Estoque Zero</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Alertas de Estoque -->
+        <section class="alert-section" id="alertas-section" style="display: none;">
+            <h2>⚠️ Alertas de Estoque</h2>
+            <div id="alertas-list" class="mobile-list">
+                <!-- Alertas serão carregados aqui -->
+            </div>
+        </section>
+
+        <!-- Filtros -->
+        <section class="filter-section">
+            <h2>🔍 Filtros</h2>
+            <div class="filter-grid">
+                <select id="filtro-status">
+                    <option value="">Todos os status</option>
+                    <option value="positivo">✅ Positivo (> 0)</option>
+                    <option value="zero">📦 Zero (= 0)</option>
+                    <option value="negativo">⚠️ Negativo (< 0)</option>
+                </select>
+                <input type="text" id="filtro-codigo" placeholder="Buscar código...">
+                <input type="text" id="filtro-descricao" placeholder="Buscar descrição...">
+                <button class="btn btn-secondary" onclick="limparFiltros()">
+                    <span>🧹</span> Limpar
+                </button>
+            </div>
+        </section>
+
+        <!-- Lista de Estoque -->
+        <section class="table-section">
+            <div class="section-header">
+                <h2>📦 Inventário Atual</h2>
+                <div class="section-actions">
+                    <button class="btn btn-small" onclick="loadEstoque()">🔄</button>
+                    <button class="btn btn-small" onclick="exportarEstoque()">📊</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <div id="estoque-list" class="mobile-list">
+                    <!-- Estoque será carregado aqui -->
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- Overlay de Carregamento -->
-    <div id="loading-overlay" class="loading-overlay" role="status" aria-live="polite" aria-hidden="true">
-        <div class="spinner" aria-hidden="true"></div>
-        <p>Carregando dados do estoque...</p>
+    <!-- Loading -->
+    <div id="loading" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Carregando...</p>
     </div>
 
-    <!-- Container de Alertas -->
-    <div id="alert-container" class="alert-container" role="alert" aria-live="assertive" aria-atomic="true"></div>
+    <!-- Alerts -->
+    <div id="alert-container" class="alert-container"></div>
 
     <script src="js/estoque.js"></script>
 </body>
-
 </html>
