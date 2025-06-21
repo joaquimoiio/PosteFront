@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,6 +37,10 @@
                 <span class="nav-icon" aria-hidden="true">⚡</span>
                 <span class="nav-text">Postes</span>
             </a>
+            <a href="estoque.html" class="nav-item" aria-current="page">
+                <span class="nav-icon" aria-hidden="true">📦</span>
+                <span class="nav-text">Estoque</span>
+            </a>
             <a href="relatorios.html" class="nav-item active" aria-current="page">
                 <span class="nav-icon" aria-hidden="true">📈</span>
                 <span class="nav-text">Relatórios</span>
@@ -54,9 +59,10 @@
                         <span class="section-icon">📅</span>
                         Período do Relatório
                     </h2>
-                    <p class="section-description">Todos os postes cadastrados são exibidos, mesmo os sem vendas no período</p>
+                    <p class="section-description">Todos os postes cadastrados são exibidos, mesmo os sem vendas no
+                        período</p>
                 </header>
-                
+
                 <div class="filter-container">
                     <div class="filter-grid">
                         <div class="filter-group">
@@ -65,13 +71,7 @@
                                 Data Início
                                 <span class="required" aria-label="Campo obrigatório">*</span>
                             </label>
-                            <input 
-                                type="date" 
-                                id="filtro-data-inicio" 
-                                class="filter-input"
-                                lang="pt-BR"
-                                required
-                            >
+                            <input type="date" id="filtro-data-inicio" class="filter-input" lang="pt-BR" required>
                         </div>
 
                         <div class="filter-group">
@@ -80,13 +80,7 @@
                                 Data Fim
                                 <span class="required" aria-label="Campo obrigatório">*</span>
                             </label>
-                            <input 
-                                type="date" 
-                                id="filtro-data-fim" 
-                                class="filter-input"
-                                lang="pt-BR"
-                                required
-                            >
+                            <input type="date" id="filtro-data-fim" class="filter-input" lang="pt-BR" required>
                         </div>
 
                         <div class="filter-group">
@@ -180,7 +174,8 @@
             </section>
 
             <!-- Relatório de Vendas por Poste -->
-            <section class="table-section" aria-labelledby="relatorio-titulo" style="display: none;" id="relatorio-section">
+            <section class="table-section" aria-labelledby="relatorio-titulo" style="display: none;"
+                id="relatorio-section">
                 <header class="section-header">
                     <h2 id="relatorio-titulo">
                         <span class="section-icon">📈</span>
@@ -232,7 +227,8 @@
             </section>
 
             <!-- Gráficos e Análises -->
-            <section class="charts-section" aria-labelledby="graficos-titulo" style="display: none;" id="graficos-section">
+            <section class="charts-section" aria-labelledby="graficos-titulo" style="display: none;"
+                id="graficos-section">
                 <header class="section-header">
                     <h2 id="graficos-titulo">
                         <span class="section-icon">📊</span>
@@ -281,4 +277,5 @@
 
     <script src="js/relatorios.js"></script>
 </body>
+
 </html>

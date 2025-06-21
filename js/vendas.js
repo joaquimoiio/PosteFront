@@ -1,4 +1,4 @@
-// Vendas JavaScript - VERSÃO REFATORADA E OTIMIZADA
+// Vendas JavaScript - VERSÃO REFATORADA COM INTEGRAÇÃO DE ESTOQUE
 class VendasManager {
     constructor() {
         this.config = {
@@ -138,7 +138,16 @@ class VendasManager {
         // Calculation events for tipo V
         if (this.elements.posteV && this.elements.quantidadeV) {
             this.elements.posteV.addEventListener('change', () => this.calcularValorVenda());
-            this.elements.quantidadeV.addEventListener('input', () => this.calcularValorVenda());
+            this.elements.quantidadeV.addEventListener('input', () => {
+                this.calcularValorVenda();
+                this.verificarEstoqueDisponivel();
+            });
+        }
+        
+        // NOVA FUNCIONALIDADE: Verificar estoque para tipo L
+        if (this.elements.posteL && this.elements.quantidadeL) {
+            this.elements.posteL.addEventListener('change', () => this.verificarEstoqueDisponivel());
+            this.elements.quantidadeL.addEventListener('input', () => this.verificarEstoqueDisponivel());
         }
         
         // Modal close events
@@ -174,6 +183,91 @@ class VendasManager {
                 );
             }
         });
+    }
+
+    // ===== NOVA FUNCIONALIDADE: VERIFICAÇÃO DE ESTOQUE =====
+    async verificarEstoqueDisponivel() {
+        const tipoVenda = this.elements.vendaTipo.value;
+        
+        if (tipoVenda !== 'V' && tipoVenda !== 'L') {
+            return; // Só verifica estoque para vendas V e L
+        }
+        
+        const posteElement = tipoVenda === 'V' ? this.elements.posteV : this.elements.posteL;
+        const quantidadeElement = tipoVenda === 'V' ? this.elements.quantidadeV : this.elements.quantidadeL;
+        
+        if (!posteElement || !quantidadeElement) return;
+        
+        const posteId = parseInt(posteElement.value);
+        const quantidade = parseInt(quantidadeElement.value) || 1;
+        
+        if (!posteId || quantidade <= 0) {
+            this.limparAvisoEstoque();
+            return;
+        }
+        
+        try {
+            const disponivel = await this.checkEstoqueAPI(posteId, quantidade);
+            this.mostrarStatusEstoque(posteElement, disponivel, quantidade);
+        } catch (error) {
+            console.error('Erro ao verificar estoque:', error);
+        }
+    }
+
+    async checkEstoqueAPI(posteId, quantidade) {
+        try {
+            const response = await fetch(`${this.config.API_BASE}/estoque/verificar-disponibilidade`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ posteId, quantidade })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Erro ao verificar estoque');
+            }
+            
+            const data = await response.json();
+            return data.disponivel;
+        } catch (error) {
+            console.error('Erro na verificação de estoque:', error);
+            return false;
+        }
+    }
+
+    mostrarStatusEstoque(posteElement, disponivel, quantidade) {
+        // Remover avisos anteriores
+        this.limparAvisoEstoque();
+        
+        // Criar elemento de aviso
+        const aviso = document.createElement('div');
+        aviso.className = `estoque-aviso ${disponivel ? 'estoque-ok' : 'estoque-insuficiente'}`;
+        aviso.style.cssText = `
+            margin-top: 5px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            ${disponivel ? 
+                'background: #f0fdf4; color: #059669; border: 1px solid #dcfce7;' : 
+                'background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;'
+            }
+        `;
+        
+        if (disponivel) {
+            aviso.innerHTML = `✅ Estoque disponível (${quantidade} unidades)`;
+        } else {
+            aviso.innerHTML = `❌ Estoque insuficiente para ${quantidade} unidades`;
+        }
+        
+        // Inserir após o elemento do poste
+        posteElement.parentNode.appendChild(aviso);
+    }
+
+    limparAvisoEstoque() {
+        const avisos = document.querySelectorAll('.estoque-aviso');
+        avisos.forEach(aviso => aviso.remove());
     }
 
     // ===== DATA MANAGEMENT =====
@@ -260,6 +354,17 @@ class VendasManager {
                 return;
             }
             
+            // NOVA VALIDAÇÃO: Verificar estoque antes de submeter
+            if ((formData.tipoVenda === 'V' || formData.tipoVenda === 'L') && formData.posteId) {
+                const quantidade = formData.quantidade || 1;
+                const estoqueDisponivel = await this.checkEstoqueAPI(formData.posteId, quantidade);
+                
+                if (!estoqueDisponivel) {
+                    this.showAlert('Estoque insuficiente para realizar esta venda', 'error');
+                    return;
+                }
+            }
+            
             this.setLoading(true);
             
             await this.apiRequest('/vendas', {
@@ -268,7 +373,7 @@ class VendasManager {
                 body: JSON.stringify(formData)
             });
             
-            this.showAlert('Venda criada com sucesso!', 'success');
+            this.showAlert('Venda criada com sucesso! Estoque atualizado automaticamente.', 'success');
             this.resetForm();
             await this.loadData();
             
@@ -456,7 +561,7 @@ class VendasManager {
             
             const confirmed = await this.showConfirmDialog(
                 'Confirmar Exclusão',
-                'Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.'
+                'Tem certeza que deseja excluir esta venda? O estoque será devolvido automaticamente.'
             );
             
             if (!confirmed) return;
@@ -467,7 +572,7 @@ class VendasManager {
             await this.apiRequest(`/vendas/${id}`, { method: 'DELETE' });
             
             console.log(`✅ Venda ${id} deletada com sucesso`);
-            this.showAlert('Venda excluída com sucesso!', 'success');
+            this.showAlert('Venda excluída com sucesso! Estoque devolvido automaticamente.', 'success');
             
             await this.loadData();
             
@@ -484,6 +589,7 @@ class VendasManager {
         const tipo = e.target.value;
         
         this.hideAllConditionalFields();
+        this.limparAvisoEstoque();
         
         if (tipo) {
             const camposDiv = document.getElementById(`campos-tipo-${tipo.toLowerCase()}`);
@@ -603,6 +709,13 @@ class VendasManager {
 
     createVendaRow(venda) {
         const row = document.createElement('tr');
+        
+        // Adicionar indicador visual para vendas que afetaram estoque
+        let estoqueIndicator = '';
+        if ((venda.tipoVenda === 'V' || venda.tipoVenda === 'L') && venda.quantidade > 0) {
+            estoqueIndicator = `<small style="color: #059669; font-weight: 500;">📦 Estoque: -${venda.quantidade}</small>`;
+        }
+        
         row.innerHTML = `
             <td class="date" data-label="Data">${this.formatDateBR(venda.dataVenda)}</td>
             <td data-label="Tipo">
@@ -610,7 +723,10 @@ class VendasManager {
                     ${this.getTipoVendaLabel(venda.tipoVenda)}
                 </span>
             </td>
-            <td data-label="Poste/Descrição">${this.getPosteDescricao(venda)}</td>
+            <td data-label="Poste/Descrição">
+                ${this.getPosteDescricao(venda)}
+                ${estoqueIndicator}
+            </td>
             <td class="currency" data-label="Frete">${this.formatCurrency(venda.freteEletrons || 0)}</td>
             <td class="currency" data-label="Valor">${this.getValorVenda(venda)}</td>
             <td data-label="Observações">
@@ -624,7 +740,7 @@ class VendasManager {
                         <span class="btn-icon">✏️</span>
                         Editar
                     </button>
-                    <button class="btn btn-danger btn-small" onclick="vendasManager.deleteVenda(${venda.id})" title="Excluir">
+                    <button class="btn btn-danger btn-small" onclick="vendasManager.deleteVenda(${venda.id})" title="Excluir (Devolve Estoque)">
                         <span class="btn-icon">🗑️</span>
                         Excluir
                     </button>
@@ -768,6 +884,7 @@ class VendasManager {
         if (this.elements.vendaForm) {
             this.elements.vendaForm.reset();
             this.hideAllConditionalFields();
+            this.limparAvisoEstoque();
             this.setDefaultDateTime();
         }
     }
@@ -817,7 +934,9 @@ class VendasManager {
             'Frete': venda.freteEletrons || 0,
             'Valor': venda.tipoVenda === 'E' ? venda.valorExtra : 
                      venda.tipoVenda === 'V' ? venda.valorVenda : 0,
-            'Observações': venda.observacoes || ''
+            'Observações': venda.observacoes || '',
+            'Impacto Estoque': (venda.tipoVenda === 'V' || venda.tipoVenda === 'L') ? 
+                               `Reduzido ${venda.quantidade || 1} unidades` : 'Sem impacto'
         }));
         
         this.exportToCSV(dadosExportar, `vendas_${new Date().toISOString().split('T')[0]}`);
@@ -1056,4 +1175,4 @@ window.closeModal = (modalId) => {
 // Utility functions
 window.loadVendas = () => vendasManager?.loadData();
 
-console.log('✅ VendasManager refatorado carregado com sucesso');
+console.log('✅ VendasManager com integração de estoque carregado com sucesso');
