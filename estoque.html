@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📱 Estoque - Sistema de Postes</title>
-    <link rel="stylesheet" href="css/estoque.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="css/universal.css">
 </head>
+
 <body>
     <!-- Header Mobile -->
     <header class="header">
@@ -60,14 +63,12 @@
 
                 <div class="form-group">
                     <label for="estoque-quantidade">Quantidade *</label>
-                    <input type="number" id="estoque-quantidade" required 
-                           placeholder="Ex: 10" min="1">
+                    <input type="number" id="estoque-quantidade" required placeholder="Ex: 10" min="1">
                 </div>
 
                 <div class="form-group">
                     <label for="estoque-observacao">Observação</label>
-                    <input type="text" id="estoque-observacao" 
-                           placeholder="Ex: Compra, devolução...">
+                    <input type="text" id="estoque-observacao" placeholder="Ex: Compra, devolução...">
                 </div>
 
                 <div class="form-actions">
@@ -143,7 +144,7 @@
                     <button class="btn btn-small" onclick="exportarEstoque()">📊</button>
                 </div>
             </div>
-            
+
             <div class="table-container">
                 <div id="estoque-list" class="mobile-list">
                     <!-- Estoque será carregado aqui -->
@@ -163,4 +164,5 @@
 
     <script src="js/estoque.js"></script>
 </body>
+
 </html>

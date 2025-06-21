@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📱 Vendas - Sistema de Postes</title>
-    <link rel="stylesheet" href="css/vendas.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="css/universal.css">
 </head>
+
 <body>
     <!-- Header Mobile -->
     <header class="header">
@@ -183,7 +186,7 @@
                     <button class="btn btn-small" onclick="exportarVendas()">📊</button>
                 </div>
             </div>
-            
+
             <div class="table-container">
                 <div id="vendas-list" class="mobile-list">
                     <!-- Vendas serão carregadas aqui -->
@@ -209,28 +212,28 @@
                             <option value="L">🏪 Loja (L)</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group" id="edit-frete-group">
                         <label for="edit-frete-eletrons">Frete Eletrons</label>
                         <input type="number" step="0.01" id="edit-frete-eletrons">
                     </div>
-                    
+
                     <div class="form-group" id="edit-valor-group">
                         <label for="edit-valor-total">Valor de Venda</label>
                         <input type="number" step="0.01" id="edit-valor-total">
                     </div>
-                    
+
                     <div class="form-group" id="edit-extra-group">
                         <label for="edit-valor-extra">Valor Extra</label>
                         <input type="number" step="0.01" id="edit-valor-extra">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit-observacoes">Observações</label>
                         <textarea id="edit-observacoes" rows="3"></textarea>
                     </div>
                 </div>
-                
+
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">💾 Salvar</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
@@ -250,4 +253,5 @@
 
     <script src="js/vendas.js"></script>
 </body>
+
 </html>

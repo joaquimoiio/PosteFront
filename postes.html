@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📱 Postes - Sistema de Postes</title>
-    <link rel="stylesheet" href="css/postes.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="css/universal.css">
 </head>
+
 <body>
     <!-- Header Mobile -->
     <header class="header">
@@ -58,14 +61,12 @@
 
                 <div class="form-group">
                     <label for="poste-descricao">Descrição *</label>
-                    <input type="text" id="poste-descricao" required 
-                           placeholder="Ex: Kit Poste 7m 1 Cx Mono">
+                    <input type="text" id="poste-descricao" required placeholder="Ex: Kit Poste 7m 1 Cx Mono">
                 </div>
 
                 <div class="form-group">
                     <label for="poste-preco">Preço *</label>
-                    <input type="number" step="0.01" id="poste-preco" required 
-                           placeholder="R$ 0,00" min="0.01">
+                    <input type="number" step="0.01" id="poste-preco" required placeholder="R$ 0,00" min="0.01">
                 </div>
 
                 <div class="form-actions">
@@ -132,7 +133,7 @@
                     <button class="btn btn-small" onclick="exportarPostes()">📊</button>
                 </div>
             </div>
-            
+
             <div class="table-container">
                 <div id="postes-list" class="mobile-list">
                     <!-- Postes serão carregados aqui -->
@@ -154,17 +155,17 @@
                         <label for="edit-poste-codigo">Código *</label>
                         <input type="text" id="edit-poste-codigo" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit-poste-descricao">Descrição *</label>
                         <input type="text" id="edit-poste-descricao" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit-poste-preco">Preço *</label>
                         <input type="number" step="0.01" id="edit-poste-preco" required min="0.01">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit-poste-ativo">Status *</label>
                         <select id="edit-poste-ativo" required>
@@ -173,7 +174,7 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">💾 Salvar</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
@@ -193,4 +194,5 @@
 
     <script src="js/postes.js"></script>
 </body>
+
 </html>
