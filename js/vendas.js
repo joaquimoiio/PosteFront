@@ -1,5 +1,5 @@
-// Vendas JavaScript Mobile-First - Versão Refatorada
-const API_BASE = 'http://localhost:8080/api';
+// Vendas JavaScript Mobile-First - Versão Completa Refatorada
+const API_BASE = 'https://posteback.onrender.com/api';
 
 // Estado global simplificado
 const state = {
@@ -114,7 +114,14 @@ async function carregarDados() {
 
 // API calls
 async function apiRequest(endpoint, options = {}) {
-    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+    
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -159,7 +166,6 @@ async function handleVendaSubmit(e) {
         
         await apiRequest('/vendas', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
         
@@ -323,7 +329,6 @@ async function checkStock(posteId, quantidade) {
     try {
         const response = await apiRequest('/estoque/verificar-disponibilidade', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ posteId, quantidade })
         });
         return response.disponivel;
@@ -512,7 +517,6 @@ async function handleEditSubmit(e) {
         
         await apiRequest(`/vendas/${state.currentEditId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
         
@@ -706,7 +710,7 @@ function closeModal() {
     if (modal) modal.style.display = 'none';
 }
 
-// Formatters
+// Formatters e Helper functions
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', {
@@ -777,7 +781,6 @@ function getValorVendaNum(venda) {
     }
 }
 
-// Helper functions
 function updateElement(id, value) {
     const element = document.getElementById(id);
     if (element) element.textContent = value.toString();

@@ -1,5 +1,5 @@
 // Postes JavaScript Mobile-First - Versão Refatorada
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = 'https://posteback.onrender.com/api';
 
 // Estado global simplificado
 const state = {
@@ -80,7 +80,14 @@ async function carregarDados() {
 
 // API calls
 async function apiRequest(endpoint, options = {}) {
-    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+    
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -106,7 +113,6 @@ async function handlePosteSubmit(e) {
         
         await apiRequest('/postes', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
         
@@ -261,7 +267,6 @@ async function handleEditSubmit(e) {
         
         await apiRequest(`/postes/${state.currentEditId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
         
@@ -304,7 +309,6 @@ async function togglePosteStatus(id) {
         
         await apiRequest(`/postes/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...poste, ativo: novoStatus })
         });
         

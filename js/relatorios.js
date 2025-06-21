@@ -1,5 +1,5 @@
 // Relatórios JavaScript Mobile-First - Versão Corrigida
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = 'https://posteback.onrender.com/api';
 
 // Estado global simplificado
 const state = {

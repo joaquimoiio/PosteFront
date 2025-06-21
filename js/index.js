@@ -1,5 +1,5 @@
 // Dashboard Mobile-First - JavaScript Otimizado
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = 'https://posteback.onrender.com/api';
 
 // Estado global simplificado
 const state = {
@@ -79,7 +79,13 @@ async function apiRequest(endpoint, params = {}) {
         }
     });
     
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), {
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    });
+    
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
