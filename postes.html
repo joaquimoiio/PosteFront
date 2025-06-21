@@ -10,7 +10,6 @@
 </head>
 
 <body>
-    <!-- Header Mobile -->
     <header class="header">
         <div class="header-content">
             <h1>⚡ Postes</h1>
@@ -18,7 +17,6 @@
         </div>
     </header>
 
-    <!-- Navigation Mobile -->
     <nav class="main-nav">
         <div class="nav-container">
             <a href="index.html" class="nav-item">
@@ -48,9 +46,7 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
     <main class="main-content">
-        <!-- Novo Poste -->
         <section class="form-section">
             <h2>➕ Novo Poste</h2>
             <form id="poste-form">
@@ -80,7 +76,6 @@
             </form>
         </section>
 
-        <!-- Resumo -->
         <section class="summary-section">
             <h2>📊 Resumo dos Postes</h2>
             <div class="stats-grid">
@@ -107,7 +102,6 @@
             </div>
         </section>
 
-        <!-- Filtros -->
         <section class="filter-section">
             <h2>🔍 Filtros</h2>
             <div class="filter-grid">
@@ -124,7 +118,6 @@
             </div>
         </section>
 
-        <!-- Lista de Postes -->
         <section class="table-section">
             <div class="section-header">
                 <h2>⚡ Postes Cadastrados</h2>
@@ -136,13 +129,11 @@
 
             <div class="table-container">
                 <div id="postes-list" class="mobile-list">
-                    <!-- Postes serão carregados aqui -->
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Modal de Edição -->
     <div id="edit-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -183,13 +174,11 @@
         </div>
     </div>
 
-    <!-- Loading -->
     <div id="loading" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
         <p>Carregando...</p>
     </div>
 
-    <!-- Alerts -->
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/postes.js"></script>

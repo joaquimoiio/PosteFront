@@ -10,7 +10,6 @@
 </head>
 
 <body>
-    <!-- Header Mobile -->
     <header class="header">
         <div class="header-content">
             <h1>📋 Vendas</h1>
@@ -18,7 +17,6 @@
         </div>
     </header>
 
-    <!-- Navigation Mobile -->
     <nav class="main-nav">
         <div class="nav-container">
             <a href="index.html" class="nav-item">
@@ -48,9 +46,7 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
     <main class="main-content">
-        <!-- Nova Venda -->
         <section class="form-section">
             <h2>➕ Nova Venda</h2>
             <form id="venda-form">
@@ -69,7 +65,6 @@
                     <input type="datetime-local" id="venda-data" required>
                 </div>
 
-                <!-- Campos Tipo E -->
                 <div id="campos-tipo-e" class="conditional-fields" style="display: none;">
                     <h3>📈 Venda Extra</h3>
                     <div class="form-group">
@@ -78,7 +73,6 @@
                     </div>
                 </div>
 
-                <!-- Campos Tipo V -->
                 <div id="campos-tipo-v" class="conditional-fields" style="display: none;">
                     <h3>🛒 Venda Normal</h3>
                     <div class="form-group">
@@ -97,7 +91,6 @@
                     </div>
                 </div>
 
-                <!-- Campos Tipo L -->
                 <div id="campos-tipo-l" class="conditional-fields" style="display: none;">
                     <h3>🏪 Venda Loja</h3>
                     <div class="form-group">
@@ -132,7 +125,6 @@
             </form>
         </section>
 
-        <!-- Resumo -->
         <section class="summary-section">
             <h2>📊 Resumo por Tipo</h2>
             <div class="stats-grid">
@@ -159,7 +151,6 @@
             </div>
         </section>
 
-        <!-- Filtros -->
         <section class="filter-section">
             <h2>🔍 Filtros</h2>
             <div class="filter-grid">
@@ -177,7 +168,6 @@
             </div>
         </section>
 
-        <!-- Lista de Vendas -->
         <section class="table-section">
             <div class="section-header">
                 <h2>📋 Vendas Realizadas</h2>
@@ -189,13 +179,11 @@
 
             <div class="table-container">
                 <div id="vendas-list" class="mobile-list">
-                    <!-- Vendas serão carregadas aqui -->
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Modal de Edição -->
     <div id="edit-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -242,13 +230,11 @@
         </div>
     </div>
 
-    <!-- Loading -->
     <div id="loading" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
         <p>Carregando...</p>
     </div>
 
-    <!-- Alerts -->
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/vendas.js"></script>

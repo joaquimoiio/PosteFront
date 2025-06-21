@@ -29,8 +29,8 @@ function configurarFiltrosPadrao() {
     const hoje = new Date();
     const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     
-    const filtroInicio = document.getElementById('filtro-data-inicio');
-    const filtroFim = document.getElementById('filtro-data-fim');
+    const filtroInicio = document.getElementById('data-inicio');
+    const filtroFim = document.getElementById('data-fim');
     
     if (filtroInicio && filtroFim) {
         filtroInicio.value = dateToInputValue(primeiroDiaMes);
@@ -200,8 +200,8 @@ function atualizarInterface(lucros) {
 
 // Filtros
 async function applyPeriodFilter() {
-    const filtroInicio = document.getElementById('filtro-data-inicio');
-    const filtroFim = document.getElementById('filtro-data-fim');
+    const filtroInicio = document.getElementById('data-inicio');
+    const filtroFim = document.getElementById('data-fim');
     
     if (filtroInicio && filtroFim) {
         state.filters.dataInicio = filtroInicio.value ? 
@@ -215,8 +215,8 @@ async function applyPeriodFilter() {
 }
 
 function clearPeriodFilter() {
-    const filtroInicio = document.getElementById('filtro-data-inicio');
-    const filtroFim = document.getElementById('filtro-data-fim');
+    const filtroInicio = document.getElementById('data-inicio');
+    const filtroFim = document.getElementById('data-fim');
     
     if (filtroInicio && filtroFim) {
         filtroInicio.value = '';

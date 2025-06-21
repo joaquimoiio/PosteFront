@@ -10,7 +10,6 @@
 </head>
 
 <body>
-    <!-- Header Mobile -->
     <header class="header">
         <div class="header-content">
             <h1>📈 Relatórios</h1>
@@ -18,7 +17,6 @@
         </div>
     </header>
 
-    <!-- Navigation Mobile -->
     <nav class="main-nav">
         <div class="nav-container">
             <a href="index.html" class="nav-item">
@@ -48,9 +46,7 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
     <main class="main-content">
-        <!-- Configuração do Relatório -->
         <section class="form-section">
             <h2>📅 Período do Relatório</h2>
             <form id="relatorio-form">
@@ -83,13 +79,11 @@
                 </div>
             </form>
 
-            <!-- Indicador do período -->
             <div id="periodo-info" class="period-info" style="display: none;">
                 <span id="periodo-texto">Período selecionado</span>
             </div>
         </section>
 
-        <!-- Resumo do Relatório -->
         <section class="summary-section" id="resumo-section" style="display: none;">
             <h2>📊 Resumo do Período</h2>
             <div class="stats-grid">
@@ -116,7 +110,6 @@
             </div>
         </section>
 
-        <!-- Relatório Detalhado -->
         <section class="table-section" id="relatorio-section" style="display: none;">
             <div class="section-header">
                 <h2>📈 Relatório por Poste</h2>
@@ -128,27 +121,22 @@
 
             <div class="table-container">
                 <div id="relatorio-list" class="mobile-list">
-                    <!-- Relatório será carregado aqui -->
                 </div>
             </div>
         </section>
 
-        <!-- Análise Visual -->
         <section class="charts-section" id="charts-section" style="display: none;">
             <h2>📊 Top 10 Mais Vendidos</h2>
             <div id="top-chart" class="chart-container">
-                <!-- Gráfico será gerado aqui -->
             </div>
         </section>
     </main>
 
-    <!-- Loading -->
     <div id="loading" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
         <p>Gerando relatório...</p>
     </div>
 
-    <!-- Alerts -->
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/relatorios.js"></script>

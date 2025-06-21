@@ -10,7 +10,6 @@
 </head>
 
 <body>
-    <!-- Header Mobile -->
     <header class="header">
         <div class="header-content">
             <h1>📦 Estoque</h1>
@@ -18,7 +17,6 @@
         </div>
     </header>
 
-    <!-- Navigation Mobile -->
     <nav class="main-nav">
         <div class="nav-container">
             <a href="index.html" class="nav-item">
@@ -48,9 +46,7 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
     <main class="main-content">
-        <!-- Adicionar Estoque -->
         <section class="form-section">
             <h2>➕ Adicionar Estoque</h2>
             <form id="estoque-form">
@@ -82,7 +78,6 @@
             </form>
         </section>
 
-        <!-- Resumo do Estoque -->
         <section class="summary-section">
             <h2>📊 Resumo do Estoque</h2>
             <div class="stats-grid">
@@ -109,15 +104,12 @@
             </div>
         </section>
 
-        <!-- Alertas de Estoque -->
         <section class="alert-section" id="alertas-section" style="display: none;">
             <h2>⚠️ Alertas de Estoque</h2>
             <div id="alertas-list" class="mobile-list">
-                <!-- Alertas serão carregados aqui -->
             </div>
         </section>
 
-        <!-- Filtros -->
         <section class="filter-section">
             <h2>🔍 Filtros</h2>
             <div class="filter-grid">
@@ -135,7 +127,6 @@
             </div>
         </section>
 
-        <!-- Lista de Estoque -->
         <section class="table-section">
             <div class="section-header">
                 <h2>📦 Inventário Atual</h2>
@@ -147,19 +138,16 @@
 
             <div class="table-container">
                 <div id="estoque-list" class="mobile-list">
-                    <!-- Estoque será carregado aqui -->
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Loading -->
     <div id="loading" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
         <p>Carregando...</p>
     </div>
 
-    <!-- Alerts -->
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/estoque.js"></script>
