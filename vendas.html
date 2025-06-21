@@ -1,457 +1,253 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Gerenciamento de Vendas - Sistema de Vendas de Postes">
-    <title>Vendas - Gerenciador de Vendas de Postes</title>
+    <title>📱 Vendas - Sistema de Postes</title>
     <link rel="stylesheet" href="css/vendas.css">
 </head>
-
 <body>
-    <!-- Header -->
-    <header class="header" role="banner">
+    <!-- Header Mobile -->
+    <header class="header">
         <div class="header-content">
-            <h1>⚡ Gerenciador de Vendas de Postes</h1>
-            <p>Vendas - Gerenciamento de Vendas</p>
+            <h1>📋 Vendas</h1>
+            <p>Gerenciamento de Vendas</p>
         </div>
     </header>
 
-    <!-- Navigation -->
-    <nav class="main-nav" role="navigation" aria-label="Navegação principal">
+    <!-- Navigation Mobile -->
+    <nav class="main-nav">
         <div class="nav-container">
             <a href="index.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">📊</span>
-                <span class="nav-text">Dashboard</span>
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
             </a>
-            <a href="vendas.html" class="nav-item active" aria-current="page">
-                <span class="nav-icon" aria-hidden="true">📋</span>
-                <span class="nav-text">Vendas</span>
+            <a href="vendas.html" class="nav-item active">
+                <span class="nav-icon">📋</span>
+                <span>Vendas</span>
             </a>
             <a href="despesas.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">💸</span>
-                <span class="nav-text">Despesas</span>
+                <span class="nav-icon">💸</span>
+                <span>Despesas</span>
             </a>
             <a href="postes.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">⚡</span>
-                <span class="nav-text">Postes</span>
+                <span class="nav-icon">⚡</span>
+                <span>Postes</span>
             </a>
-            <a href="estoque.html" class="nav-item" aria-current="page">
-                <span class="nav-icon" aria-hidden="true">📦</span>
-                <span class="nav-text">Estoque</span>
+            <a href="estoque.html" class="nav-item">
+                <span class="nav-icon">📦</span>
+                <span>Estoque</span>
             </a>
             <a href="relatorios.html" class="nav-item">
-                <span class="nav-icon" aria-hidden="true">📈</span>
-                <span class="nav-text">Relatórios</span>
+                <span class="nav-icon">📈</span>
+                <span>Relatórios</span>
             </a>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="main-content" role="main">
-        <div class="vendas-page">
-
-            <!-- Nova Venda -->
-            <section class="form-section" aria-labelledby="nova-venda-titulo">
-                <header class="section-header">
-                    <h2 id="nova-venda-titulo">
-                        <span class="section-icon">➕</span>
-                        Nova Venda
-                    </h2>
-                </header>
-
-                <form id="venda-form" class="form-container" novalidate>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="venda-tipo" class="form-label">
-                                <span class="label-icon">🏷️</span>
-                                Tipo de Venda
-                                <span class="required" aria-label="Campo obrigatório">*</span>
-                            </label>
-                            <select id="venda-tipo" class="form-input" required>
-                                <option value="">Selecione o tipo</option>
-                                <option value="E">📈 E - Extra</option>
-                                <option value="V">🛒 V - Venda Normal</option>
-                                <option value="L">🏪 L - Venda Loja</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="venda-data" class="form-label">
-                                <span class="label-icon">📅</span>
-                                Data da Venda
-                                <span class="required" aria-label="Campo obrigatório">*</span>
-                            </label>
-                            <input type="datetime-local" id="venda-data" class="form-input" required lang="pt-BR">
-                        </div>
-                    </div>
-
-                    <!-- Campos condicionais baseados no tipo -->
-
-                    <!-- Campos para Tipo E (Extra) -->
-                    <div id="campos-tipo-e" class="conditional-fields" style="display: none;">
-                        <div class="fields-header">
-                            <h3>📈 Venda Extra</h3>
-                            <p>Valor adicional que contribui diretamente para o lucro</p>
-                        </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="venda-valor-extra" class="form-label">
-                                    <span class="label-icon">💰</span>
-                                    Valor Extra
-                                    <span class="required" aria-label="Campo obrigatório">*</span>
-                                </label>
-                                <div class="input-with-icon">
-                                    <span class="input-icon">R$</span>
-                                    <input type="number" step="0.01" id="venda-valor-extra" class="form-input"
-                                        placeholder="0,00" min="0.01">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Campos para Tipo V (Venda Normal) -->
-                    <div id="campos-tipo-v" class="conditional-fields" style="display: none;">
-                        <div class="fields-header">
-                            <h3>🛒 Venda Normal</h3>
-                            <p>Venda de postes com custo e valor de venda</p>
-                        </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="venda-poste-v" class="form-label">
-                                    <span class="label-icon">⚡</span>
-                                    Poste
-                                    <span class="required" aria-label="Campo obrigatório">*</span>
-                                </label>
-                                <select id="venda-poste-v" class="form-input">
-                                    <option value="">Selecione um poste</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="venda-quantidade-v" class="form-label">
-                                    <span class="label-icon">📦</span>
-                                    Quantidade
-                                </label>
-                                <input type="number" id="venda-quantidade-v" class="form-input" min="1" value="1">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="venda-valor-total-v" class="form-label">
-                                    <span class="label-icon">💰</span>
-                                    Valor de Venda
-                                    <span class="required" aria-label="Campo obrigatório">*</span>
-                                </label>
-                                <div class="input-with-icon">
-                                    <span class="input-icon">R$</span>
-                                    <input type="number" step="0.01" id="venda-valor-total-v" class="form-input"
-                                        placeholder="0,00" min="0.01">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Campos para Tipo L (Venda Loja) -->
-                    <div id="campos-tipo-l" class="conditional-fields" style="display: none;">
-                        <div class="fields-header">
-                            <h3>🏪 Venda Loja</h3>
-                            <p>Venda via loja com frete Eletrons</p>
-                        </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="venda-poste-l" class="form-label">
-                                    <span class="label-icon">⚡</span>
-                                    Poste (referência)
-                                    <span class="required" aria-label="Campo obrigatório">*</span>
-                                </label>
-                                <select id="venda-poste-l" class="form-input">
-                                    <option value="">Selecione um poste</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="venda-quantidade-l" class="form-label">
-                                    <span class="label-icon">📦</span>
-                                    Quantidade
-                                </label>
-                                <input type="number" id="venda-quantidade-l" class="form-input" min="1" value="1">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="venda-frete-l" class="form-label">
-                                    <span class="label-icon">🚚</span>
-                                    Frete Eletrons
-                                </label>
-                                <div class="input-with-icon">
-                                    <span class="input-icon">R$</span>
-                                    <input type="number" step="0.01" id="venda-frete-l" class="form-input"
-                                        placeholder="0,00" min="0" value="0">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Observações (comum para todos os tipos) -->
-                    <div class="form-grid">
-                        <div class="form-group full-width">
-                            <label for="venda-observacoes" class="form-label">
-                                <span class="label-icon">📝</span>
-                                Observações
-                            </label>
-                            <textarea id="venda-observacoes" class="form-input" rows="3"
-                                placeholder="Observações sobre a venda..."></textarea>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <span class="btn-icon" aria-hidden="true">💾</span>
-                            Salvar Venda
-                        </button>
-                        <button type="reset" class="btn btn-secondary">
-                            <span class="btn-icon" aria-hidden="true">🔄</span>
-                            Limpar
-                        </button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Resumo por Tipo -->
-            <section class="summary-section" aria-labelledby="resumo-titulo">
-                <header class="section-header">
-                    <h2 id="resumo-titulo">
-                        <span class="section-icon">📊</span>
-                        Resumo por Tipo de Venda
-                    </h2>
-                </header>
-
-                <div class="summary-cards">
-                    <article class="summary-card tipo-e">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">📈</span>
-                                <h3>Vendas Extras (E)</h3>
-                            </div>
-                            <div class="summary-value" id="total-vendas-e" aria-live="polite">0</div>
-                        </div>
-                    </article>
-
-                    <article class="summary-card tipo-v">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">🛒</span>
-                                <h3>Vendas Normais (V)</h3>
-                            </div>
-                            <div class="summary-value" id="total-vendas-v" aria-live="polite">0</div>
-                        </div>
-                    </article>
-
-                    <article class="summary-card tipo-l">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">🏪</span>
-                                <h3>Vendas Loja (L)</h3>
-                            </div>
-                            <div class="summary-value" id="total-vendas-l" aria-live="polite">0</div>
-                        </div>
-                    </article>
-
-                    <article class="summary-card total">
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-icon">📋</span>
-                                <h3>Total de Vendas</h3>
-                            </div>
-                            <div class="summary-value" id="total-vendas-geral" aria-live="polite">0</div>
-                        </div>
-                    </article>
+    <main class="main-content">
+        <!-- Nova Venda -->
+        <section class="form-section">
+            <h2>➕ Nova Venda</h2>
+            <form id="venda-form">
+                <div class="form-group">
+                    <label for="venda-tipo">Tipo de Venda *</label>
+                    <select id="venda-tipo" required>
+                        <option value="">Selecione o tipo</option>
+                        <option value="E">📈 E - Extra</option>
+                        <option value="V">🛒 V - Venda Normal</option>
+                        <option value="L">🏪 L - Venda Loja</option>
+                    </select>
                 </div>
-            </section>
 
-            <!-- Filtros -->
-            <section class="filter-section" aria-labelledby="filtros-titulo">
-                <header class="section-header">
-                    <h2 id="filtros-titulo">
-                        <span class="section-icon">🔍</span>
-                        Filtros de Busca
-                    </h2>
-                    <p class="section-description">Por padrão, mostra vendas do mês atual</p>
-                </header>
+                <div class="form-group">
+                    <label for="venda-data">Data da Venda *</label>
+                    <input type="datetime-local" id="venda-data" required>
+                </div>
 
-                <div class="filter-container">
-                    <div class="filter-grid">
-                        <div class="filter-group">
-                            <label for="filtro-tipo-venda" class="filter-label">
-                                <span class="label-icon">🏷️</span>
-                                Tipo de Venda
-                            </label>
-                            <select id="filtro-tipo-venda" class="filter-input">
-                                <option value="">Todos os tipos</option>
-                                <option value="E">📈 Extra (E)</option>
-                                <option value="V">🛒 Venda Normal (V)</option>
-                                <option value="L">🏪 Venda Loja (L)</option>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="filtro-data-inicio" class="filter-label">
-                                <span class="label-icon">📅</span>
-                                Data Início
-                            </label>
-                            <input type="date" id="filtro-data-inicio" class="filter-input" lang="pt-BR">
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="filtro-data-fim" class="filter-label">
-                                <span class="label-icon">📅</span>
-                                Data Fim
-                            </label>
-                            <input type="date" id="filtro-data-fim" class="filter-input" lang="pt-BR">
-                        </div>
-
-                        <div class="filter-actions">
-                            <button type="button" class="btn btn-secondary btn-small" onclick="limparFiltros()">
-                                <span class="btn-icon">🧹</span>
-                                Limpar Filtros
-                            </button>
-                        </div>
+                <!-- Campos Tipo E -->
+                <div id="campos-tipo-e" class="conditional-fields" style="display: none;">
+                    <h3>📈 Venda Extra</h3>
+                    <div class="form-group">
+                        <label for="venda-valor-extra">Valor Extra *</label>
+                        <input type="number" step="0.01" id="venda-valor-extra" placeholder="R$ 0,00">
                     </div>
                 </div>
-            </section>
 
-            <!-- Lista de Vendas -->
-            <section class="table-section" aria-labelledby="lista-titulo">
-                <header class="section-header">
-                    <h2 id="lista-titulo">
-                        <span class="section-icon">📋</span>
-                        Vendas Realizadas
-                    </h2>
-                    <div class="section-actions">
-                        <button type="button" class="btn btn-secondary btn-small" onclick="loadVendas()">
-                            <span class="btn-icon">🔄</span>
-                            Atualizar
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="exportarVendas()">
-                            <span class="btn-icon">📊</span>
-                            Exportar
-                        </button>
+                <!-- Campos Tipo V -->
+                <div id="campos-tipo-v" class="conditional-fields" style="display: none;">
+                    <h3>🛒 Venda Normal</h3>
+                    <div class="form-group">
+                        <label for="venda-poste-v">Poste *</label>
+                        <select id="venda-poste-v">
+                            <option value="">Selecione um poste</option>
+                        </select>
                     </div>
-                </header>
-
-                <div class="table-container" role="region" aria-labelledby="lista-titulo" tabindex="0">
-                    <table id="vendas-table" class="data-table" role="table">
-                        <thead>
-                            <tr role="row">
-                                <th scope="col">Data</th>
-                                <th scope="col">Tipo</th>
-                                <th scope="col">Poste/Descrição</th>
-                                <th scope="col">Frete</th>
-                                <th scope="col">Valor</th>
-                                <th scope="col">Observações</th>
-                                <th scope="col">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="7" class="empty-table">
-                                    <div class="empty-state">
-                                        <div class="empty-icon">📋</div>
-                                        <h3>Nenhuma venda encontrada</h3>
-                                        <p>Comece cadastrando sua primeira venda no formulário acima.</p>
-                                        <button type="button" class="btn btn-primary" onclick="scrollToForm()">
-                                            Cadastrar Primeira Venda
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="form-group">
+                        <label for="venda-quantidade-v">Quantidade</label>
+                        <input type="number" id="venda-quantidade-v" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="venda-valor-total-v">Valor de Venda *</label>
+                        <input type="number" step="0.01" id="venda-valor-total-v" placeholder="R$ 0,00">
+                    </div>
                 </div>
-            </section>
 
-        </div>
+                <!-- Campos Tipo L -->
+                <div id="campos-tipo-l" class="conditional-fields" style="display: none;">
+                    <h3>🏪 Venda Loja</h3>
+                    <div class="form-group">
+                        <label for="venda-poste-l">Poste (referência) *</label>
+                        <select id="venda-poste-l">
+                            <option value="">Selecione um poste</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="venda-quantidade-l">Quantidade</label>
+                        <input type="number" id="venda-quantidade-l" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="venda-frete-l">Frete Eletrons</label>
+                        <input type="number" step="0.01" id="venda-frete-l" placeholder="R$ 0,00" value="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="venda-observacoes">Observações</label>
+                    <textarea id="venda-observacoes" rows="3" placeholder="Observações sobre a venda..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span> Salvar Venda
+                    </button>
+                    <button type="reset" class="btn btn-secondary">
+                        <span>🔄</span> Limpar
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Resumo -->
+        <section class="summary-section">
+            <h2>📊 Resumo por Tipo</h2>
+            <div class="stats-grid">
+                <div class="stat-item tipo-e">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-number" id="total-vendas-e">0</div>
+                    <div class="stat-label">Extras (E)</div>
+                </div>
+                <div class="stat-item tipo-v">
+                    <div class="stat-icon">🛒</div>
+                    <div class="stat-number" id="total-vendas-v">0</div>
+                    <div class="stat-label">Normais (V)</div>
+                </div>
+                <div class="stat-item tipo-l">
+                    <div class="stat-icon">🏪</div>
+                    <div class="stat-number" id="total-vendas-l">0</div>
+                    <div class="stat-label">Loja (L)</div>
+                </div>
+                <div class="stat-item total">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-number" id="total-vendas-geral">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filtros -->
+        <section class="filter-section">
+            <h2>🔍 Filtros</h2>
+            <div class="filter-grid">
+                <select id="filtro-tipo-venda">
+                    <option value="">Todos os tipos</option>
+                    <option value="E">📈 Extra (E)</option>
+                    <option value="V">🛒 Normal (V)</option>
+                    <option value="L">🏪 Loja (L)</option>
+                </select>
+                <input type="date" id="filtro-data-inicio" placeholder="Data início">
+                <input type="date" id="filtro-data-fim" placeholder="Data fim">
+                <button class="btn btn-secondary" onclick="limparFiltros()">
+                    <span>🧹</span> Limpar
+                </button>
+            </div>
+        </section>
+
+        <!-- Lista de Vendas -->
+        <section class="table-section">
+            <div class="section-header">
+                <h2>📋 Vendas Realizadas</h2>
+                <div class="section-actions">
+                    <button class="btn btn-small" onclick="loadVendas()">🔄</button>
+                    <button class="btn btn-small" onclick="exportarVendas()">📊</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <div id="vendas-list" class="mobile-list">
+                    <!-- Vendas serão carregadas aqui -->
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Modal de Edição -->
-    <div id="edit-venda-modal" class="modal" role="dialog" aria-labelledby="modal-titulo" aria-hidden="true">
+    <div id="edit-modal" class="modal" style="display: none;">
         <div class="modal-content">
-            <header class="modal-header">
-                <h2 id="modal-titulo">
-                    <span class="modal-icon">✏️</span>
-                    Editar Venda
-                </h2>
-                <button type="button" class="close" onclick="closeModal('edit-venda-modal')" aria-label="Fechar modal">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </header>
-
-            <form id="edit-venda-form" novalidate>
+            <div class="modal-header">
+                <h3>✏️ Editar Venda</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="edit-form">
                 <div class="modal-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="edit-tipo-venda" class="form-label">Tipo de Venda</label>
-                            <select id="edit-tipo-venda" class="form-input" disabled>
-                                <option value="E">📈 Extra (E)</option>
-                                <option value="V">🛒 Venda Normal (V)</option>
-                                <option value="L">🏪 Venda Loja (L)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" id="edit-frete-group">
-                            <label for="edit-frete-eletrons" class="form-label">Frete Eletrons</label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">R$</span>
-                                <input type="number" step="0.01" id="edit-frete-eletrons" class="form-input" min="0">
-                            </div>
-                        </div>
-
-                        <div class="form-group" id="edit-valor-group">
-                            <label for="edit-valor-total" class="form-label">Valor de Venda</label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">R$</span>
-                                <input type="number" step="0.01" id="edit-valor-total" class="form-input" min="0">
-                            </div>
-                        </div>
-
-                        <div class="form-group" id="edit-extra-group" style="display: none;">
-                            <label for="edit-valor-extra" class="form-label">Valor Extra</label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">R$</span>
-                                <input type="number" step="0.01" id="edit-valor-extra" class="form-input" min="0">
-                            </div>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="edit-observacoes" class="form-label">Observações</label>
-                            <textarea id="edit-observacoes" class="form-input" rows="3"></textarea>
-                        </div>
+                    <div class="form-group">
+                        <label for="edit-tipo-venda">Tipo de Venda</label>
+                        <select id="edit-tipo-venda" disabled>
+                            <option value="E">📈 Extra (E)</option>
+                            <option value="V">🛒 Normal (V)</option>
+                            <option value="L">🏪 Loja (L)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="edit-frete-group">
+                        <label for="edit-frete-eletrons">Frete Eletrons</label>
+                        <input type="number" step="0.01" id="edit-frete-eletrons">
+                    </div>
+                    
+                    <div class="form-group" id="edit-valor-group">
+                        <label for="edit-valor-total">Valor de Venda</label>
+                        <input type="number" step="0.01" id="edit-valor-total">
+                    </div>
+                    
+                    <div class="form-group" id="edit-extra-group">
+                        <label for="edit-valor-extra">Valor Extra</label>
+                        <input type="number" step="0.01" id="edit-valor-extra">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-observacoes">Observações</label>
+                        <textarea id="edit-observacoes" rows="3"></textarea>
                     </div>
                 </div>
-
-                <footer class="modal-actions">
-                    <button type="submit" class="btn btn-primary">
-                        <span class="btn-icon">💾</span>
-                        Salvar Alterações
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-venda-modal')">
-                        Cancelar
-                    </button>
-                </footer>
+                
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- Overlay de Carregamento -->
-    <div id="loading-overlay" class="loading-overlay" role="status" aria-live="polite" aria-hidden="true">
-        <div class="spinner" aria-hidden="true"></div>
-        <p>Carregando dados das vendas...</p>
+    <!-- Loading -->
+    <div id="loading" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Carregando...</p>
     </div>
 
-    <!-- Container de Alertas -->
-    <div id="alert-container" class="alert-container" role="alert" aria-live="assertive" aria-atomic="true"></div>
+    <!-- Alerts -->
+    <div id="alert-container" class="alert-container"></div>
 
     <script src="js/vendas.js"></script>
 </body>
-
 </html>
