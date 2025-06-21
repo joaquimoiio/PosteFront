@@ -1,4 +1,4 @@
-// Relatórios JavaScript Mobile-First - Versão Refatorada
+// Relatórios JavaScript Mobile-First - Versão Corrigida
 const API_BASE = 'http://localhost:8080/api';
 
 // Estado global simplificado
@@ -76,10 +76,25 @@ function updatePeriodIndicator() {
     }
 }
 
-// API calls
+// API calls - CORRIGIDO
 async function apiRequest(endpoint, options = {}) {
-    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    // Remove barras duplicadas do endpoint
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${API_BASE}${cleanEndpoint}`;
+    
+    console.log('Fazendo requisição para:', url);
+    
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...options.headers
+        }
+    });
+    
     if (!response.ok) {
+        console.error('Erro na resposta:', response.status, response.statusText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     return await response.json();
@@ -96,12 +111,16 @@ async function loadPostes() {
 }
 
 async function loadVendas(params) {
-    const url = new URL(`${API_BASE}/vendas`);
+    // Construir URL com parâmetros
+    const searchParams = new URLSearchParams();
     Object.keys(params).forEach(key => {
-        if (params[key]) url.searchParams.append(key, params[key]);
+        if (params[key]) {
+            searchParams.append(key, params[key]);
+        }
     });
     
-    return await apiRequest(url.pathname + url.search);
+    const endpoint = searchParams.toString() ? `/vendas?${searchParams}` : '/vendas';
+    return await apiRequest(endpoint);
 }
 
 // Manipulação do formulário
@@ -157,7 +176,7 @@ async function gerarRelatorio() {
         
     } catch (error) {
         console.error('Erro ao gerar relatório:', error);
-        showAlert('Erro ao gerar relatório', 'error');
+        showAlert('Erro ao gerar relatório: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }
