@@ -129,8 +129,9 @@ async function fetchPostes() {
     return await apiRequest('/postes');
 }
 
-// Cálculos de lucro
+// CORREÇÃO: Cálculos de lucro com nova fórmula
 function calcularLucros(resumoVendas, despesas) {
+    // Separar despesas por tipo
     const despesasFuncionario = despesas
         .filter(d => d.tipo === 'FUNCIONARIO')
         .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0);
@@ -139,20 +140,45 @@ function calcularLucros(resumoVendas, despesas) {
         .filter(d => d.tipo === 'OUTRAS')
         .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0);
 
-    const totalVendaPostes = parseFloat(resumoVendas.totalVendaPostes) || 0;
-    const valorTotalVendas = parseFloat(resumoVendas.valorTotalVendas) || 0;
-    const totalFreteEletrons = parseFloat(resumoVendas.totalFreteEletrons) || 0;
-    const valorTotalExtras = parseFloat(resumoVendas.valorTotalExtras) || 0;
+    // Valores das vendas
+    const totalVendaPostes = parseFloat(resumoVendas.totalVendaPostes) || 0; // Custo dos postes
+    const valorTotalVendas = parseFloat(resumoVendas.valorTotalVendas) || 0; // Valor arrecadado em vendas V
+    const totalFreteEletrons = parseFloat(resumoVendas.totalFreteEletrons) || 0; // Frete das vendas L
+    const valorTotalExtras = parseFloat(resumoVendas.valorTotalExtras) || 0; // Valor das vendas E
 
-    const custoEletronsL = totalVendaPostes - totalFreteEletrons;
-    const lucroVendasNormais = valorTotalVendas - totalVendaPostes;
-    const lucroTotal = lucroVendasNormais + valorTotalExtras + totalFreteEletrons - totalVendaPostes - outrasDespesas;
+    // Onde:
+    // - Valor Arrecadado = valorTotalVendas (vendas tipo V)
+    // - Extras = valorTotalExtras (vendas tipo E)
+    // - Loja = totalFreteEletrons (frete das vendas tipo L)
+    // - Outras Despesas = outrasDespesas
+    // - Custo Eletrons = totalVendaPostes (custo dos postes vendidos)
+    
+    const lucroTotal = valorTotalVendas + valorTotalExtras + totalFreteEletrons - outrasDespesas - totalVendaPostes;
 
-    const metadeCicero = lucroTotal / 2;
-    const metadeGilbertoJefferson = lucroTotal / 2;
+    // Divisão dos lucros
+    const metadeCicero = lucroTotal / 2; // 50% para Cícero
+    const metadeGilbertoJefferson = lucroTotal / 2; // 50% para G&J
+    
+    // Da parte de G&J, subtrair despesas de funcionário
     const parteGilbertoJeffersonLiquida = metadeGilbertoJefferson - despesasFuncionario;
-    const parteGilberto = parteGilbertoJeffersonLiquida / 2;
-    const parteJefferson = parteGilbertoJeffersonLiquida / 2;
+    
+    // Dividir igualmente entre Gilberto e Jefferson
+    const parteGilberto = parteGilbertoJeffersonLiquida / 2; // 25% do total
+    const parteJefferson = parteGilbertoJeffersonLiquida / 2; // 25% do total
+
+    // Cálculo do custo dos Eletrons L (diferença entre custo e frete)
+    const custoEletronsL = totalVendaPostes - totalFreteEletrons;
+
+    console.log('💰 Cálculo de Lucros:');
+    console.log('   Valor Arrecadado (V):', valorTotalVendas);
+    console.log('   Extras (E):', valorTotalExtras);
+    console.log('   Loja/Frete (L):', totalFreteEletrons);
+    console.log('   Outras Despesas:', outrasDespesas);
+    console.log('   Custo Eletrons:', totalVendaPostes);
+    console.log('   LUCRO TOTAL:', lucroTotal);
+    console.log('   Cícero (50%):', metadeCicero);
+    console.log('   Gilberto (25%):', parteGilberto);
+    console.log('   Jefferson (25%):', parteJefferson);
 
     return {
         totalVendaPostes,
@@ -165,6 +191,7 @@ function calcularLucros(resumoVendas, despesas) {
         parteGilberto,
         parteJefferson,
         valorTotalExtras,
+        totalFreteEletrons,
         totalVendasE: resumoVendas.totalVendasE || 0,
         totalVendasV: resumoVendas.totalVendasV || 0,
         totalVendasL: resumoVendas.totalVendasL || 0
@@ -202,6 +229,9 @@ function atualizarInterface(lucros) {
     updateElement('total-despesas-count', state.despesas.length);
     updateElement('ticket-medio', formatCurrency(ticketMedio));
     updateElement('margem-lucro', `${margemLucro.toFixed(1)}%`);
+
+    // Log para debug
+    console.log('✅ Interface atualizada com nova fórmula de lucro');
 }
 
 // Filtros
@@ -302,4 +332,4 @@ function showAlert(message, type = 'success', duration = 3000) {
     }, duration);
 }
 
-console.log('✅ Dashboard Mobile-First carregado');
+console.log('✅ Dashboard Mobile-First carregado com nova fórmula de lucro');
