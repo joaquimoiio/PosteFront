@@ -146,7 +146,7 @@ function calcularLucros(resumoVendas, despesas) {
 
     const custoEletronsL = totalVendaPostes - totalFreteEletrons;
     const lucroVendasNormais = valorTotalVendas - totalVendaPostes;
-    const lucroTotal = lucroVendasNormais + valorTotalExtras + custoEletronsL - totalVendaPostes - outrasDespesas;
+    const lucroTotal = lucroVendasNormais + valorTotalExtras + totalFreteEletrons - totalVendaPostes - outrasDespesas;
 
     const metadeCicero = lucroTotal / 2;
     const metadeGilbertoJefferson = lucroTotal / 2;
