@@ -110,9 +110,30 @@ async function apiRequest(endpoint, options = {}) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
-    console.log('📡 Dados recebidos:', data);
-    return data;
+    // CORREÇÃO: Verificar se há conteúdo antes de fazer parse JSON
+    // Status 204 (No Content) não tem corpo de resposta
+    if (response.status === 204 || response.status === 205) {
+        console.log('📡 Resposta sem conteúdo (204/205)');
+        return null; // Retorna null para respostas sem conteúdo
+    }
+    
+    // Verificar se há conteúdo através do Content-Length
+    const contentLength = response.headers.get('Content-Length');
+    if (contentLength === '0') {
+        console.log('📡 Resposta com Content-Length = 0');
+        return null;
+    }
+    
+    // Tentar fazer parse JSON apenas se houver conteúdo
+    try {
+        const data = await response.json();
+        console.log('📡 Dados recebidos:', data);
+        return data;
+    } catch (error) {
+        // Se falhar no parse JSON, retornar null (para respostas vazias)
+        console.log('📡 Resposta sem conteúdo JSON válido');
+        return null;
+    }
 }
 
 async function fetchDespesas() {
@@ -334,13 +355,15 @@ async function deleteDespesa(id) {
         
         showLoading(true);
         
-        // CORREÇÃO: Usar DELETE corretamente
-        await apiRequest(`/despesas/${id}`, { 
+        // CORREÇÃO: Usar DELETE corretamente - agora tratando resposta 204
+        const result = await apiRequest(`/despesas/${id}`, { 
             method: 'DELETE' 
         });
         
         console.log('✅ Despesa excluída com sucesso');
         showAlert('Despesa excluída com sucesso!', 'success');
+        
+        // CORREÇÃO: Recarregar dados automaticamente após exclusão
         await carregarDados();
         
     } catch (error) {
