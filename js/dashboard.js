@@ -1,4 +1,4 @@
-// Dashboard Mobile-First - JavaScript Otimizado
+// Dashboard Mobile-First - JavaScript Otimizado para Cold Start do Render.com
 const API_BASE = 'https://posteback.onrender.com/api';
 
 // Estado global simplificado
@@ -7,12 +7,46 @@ const state = {
     despesas: [],
     vendas: [],
     postes: [],
-    filters: { dataInicio: null, dataFim: null }
+    filters: { dataInicio: null, dataFim: null },
+    isFirstRequest: !sessionStorage.getItem('api-connected'),
+    requestCache: new Map()
+};
+
+// Cache simples com TTL
+const cache = {
+    data: new Map(),
+    ttl: 5 * 60 * 1000, // 5 minutos
+    
+    set(key, value) {
+        this.data.set(key, {
+            value,
+            timestamp: Date.now()
+        });
+    },
+    
+    get(key) {
+        const item = this.data.get(key);
+        if (!item) return null;
+        
+        if (Date.now() - item.timestamp > this.ttl) {
+            this.data.delete(key);
+            return null;
+        }
+        
+        return item.value;
+    },
+    
+    clear() {
+        this.data.clear();
+    }
 };
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando Dashboard Mobile...');
+    
+    // Mostrar aviso sobre cold start na primeira visita
+    showColdStartWarning();
     
     try {
         configurarFiltrosPadrao();
@@ -20,9 +54,155 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ Dashboard carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showAlert('Erro ao carregar dados', 'error');
+        showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
 });
+
+// Aviso sobre cold start
+function showColdStartWarning() {
+    if (state.isFirstRequest && !sessionStorage.getItem('cold-start-warning-shown')) {
+        sessionStorage.setItem('cold-start-warning-shown', 'true');
+        showAlert(`
+            ℹ️ Primeira conexão pode demorar até 2 minutos devido ao servidor gratuito. 
+            Após isso, ficará mais rápido!
+        `, 'info', 10000);
+    }
+}
+
+// Loading inteligente com feedback progressivo
+function showIntelligentLoading(isFirstLoad = false) {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingText = loadingOverlay?.querySelector('p');
+    
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+        
+        if (loadingText && isFirstLoad) {
+            loadingText.textContent = 'Iniciando servidor (pode demorar até 2 minutos)...';
+            
+            // Feedback progressivo
+            let seconds = 0;
+            const progressInterval = setInterval(() => {
+                seconds += 5;
+                if (seconds <= 30) {
+                    loadingText.textContent = `Iniciando servidor... ${seconds}s`;
+                } else if (seconds <= 90) {
+                    loadingText.textContent = `Servidor inicializando (demora normal)... ${seconds}s`;
+                } else {
+                    loadingText.textContent = 'Quase pronto, aguarde mais um pouco...';
+                }
+            }, 5000);
+            
+            // Limpar intervalo quando loading sumir
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.target.style.display === 'none') {
+                        clearInterval(progressInterval);
+                        observer.disconnect();
+                    }
+                });
+            });
+            observer.observe(loadingOverlay, { attributes: true, attributeFilter: ['style'] });
+        } else if (loadingText) {
+            loadingText.textContent = 'Carregando dados...';
+        }
+    }
+}
+
+// Requisição otimizada com retry e timeout inteligente
+async function apiRequestOptimized(endpoint, options = {}) {
+    const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
+    
+    // Verificar cache primeiro
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && !options.skipCache) {
+        console.log('📦 Dados do cache:', endpoint);
+        return cachedData;
+    }
+    
+    const controller = new AbortController();
+    const isFirstRequest = state.isFirstRequest;
+    
+    // Timeout maior para primeira requisição (cold start)
+    const timeoutMs = isFirstRequest ? 120000 : 30000; // 2min vs 30s
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    const maxRetries = 2;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🌐 Tentativa ${attempt + 1}/${maxRetries + 1}: ${endpoint}`, isFirstRequest ? '(COLD START)' : '(WARM)');
+            
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                signal: controller.signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...options.headers
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            // Marcar como conectado
+            if (state.isFirstRequest) {
+                state.isFirstRequest = false;
+                sessionStorage.setItem('api-connected', 'true');
+            }
+            
+            // Verificar se há conteúdo antes de fazer parse JSON
+            if (response.status === 204 || response.status === 205) {
+                return null;
+            }
+            
+            const contentLength = response.headers.get('Content-Length');
+            if (contentLength === '0') {
+                return null;
+            }
+            
+            let data;
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                return null;
+            }
+            
+            // Cachear resultado
+            if (data !== null) {
+                cache.set(cacheKey, data);
+            }
+            
+            return data;
+            
+        } catch (error) {
+            console.warn(`⚠️ Tentativa ${attempt + 1} falhou:`, error.message);
+            
+            if (attempt === maxRetries) {
+                clearTimeout(timeoutId);
+                
+                // Mostrar erro específico para cold start
+                if (isFirstRequest && error.name === 'AbortError') {
+                    showAlert('⏱️ Servidor demorou para responder. Tente novamente em alguns segundos.', 'warning', 8000);
+                } else if (error.message.includes('Failed to fetch')) {
+                    showAlert('🌐 Sem conexão com a internet ou servidor indisponível.', 'error');
+                } else {
+                    showAlert('Erro ao conectar: ' + error.message, 'error');
+                }
+                
+                throw error;
+            }
+            
+            // Aguardar antes de tentar novamente (backoff exponencial)
+            const delay = Math.min(2000 * Math.pow(2, attempt), 10000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
 
 // Configuração inicial
 function configurarFiltrosPadrao() {
@@ -41,10 +221,12 @@ function configurarFiltrosPadrao() {
     }
 }
 
-// Carregamento de dados
+// Carregamento de dados otimizado
 async function carregarDados() {
     try {
-        showLoading(true);
+        showIntelligentLoading(state.isFirstRequest);
+        
+        console.log('📊 Carregando dados do dashboard...');
         
         const [resumoVendas, despesas, vendas, postes] = await Promise.all([
             fetchResumoVendas(),
@@ -54,83 +236,128 @@ async function carregarDados() {
         ]);
 
         state.resumo = resumoVendas;
-        state.despesas = despesas;
-        state.vendas = vendas;
-        state.postes = postes;
+        state.despesas = despesas || [];
+        state.vendas = vendas || [];
+        state.postes = postes || [];
 
-        const lucros = calcularLucros(resumoVendas, despesas);
+        const lucros = calcularLucros(resumoVendas, despesas || []);
         atualizarInterface(lucros);
+        
+        console.log('✅ Dados do dashboard carregados');
         
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
+        
+        // Mostrar dados em cache se disponível
+        if (state.resumo) {
+            console.log('📦 Usando dados em cache');
+            const lucros = calcularLucros(state.resumo, state.despesas);
+            atualizarInterface(lucros);
+            showAlert('Usando dados salvos. Alguns dados podem estar desatualizados.', 'warning');
+        }
+        
         throw error;
     } finally {
         showLoading(false);
     }
 }
 
-// Requisições API
-async function apiRequest(endpoint, params = {}) {
-    const url = new URL(`${API_BASE}${endpoint}`);
-    
-    Object.keys(params).forEach(key => {
-        if (params[key] !== null && params[key] !== undefined) {
-            url.searchParams.append(key, params[key]);
-        }
-    });
-    
-    const response = await fetch(url.toString(), {
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-    });
-    
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    return await response.json();
-}
-
+// Requisições API otimizadas
 async function fetchResumoVendas() {
-    const params = {};
+    const params = new URLSearchParams();
     if (state.filters.dataInicio) {
-        params.dataInicio = dateToISOString(state.filters.dataInicio);
+        params.append('dataInicio', dateToISOString(state.filters.dataInicio));
     }
     if (state.filters.dataFim) {
-        params.dataFim = dateToISOString(state.filters.dataFim);
+        params.append('dataFim', dateToISOString(state.filters.dataFim));
     }
-    return await apiRequest('/vendas/resumo', params);
+    
+    const endpoint = params.toString() ? `/vendas/resumo?${params}` : '/vendas/resumo';
+    
+    try {
+        return await apiRequestOptimized(endpoint);
+    } catch (error) {
+        console.error('Erro ao buscar resumo:', error);
+        return {
+            totalVendaPostes: 0,
+            valorTotalVendas: 0,
+            totalFreteEletrons: 0,
+            valorTotalExtras: 0,
+            totalVendasE: 0,
+            totalVendasV: 0,
+            totalVendasL: 0
+        };
+    }
 }
 
 async function fetchDespesas() {
-    const params = {};
+    const params = new URLSearchParams();
     if (state.filters.dataInicio) {
-        params.dataInicio = dateToISOString(state.filters.dataInicio);
+        params.append('dataInicio', dateToISOString(state.filters.dataInicio));
     }
     if (state.filters.dataFim) {
-        params.dataFim = dateToISOString(state.filters.dataFim);
+        params.append('dataFim', dateToISOString(state.filters.dataFim));
     }
-    return await apiRequest('/despesas', params);
+    
+    const endpoint = params.toString() ? `/despesas?${params}` : '/despesas';
+    
+    try {
+        return await apiRequestOptimized(endpoint);
+    } catch (error) {
+        console.error('Erro ao buscar despesas:', error);
+        return [];
+    }
 }
 
 async function fetchVendas() {
-    const params = {};
+    const params = new URLSearchParams();
     if (state.filters.dataInicio) {
-        params.dataInicio = dateToISOString(state.filters.dataInicio);
+        params.append('dataInicio', dateToISOString(state.filters.dataInicio));
     }
     if (state.filters.dataFim) {
-        params.dataFim = dateToISOString(state.filters.dataFim);
+        params.append('dataFim', dateToISOString(state.filters.dataFim));
     }
-    return await apiRequest('/vendas', params);
+    
+    const endpoint = params.toString() ? `/vendas?${params}` : '/vendas';
+    
+    try {
+        return await apiRequestOptimized(endpoint);
+    } catch (error) {
+        console.error('Erro ao buscar vendas:', error);
+        return [];
+    }
 }
 
 async function fetchPostes() {
-    return await apiRequest('/postes');
+    try {
+        return await apiRequestOptimized('/postes');
+    } catch (error) {
+        console.error('Erro ao buscar postes:', error);
+        return [];
+    }
 }
 
-// CORREÇÃO: Cálculos de lucro com nova fórmula
+// Cálculos de lucro (mantido igual - fórmula correta)
 function calcularLucros(resumoVendas, despesas) {
+    if (!resumoVendas || !despesas) {
+        return {
+            totalVendaPostes: 0,
+            valorTotalVendas: 0,
+            custoEletronsL: 0,
+            despesasFuncionario: 0,
+            outrasDespesas: 0,
+            lucroTotal: 0,
+            parteCicero: 0,
+            parteGilberto: 0,
+            parteJefferson: 0,
+            valorTotalExtras: 0,
+            totalFreteEletrons: 0,
+            totalVendasE: 0,
+            totalVendasV: 0,
+            totalVendasL: 0
+        };
+    }
+    
     // Separar despesas por tipo
     const despesasFuncionario = despesas
         .filter(d => d.tipo === 'FUNCIONARIO')
@@ -141,32 +368,22 @@ function calcularLucros(resumoVendas, despesas) {
         .reduce((sum, d) => sum + (parseFloat(d.valor) || 0), 0);
 
     // Valores das vendas
-    const totalVendaPostes = parseFloat(resumoVendas.totalVendaPostes) || 0; // Custo dos postes
-    const valorTotalVendas = parseFloat(resumoVendas.valorTotalVendas) || 0; // Valor arrecadado em vendas V
-    const totalFreteEletrons = parseFloat(resumoVendas.totalFreteEletrons) || 0; // Frete das vendas L
-    const valorTotalExtras = parseFloat(resumoVendas.valorTotalExtras) || 0; // Valor das vendas E
+    const totalVendaPostes = parseFloat(resumoVendas.totalVendaPostes) || 0;
+    const valorTotalVendas = parseFloat(resumoVendas.valorTotalVendas) || 0;
+    const totalFreteEletrons = parseFloat(resumoVendas.totalFreteEletrons) || 0;
+    const valorTotalExtras = parseFloat(resumoVendas.valorTotalExtras) || 0;
 
-    // Onde:
-    // - Valor Arrecadado = valorTotalVendas (vendas tipo V)
-    // - Extras = valorTotalExtras (vendas tipo E)
-    // - Loja = totalFreteEletrons (frete das vendas tipo L)
-    // - Outras Despesas = outrasDespesas
-    // - Custo Eletrons = totalVendaPostes (custo dos postes vendidos)
-    
     const lucroTotal = valorTotalVendas + valorTotalExtras + totalFreteEletrons - outrasDespesas - totalVendaPostes;
 
     // Divisão dos lucros
-    const metadeCicero = lucroTotal / 2; // 50% para Cícero
-    const metadeGilbertoJefferson = lucroTotal / 2; // 50% para G&J
+    const metadeCicero = lucroTotal / 2;
+    const metadeGilbertoJefferson = lucroTotal / 2;
     
-    // Da parte de G&J, subtrair despesas de funcionário
     const parteGilbertoJeffersonLiquida = metadeGilbertoJefferson - despesasFuncionario;
     
-    // Dividir igualmente entre Gilberto e Jefferson
-    const parteGilberto = parteGilbertoJeffersonLiquida / 2; // 25% do total
-    const parteJefferson = parteGilbertoJeffersonLiquida / 2; // 25% do total
+    const parteGilberto = parteGilbertoJeffersonLiquida / 2;
+    const parteJefferson = parteGilbertoJeffersonLiquida / 2;
 
-    // Cálculo do custo dos Eletrons L (diferença entre custo e frete)
     const custoEletronsL = totalVendaPostes - totalFreteEletrons;
 
     console.log('💰 Cálculo de Lucros:');
@@ -176,9 +393,6 @@ function calcularLucros(resumoVendas, despesas) {
     console.log('   Outras Despesas:', outrasDespesas);
     console.log('   Custo Eletrons:', totalVendaPostes);
     console.log('   LUCRO TOTAL:', lucroTotal);
-    console.log('   Cícero (50%):', metadeCicero);
-    console.log('   Gilberto (25%):', parteGilberto);
-    console.log('   Jefferson (25%):', parteJefferson);
 
     return {
         totalVendaPostes,
@@ -198,7 +412,7 @@ function calcularLucros(resumoVendas, despesas) {
     };
 }
 
-// Atualização da interface
+// Atualização da interface (mantida igual)
 function atualizarInterface(lucros) {
     // Cards de vendas por tipo
     updateElement('vendas-tipo-e', lucros.totalVendasE);
@@ -230,24 +444,32 @@ function atualizarInterface(lucros) {
     updateElement('ticket-medio', formatCurrency(ticketMedio));
     updateElement('margem-lucro', `${margemLucro.toFixed(1)}%`);
 
-    // Log para debug
-    console.log('✅ Interface atualizada com nova fórmula de lucro');
+    console.log('✅ Interface atualizada');
 }
 
-// Filtros
+// Filtros otimizados
 async function applyPeriodFilter() {
-    const filtroInicio = document.getElementById('data-inicio');
-    const filtroFim = document.getElementById('data-fim');
-    
-    if (filtroInicio && filtroFim) {
-        state.filters.dataInicio = filtroInicio.value ? 
-            new Date(filtroInicio.value + 'T00:00:00') : null;
-        state.filters.dataFim = filtroFim.value ? 
-            new Date(filtroFim.value + 'T23:59:59') : null;
+    try {
+        const filtroInicio = document.getElementById('data-inicio');
+        const filtroFim = document.getElementById('data-fim');
+        
+        if (filtroInicio && filtroFim) {
+            state.filters.dataInicio = filtroInicio.value ? 
+                new Date(filtroInicio.value + 'T00:00:00') : null;
+            state.filters.dataFim = filtroFim.value ? 
+                new Date(filtroFim.value + 'T23:59:59') : null;
+        }
+        
+        // Limpar cache para forçar nova requisição
+        cache.clear();
+        
+        await carregarDados();
+        showAlert('Filtros aplicados com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao aplicar filtros:', error);
+        showAlert('Erro ao aplicar filtros. Tente novamente.', 'error');
     }
-    
-    await carregarDados();
-    showAlert('Filtros aplicados!', 'success');
 }
 
 function clearPeriodFilter() {
@@ -265,11 +487,20 @@ function clearPeriodFilter() {
 }
 
 async function refreshDashboard() {
-    await carregarDados();
-    showAlert('Dashboard atualizado!', 'success');
+    try {
+        // Limpar cache para forçar nova requisição
+        cache.clear();
+        
+        await carregarDados();
+        showAlert('Dashboard atualizado com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao atualizar dashboard:', error);
+        showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
+    }
 }
 
-// Utilitários
+// Utilitários (mantidos iguais)
 function updateElement(id, value) {
     const element = document.getElementById(id);
     if (element) {
@@ -332,4 +563,4 @@ function showAlert(message, type = 'success', duration = 3000) {
     }, duration);
 }
 
-console.log('✅ Dashboard Mobile-First carregado com nova fórmula de lucro');
+console.log('✅ Dashboard Mobile-First carregado com otimizações para cold start');

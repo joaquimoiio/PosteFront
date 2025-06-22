@@ -1,4 +1,4 @@
-// Vendas JavaScript Mobile-First - Versão Completa Refatorada
+// Vendas JavaScript Mobile-First - Versão Otimizada para Cold Start
 const API_BASE = 'https://posteback.onrender.com/api';
 
 // Estado global simplificado
@@ -6,12 +6,46 @@ const state = {
     vendas: [],
     postes: [],
     currentEditId: null,
-    filters: { tipo: '', dataInicio: '', dataFim: '' }
+    filters: { tipo: '', dataInicio: '', dataFim: '' },
+    isFirstRequest: !sessionStorage.getItem('api-connected'),
+    requestCache: new Map()
+};
+
+// Cache simples com TTL
+const cache = {
+    data: new Map(),
+    ttl: 5 * 60 * 1000, // 5 minutos
+    
+    set(key, value) {
+        this.data.set(key, {
+            value,
+            timestamp: Date.now()
+        });
+    },
+    
+    get(key) {
+        const item = this.data.get(key);
+        if (!item) return null;
+        
+        if (Date.now() - item.timestamp > this.ttl) {
+            this.data.delete(key);
+            return null;
+        }
+        
+        return item.value;
+    },
+    
+    clear() {
+        this.data.clear();
+    }
 };
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando Vendas Mobile...');
+    
+    // Mostrar aviso sobre cold start na primeira visita
+    showColdStartWarning();
     
     try {
         configurarEventos();
@@ -21,9 +55,155 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ Vendas carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showAlert('Erro ao carregar dados', 'error');
+        showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
 });
+
+// Aviso sobre cold start
+function showColdStartWarning() {
+    if (state.isFirstRequest && !sessionStorage.getItem('cold-start-warning-shown')) {
+        sessionStorage.setItem('cold-start-warning-shown', 'true');
+        showAlert(`
+            ℹ️ Primeira conexão pode demorar até 2 minutos devido ao servidor gratuito. 
+            Após isso, ficará mais rápido!
+        `, 'info', 10000);
+    }
+}
+
+// Loading inteligente com feedback progressivo
+function showIntelligentLoading(isFirstLoad = false) {
+    const loading = document.getElementById('loading');
+    const loadingText = loading?.querySelector('p');
+    
+    if (loading) {
+        loading.style.display = 'flex';
+        
+        if (loadingText && isFirstLoad) {
+            loadingText.textContent = 'Iniciando servidor (pode demorar até 2 minutos)...';
+            
+            // Feedback progressivo
+            let seconds = 0;
+            const progressInterval = setInterval(() => {
+                seconds += 5;
+                if (seconds <= 30) {
+                    loadingText.textContent = `Iniciando servidor... ${seconds}s`;
+                } else if (seconds <= 90) {
+                    loadingText.textContent = `Servidor inicializando (demora normal)... ${seconds}s`;
+                } else {
+                    loadingText.textContent = 'Quase pronto, aguarde mais um pouco...';
+                }
+            }, 5000);
+            
+            // Limpar intervalo quando loading sumir
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.target.style.display === 'none') {
+                        clearInterval(progressInterval);
+                        observer.disconnect();
+                    }
+                });
+            });
+            observer.observe(loading, { attributes: true, attributeFilter: ['style'] });
+        } else if (loadingText) {
+            loadingText.textContent = 'Carregando...';
+        }
+    }
+}
+
+// Requisição otimizada com retry e timeout inteligente
+async function apiRequestOptimized(endpoint, options = {}) {
+    const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
+    
+    // Verificar cache primeiro
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && !options.skipCache) {
+        console.log('📦 Dados do cache:', endpoint);
+        return cachedData;
+    }
+    
+    const controller = new AbortController();
+    const isFirstRequest = state.isFirstRequest;
+    
+    // Timeout maior para primeira requisição (cold start)
+    const timeoutMs = isFirstRequest ? 120000 : 30000; // 2min vs 30s
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    const maxRetries = 2;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🌐 Tentativa ${attempt + 1}/${maxRetries + 1}: ${endpoint}`, isFirstRequest ? '(COLD START)' : '(WARM)');
+            
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                signal: controller.signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...options.headers
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            // Marcar como conectado
+            if (state.isFirstRequest) {
+                state.isFirstRequest = false;
+                sessionStorage.setItem('api-connected', 'true');
+            }
+            
+            // Verificar se há conteúdo antes de fazer parse JSON
+            if (response.status === 204 || response.status === 205) {
+                return null;
+            }
+            
+            const contentLength = response.headers.get('Content-Length');
+            if (contentLength === '0') {
+                return null;
+            }
+            
+            let data;
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                return null;
+            }
+            
+            // Cachear resultado
+            if (data !== null) {
+                cache.set(cacheKey, data);
+            }
+            
+            return data;
+            
+        } catch (error) {
+            console.warn(`⚠️ Tentativa ${attempt + 1} falhou:`, error.message);
+            
+            if (attempt === maxRetries) {
+                clearTimeout(timeoutId);
+                
+                // Mostrar erro específico para cold start
+                if (isFirstRequest && error.name === 'AbortError') {
+                    showAlert('⏱️ Servidor demorou para responder. Tente novamente em alguns segundos.', 'warning', 8000);
+                } else if (error.message.includes('Failed to fetch')) {
+                    showAlert('🌐 Sem conexão com a internet ou servidor indisponível.', 'error');
+                } else {
+                    showAlert('Erro ao conectar: ' + error.message, 'error');
+                }
+                
+                throw error;
+            }
+            
+            // Aguardar antes de tentar novamente (backoff exponencial)
+            const delay = Math.min(2000 * Math.pow(2, attempt), 10000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
 
 // Configuração de eventos
 function configurarEventos() {
@@ -87,59 +267,69 @@ function setupFilters() {
     });
 }
 
-// Carregamento de dados
+// Carregamento de dados otimizado
 async function carregarDados() {
     try {
-        showLoading(true);
+        showIntelligentLoading(state.isFirstRequest);
+        
+        console.log('📋 Carregando dados de vendas...');
         
         const [vendas, postes] = await Promise.all([
             fetchVendas(),
             fetchPostes()
         ]);
         
-        state.vendas = vendas;
-        state.postes = postes;
+        state.vendas = vendas || [];
+        state.postes = postes || [];
         
         populatePosteSelects();
         updateResumo();
         applyFilters();
         
+        console.log('✅ Dados de vendas carregados');
+        
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
+        
+        // Mostrar dados em cache se disponível
+        if (state.vendas.length > 0) {
+            console.log('📦 Usando dados em cache');
+            populatePosteSelects();
+            updateResumo();
+            applyFilters();
+            showAlert('Usando dados salvos. Alguns dados podem estar desatualizados.', 'warning');
+        }
+        
         throw error;
     } finally {
         showLoading(false);
     }
 }
 
-// API calls
-async function apiRequest(endpoint, options = {}) {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-        }
-    });
-    
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    return await response.json();
-}
-
+// Requisições API otimizadas
 async function fetchVendas() {
     const params = new URLSearchParams();
     if (state.filters.dataInicio) params.append('dataInicio', state.filters.dataInicio);
     if (state.filters.dataFim) params.append('dataFim', state.filters.dataFim);
     
-    const url = params.toString() ? `/vendas?${params}` : '/vendas';
-    return await apiRequest(url);
+    const endpoint = params.toString() ? `/vendas?${params}` : '/vendas';
+    
+    try {
+        return await apiRequestOptimized(endpoint);
+    } catch (error) {
+        console.error('Erro ao buscar vendas:', error);
+        return [];
+    }
 }
 
 async function fetchPostes() {
-    const postes = await apiRequest('/postes');
-    return postes.filter(p => p.ativo);
+    try {
+        const postes = await apiRequestOptimized('/postes');
+        return (postes || []).filter(p => p.ativo);
+    } catch (error) {
+        console.error('Erro ao buscar postes:', error);
+        return [];
+    }
 }
 
 // Manipulação do formulário
@@ -162,20 +352,24 @@ async function handleVendaSubmit(e) {
             }
         }
         
-        showLoading(true);
+        showIntelligentLoading(false);
         
-        await apiRequest('/vendas', {
+        await apiRequestOptimized('/vendas', {
             method: 'POST',
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            skipCache: true
         });
         
         showAlert('Venda criada com sucesso! Estoque atualizado automaticamente.', 'success');
         resetForm();
+        
+        // Limpar cache e recarregar
+        cache.clear();
         await carregarDados();
         
     } catch (error) {
         console.error('Erro ao criar venda:', error);
-        showAlert('Erro ao criar venda', 'error');
+        showAlert('Erro ao criar venda: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }
@@ -327,11 +521,12 @@ async function verificarEstoque() {
 
 async function checkStock(posteId, quantidade) {
     try {
-        const response = await apiRequest('/estoque/verificar-disponibilidade', {
+        const response = await apiRequestOptimized('/estoque/verificar-disponibilidade', {
             method: 'POST',
-            body: JSON.stringify({ posteId, quantidade })
+            body: JSON.stringify({ posteId, quantidade }),
+            skipCache: true
         });
-        return response.disponivel;
+        return response?.disponivel || false;
     } catch (error) {
         console.error('Erro na verificação de estoque:', error);
         return false;
@@ -473,7 +668,7 @@ async function editVenda(id) {
         
     } catch (error) {
         console.error('Erro ao carregar venda para edição:', error);
-        showAlert('Erro ao carregar dados da venda', 'error');
+        showAlert('Erro ao carregar dados da venda: ' + error.message, 'error');
     }
 }
 
@@ -513,20 +708,24 @@ async function handleEditSubmit(e) {
     try {
         const formData = buildEditFormData();
         
-        showLoading(true);
+        showIntelligentLoading(false);
         
-        await apiRequest(`/vendas/${state.currentEditId}`, {
+        await apiRequestOptimized(`/vendas/${state.currentEditId}`, {
             method: 'PUT',
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            skipCache: true
         });
         
         showAlert('Venda atualizada com sucesso!', 'success');
         closeModal();
+        
+        // Limpar cache e recarregar
+        cache.clear();
         await carregarDados();
         
     } catch (error) {
         console.error('Erro ao atualizar venda:', error);
-        showAlert('Erro ao atualizar venda', 'error');
+        showAlert('Erro ao atualizar venda: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }
@@ -561,16 +760,22 @@ async function deleteVenda(id) {
     }
     
     try {
-        showLoading(true);
+        showIntelligentLoading(false);
         
-        await apiRequest(`/vendas/${id}`, { method: 'DELETE' });
+        await apiRequestOptimized(`/vendas/${id}`, { 
+            method: 'DELETE',
+            skipCache: true 
+        });
         
         showAlert('Venda excluída com sucesso! Estoque devolvido automaticamente.', 'success');
+        
+        // Limpar cache e recarregar
+        cache.clear();
         await carregarDados();
         
     } catch (error) {
         console.error('Erro ao excluir venda:', error);
-        showAlert('Erro ao excluir venda', 'error');
+        showAlert('Erro ao excluir venda: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }
@@ -691,8 +896,17 @@ async function exportarVendas() {
 }
 
 async function loadVendas() {
-    await carregarDados();
-    showAlert('Dados atualizados!', 'success');
+    try {
+        // Limpar cache para forçar nova requisição
+        cache.clear();
+        
+        await carregarDados();
+        showAlert('Dados atualizados com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao atualizar vendas:', error);
+        showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
+    }
 }
 
 // Modal functions
@@ -851,4 +1065,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Vendas Mobile carregado');
+console.log('✅ Vendas Mobile carregado com otimizações para cold start');

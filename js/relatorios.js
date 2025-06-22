@@ -1,15 +1,49 @@
-// Relatórios JavaScript Mobile-First - Versão Corrigida
+// Relatórios JavaScript Mobile-First - Versão Otimizada para Cold Start
 const API_BASE = 'https://posteback.onrender.com/api';
 
 // Estado global simplificado
 const state = {
     relatorio: [],
-    postes: []
+    postes: [],
+    isFirstRequest: !sessionStorage.getItem('api-connected'),
+    requestCache: new Map()
+};
+
+// Cache simples com TTL
+const cache = {
+    data: new Map(),
+    ttl: 5 * 60 * 1000, // 5 minutos
+    
+    set(key, value) {
+        this.data.set(key, {
+            value,
+            timestamp: Date.now()
+        });
+    },
+    
+    get(key) {
+        const item = this.data.get(key);
+        if (!item) return null;
+        
+        if (Date.now() - item.timestamp > this.ttl) {
+            this.data.delete(key);
+            return null;
+        }
+        
+        return item.value;
+    },
+    
+    clear() {
+        this.data.clear();
+    }
 };
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando Relatórios Mobile...');
+    
+    // Mostrar aviso sobre cold start na primeira visita
+    showColdStartWarning();
     
     try {
         configurarEventos();
@@ -18,9 +52,155 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ Relatórios carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showAlert('Erro ao carregar dados', 'error');
+        showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
 });
+
+// Aviso sobre cold start
+function showColdStartWarning() {
+    if (state.isFirstRequest && !sessionStorage.getItem('cold-start-warning-shown')) {
+        sessionStorage.setItem('cold-start-warning-shown', 'true');
+        showAlert(`
+            ℹ️ Primeira conexão pode demorar até 2 minutos devido ao servidor gratuito. 
+            Após isso, ficará mais rápido!
+        `, 'info', 10000);
+    }
+}
+
+// Loading inteligente com feedback progressivo
+function showIntelligentLoading(isFirstLoad = false) {
+    const loading = document.getElementById('loading');
+    const loadingText = loading?.querySelector('p');
+    
+    if (loading) {
+        loading.style.display = 'flex';
+        
+        if (loadingText && isFirstLoad) {
+            loadingText.textContent = 'Iniciando servidor (pode demorar até 2 minutos)...';
+            
+            // Feedback progressivo
+            let seconds = 0;
+            const progressInterval = setInterval(() => {
+                seconds += 5;
+                if (seconds <= 30) {
+                    loadingText.textContent = `Iniciando servidor... ${seconds}s`;
+                } else if (seconds <= 90) {
+                    loadingText.textContent = `Servidor inicializando (demora normal)... ${seconds}s`;
+                } else {
+                    loadingText.textContent = 'Quase pronto, aguarde mais um pouco...';
+                }
+            }, 5000);
+            
+            // Limpar intervalo quando loading sumir
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.target.style.display === 'none') {
+                        clearInterval(progressInterval);
+                        observer.disconnect();
+                    }
+                });
+            });
+            observer.observe(loading, { attributes: true, attributeFilter: ['style'] });
+        } else if (loadingText) {
+            loadingText.textContent = 'Gerando relatório...';
+        }
+    }
+}
+
+// Requisição otimizada com retry e timeout inteligente
+async function apiRequestOptimized(endpoint, options = {}) {
+    const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
+    
+    // Verificar cache primeiro
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && !options.skipCache) {
+        console.log('📦 Dados do cache:', endpoint);
+        return cachedData;
+    }
+    
+    const controller = new AbortController();
+    const isFirstRequest = state.isFirstRequest;
+    
+    // Timeout maior para primeira requisição (cold start)
+    const timeoutMs = isFirstRequest ? 120000 : 30000; // 2min vs 30s
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    const maxRetries = 2;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🌐 Tentativa ${attempt + 1}/${maxRetries + 1}: ${endpoint}`, isFirstRequest ? '(COLD START)' : '(WARM)');
+            
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                signal: controller.signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...options.headers
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            // Marcar como conectado
+            if (state.isFirstRequest) {
+                state.isFirstRequest = false;
+                sessionStorage.setItem('api-connected', 'true');
+            }
+            
+            // Verificar se há conteúdo antes de fazer parse JSON
+            if (response.status === 204 || response.status === 205) {
+                return null;
+            }
+            
+            const contentLength = response.headers.get('Content-Length');
+            if (contentLength === '0') {
+                return null;
+            }
+            
+            let data;
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                return null;
+            }
+            
+            // Cachear resultado
+            if (data !== null) {
+                cache.set(cacheKey, data);
+            }
+            
+            return data;
+            
+        } catch (error) {
+            console.warn(`⚠️ Tentativa ${attempt + 1} falhou:`, error.message);
+            
+            if (attempt === maxRetries) {
+                clearTimeout(timeoutId);
+                
+                // Mostrar erro específico para cold start
+                if (isFirstRequest && error.name === 'AbortError') {
+                    showAlert('⏱️ Servidor demorou para responder. Tente novamente em alguns segundos.', 'warning', 8000);
+                } else if (error.message.includes('Failed to fetch')) {
+                    showAlert('🌐 Sem conexão com a internet ou servidor indisponível.', 'error');
+                } else {
+                    showAlert('Erro ao conectar: ' + error.message, 'error');
+                }
+                
+                throw error;
+            }
+            
+            // Aguardar antes de tentar novamente (backoff exponencial)
+            const delay = Math.min(2000 * Math.pow(2, attempt), 10000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
 
 // Configuração de eventos
 function configurarEventos() {
@@ -76,34 +256,16 @@ function updatePeriodIndicator() {
     }
 }
 
-// API calls - CORRIGIDO
-async function apiRequest(endpoint, options = {}) {
-    // Remove barras duplicadas do endpoint
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    const url = `${API_BASE}${cleanEndpoint}`;
-    
-    console.log('Fazendo requisição para:', url);
-    
-    const response = await fetch(url, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...options.headers
-        }
-    });
-    
-    if (!response.ok) {
-        console.error('Erro na resposta:', response.status, response.statusText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    return await response.json();
-}
-
+// Carregamento inicial de postes
 async function loadPostes() {
     try {
-        const postes = await apiRequest('/postes');
-        state.postes = postes.filter(p => p.ativo);
+        console.log('⚡ Carregando lista de postes...');
+        
+        const postes = await apiRequestOptimized('/postes');
+        state.postes = (postes || []).filter(p => p.ativo);
+        
+        console.log('✅ Lista de postes carregada');
+        
     } catch (error) {
         console.error('Erro ao carregar postes:', error);
         showAlert('Erro ao carregar lista de postes', 'warning');
@@ -120,7 +282,13 @@ async function loadVendas(params) {
     });
     
     const endpoint = searchParams.toString() ? `/vendas?${searchParams}` : '/vendas';
-    return await apiRequest(endpoint);
+    
+    try {
+        return await apiRequestOptimized(endpoint);
+    } catch (error) {
+        console.error('Erro ao carregar vendas:', error);
+        return [];
+    }
 }
 
 // Manipulação do formulário
@@ -146,16 +314,18 @@ async function gerarRelatorio() {
             return;
         }
         
-        showLoading(true);
+        showIntelligentLoading(state.isFirstRequest);
+        
+        console.log('📊 Gerando relatório...');
         
         // Carregar vendas do período
         const params = { dataInicio, dataFim };
         const vendas = await loadVendas(params);
         
         // Filtrar por tipo se especificado
-        let vendasFiltradas = vendas;
+        let vendasFiltradas = vendas || [];
         if (tipoVenda) {
-            vendasFiltradas = vendas.filter(v => v.tipoVenda === tipoVenda);
+            vendasFiltradas = vendasFiltradas.filter(v => v.tipoVenda === tipoVenda);
         }
         
         // Gerar relatório
@@ -173,6 +343,7 @@ async function gerarRelatorio() {
         document.getElementById('charts-section').style.display = 'block';
         
         showAlert('Relatório gerado com sucesso!', 'success');
+        console.log('✅ Relatório gerado');
         
     } catch (error) {
         console.error('Erro ao gerar relatório:', error);
@@ -528,4 +699,4 @@ function exportToCSV(data, filename) {
     showAlert('Relatório exportado com sucesso!', 'success');
 }
 
-console.log('✅ Relatórios Mobile carregado');
+console.log('✅ Relatórios Mobile carregado com otimizações para cold start');

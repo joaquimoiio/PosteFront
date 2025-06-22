@@ -1,4 +1,4 @@
-// Despesas JavaScript Mobile-First - Versão Corrigida
+// Despesas JavaScript Mobile-First - Versão Otimizada para Cold Start
 const API_BASE = 'https://posteback.onrender.com/api';
 
 // Estado global simplificado
@@ -10,12 +10,46 @@ const state = {
         dataInicio: '',
         dataFim: '',
         descricao: ''
+    },
+    isFirstRequest: !sessionStorage.getItem('api-connected'),
+    requestCache: new Map()
+};
+
+// Cache simples com TTL
+const cache = {
+    data: new Map(),
+    ttl: 5 * 60 * 1000, // 5 minutos
+    
+    set(key, value) {
+        this.data.set(key, {
+            value,
+            timestamp: Date.now()
+        });
+    },
+    
+    get(key) {
+        const item = this.data.get(key);
+        if (!item) return null;
+        
+        if (Date.now() - item.timestamp > this.ttl) {
+            this.data.delete(key);
+            return null;
+        }
+        
+        return item.value;
+    },
+    
+    clear() {
+        this.data.clear();
     }
 };
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Inicializando Despesas Mobile...');
+    
+    // Mostrar aviso sobre cold start na primeira visita
+    showColdStartWarning();
     
     try {
         configurarEventos();
@@ -25,9 +59,155 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ Despesas carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showAlert('Erro ao carregar dados', 'error');
+        showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
 });
+
+// Aviso sobre cold start
+function showColdStartWarning() {
+    if (state.isFirstRequest && !sessionStorage.getItem('cold-start-warning-shown')) {
+        sessionStorage.setItem('cold-start-warning-shown', 'true');
+        showAlert(`
+            ℹ️ Primeira conexão pode demorar até 2 minutos devido ao servidor gratuito. 
+            Após isso, ficará mais rápido!
+        `, 'info', 10000);
+    }
+}
+
+// Loading inteligente com feedback progressivo
+function showIntelligentLoading(isFirstLoad = false) {
+    const loading = document.getElementById('loading');
+    const loadingText = loading?.querySelector('p');
+    
+    if (loading) {
+        loading.style.display = 'flex';
+        
+        if (loadingText && isFirstLoad) {
+            loadingText.textContent = 'Iniciando servidor (pode demorar até 2 minutos)...';
+            
+            // Feedback progressivo
+            let seconds = 0;
+            const progressInterval = setInterval(() => {
+                seconds += 5;
+                if (seconds <= 30) {
+                    loadingText.textContent = `Iniciando servidor... ${seconds}s`;
+                } else if (seconds <= 90) {
+                    loadingText.textContent = `Servidor inicializando (demora normal)... ${seconds}s`;
+                } else {
+                    loadingText.textContent = 'Quase pronto, aguarde mais um pouco...';
+                }
+            }, 5000);
+            
+            // Limpar intervalo quando loading sumir
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.target.style.display === 'none') {
+                        clearInterval(progressInterval);
+                        observer.disconnect();
+                    }
+                });
+            });
+            observer.observe(loading, { attributes: true, attributeFilter: ['style'] });
+        } else if (loadingText) {
+            loadingText.textContent = 'Carregando...';
+        }
+    }
+}
+
+// Requisição otimizada com retry e timeout inteligente
+async function apiRequestOptimized(endpoint, options = {}) {
+    const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
+    
+    // Verificar cache primeiro
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && !options.skipCache) {
+        console.log('📦 Dados do cache:', endpoint);
+        return cachedData;
+    }
+    
+    const controller = new AbortController();
+    const isFirstRequest = state.isFirstRequest;
+    
+    // Timeout maior para primeira requisição (cold start)
+    const timeoutMs = isFirstRequest ? 120000 : 30000; // 2min vs 30s
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    const maxRetries = 2;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🌐 Tentativa ${attempt + 1}/${maxRetries + 1}: ${endpoint}`, isFirstRequest ? '(COLD START)' : '(WARM)');
+            
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                signal: controller.signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...options.headers
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            // Marcar como conectado
+            if (state.isFirstRequest) {
+                state.isFirstRequest = false;
+                sessionStorage.setItem('api-connected', 'true');
+            }
+            
+            // Verificar se há conteúdo antes de fazer parse JSON
+            if (response.status === 204 || response.status === 205) {
+                return null;
+            }
+            
+            const contentLength = response.headers.get('Content-Length');
+            if (contentLength === '0') {
+                return null;
+            }
+            
+            let data;
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                return null;
+            }
+            
+            // Cachear resultado
+            if (data !== null) {
+                cache.set(cacheKey, data);
+            }
+            
+            return data;
+            
+        } catch (error) {
+            console.warn(`⚠️ Tentativa ${attempt + 1} falhou:`, error.message);
+            
+            if (attempt === maxRetries) {
+                clearTimeout(timeoutId);
+                
+                // Mostrar erro específico para cold start
+                if (isFirstRequest && error.name === 'AbortError') {
+                    showAlert('⏱️ Servidor demorou para responder. Tente novamente em alguns segundos.', 'warning', 8000);
+                } else if (error.message.includes('Failed to fetch')) {
+                    showAlert('🌐 Sem conexão com a internet ou servidor indisponível.', 'error');
+                } else {
+                    showAlert('Erro ao conectar: ' + error.message, 'error');
+                }
+                
+                throw error;
+            }
+            
+            // Aguardar antes de tentar novamente (backoff exponencial)
+            const delay = Math.min(2000 * Math.pow(2, attempt), 10000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
 
 // Configuração de eventos
 function configurarEventos() {
@@ -67,82 +247,52 @@ function setupFilters() {
     });
 }
 
-// Carregamento de dados
+// Carregamento de dados otimizado
 async function carregarDados() {
     try {
-        showLoading(true);
+        showIntelligentLoading(state.isFirstRequest);
+        
+        console.log('💸 Carregando dados de despesas...');
         
         const despesas = await fetchDespesas();
-        state.despesas = despesas;
+        state.despesas = despesas || [];
         
         updateResumo();
         applyFilters();
         
+        console.log('✅ Dados de despesas carregados');
+        
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
+        
+        // Mostrar dados em cache se disponível
+        if (state.despesas.length > 0) {
+            console.log('📦 Usando dados em cache');
+            updateResumo();
+            applyFilters();
+            showAlert('Usando dados salvos. Alguns dados podem estar desatualizados.', 'warning');
+        }
+        
         throw error;
     } finally {
         showLoading(false);
     }
 }
 
-// API calls - CORRIGIDOS
-async function apiRequest(endpoint, options = {}) {
-    // Construir URL completa
-    const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
-    
-    console.log('📡 Fazendo requisição:', options.method || 'GET', url);
-    
-    const response = await fetch(url, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...options.headers
-        }
-    });
-    
-    console.log('📡 Resposta recebida:', response.status, response.statusText);
-    
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Erro na API:', response.status, errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    // CORREÇÃO: Verificar se há conteúdo antes de fazer parse JSON
-    // Status 204 (No Content) não tem corpo de resposta
-    if (response.status === 204 || response.status === 205) {
-        console.log('📡 Resposta sem conteúdo (204/205)');
-        return null; // Retorna null para respostas sem conteúdo
-    }
-    
-    // Verificar se há conteúdo através do Content-Length
-    const contentLength = response.headers.get('Content-Length');
-    if (contentLength === '0') {
-        console.log('📡 Resposta com Content-Length = 0');
-        return null;
-    }
-    
-    // Tentar fazer parse JSON apenas se houver conteúdo
-    try {
-        const data = await response.json();
-        console.log('📡 Dados recebidos:', data);
-        return data;
-    } catch (error) {
-        // Se falhar no parse JSON, retornar null (para respostas vazias)
-        console.log('📡 Resposta sem conteúdo JSON válido');
-        return null;
-    }
-}
-
+// Requisições API otimizadas
 async function fetchDespesas() {
     const params = new URLSearchParams();
     if (state.filters.dataInicio) params.append('dataInicio', state.filters.dataInicio);
     if (state.filters.dataFim) params.append('dataFim', state.filters.dataFim);
     
-    const url = params.toString() ? `/despesas?${params}` : '/despesas';
-    return await apiRequest(url);
+    const endpoint = params.toString() ? `/despesas?${params}` : '/despesas';
+    
+    try {
+        return await apiRequestOptimized(endpoint);
+    } catch (error) {
+        console.error('Erro ao buscar despesas:', error);
+        return [];
+    }
 }
 
 // Manipulação do formulário
@@ -156,15 +306,19 @@ async function handleDespesaSubmit(e) {
             return;
         }
         
-        showLoading(true);
+        showIntelligentLoading(false);
         
-        await apiRequest('/despesas', {
+        await apiRequestOptimized('/despesas', {
             method: 'POST',
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            skipCache: true
         });
         
         showAlert('Despesa criada com sucesso!', 'success');
         resetForm();
+        
+        // Limpar cache e recarregar
+        cache.clear();
         await carregarDados();
         
     } catch (error) {
@@ -268,7 +422,7 @@ function createDespesaItem(despesa) {
     return item;
 }
 
-// CRUD operations - CORRIGIDOS
+// CRUD operations
 async function editDespesa(id) {
     try {
         console.log('📝 Editando despesa ID:', id);
@@ -313,16 +467,19 @@ async function handleEditSubmit(e) {
         
         console.log('📝 Atualizando despesa ID:', state.currentEditId, 'com dados:', formData);
         
-        showLoading(true);
+        showIntelligentLoading(false);
         
-        // CORREÇÃO: Usar PUT corretamente
-        await apiRequest(`/despesas/${state.currentEditId}`, {
+        await apiRequestOptimized(`/despesas/${state.currentEditId}`, {
             method: 'PUT',
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            skipCache: true
         });
         
         showAlert('Despesa atualizada com sucesso!', 'success');
         closeModal();
+        
+        // Limpar cache e recarregar
+        cache.clear();
         await carregarDados();
         
     } catch (error) {
@@ -353,17 +510,18 @@ async function deleteDespesa(id) {
             return;
         }
         
-        showLoading(true);
+        showIntelligentLoading(false);
         
-        // CORREÇÃO: Usar DELETE corretamente - agora tratando resposta 204
-        const result = await apiRequest(`/despesas/${id}`, { 
-            method: 'DELETE' 
+        await apiRequestOptimized(`/despesas/${id}`, { 
+            method: 'DELETE',
+            skipCache: true
         });
         
         console.log('✅ Despesa excluída com sucesso');
         showAlert('Despesa excluída com sucesso!', 'success');
         
-        // CORREÇÃO: Recarregar dados automaticamente após exclusão
+        // Limpar cache e recarregar
+        cache.clear();
         await carregarDados();
         
     } catch (error) {
@@ -495,11 +653,20 @@ async function exportarDespesas() {
 }
 
 async function loadDespesas() {
-    await carregarDados();
-    showAlert('Dados atualizados!', 'success');
+    try {
+        // Limpar cache para forçar nova requisição
+        cache.clear();
+        
+        await carregarDados();
+        showAlert('Dados atualizados com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao atualizar despesas:', error);
+        showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
+    }
 }
 
-// Modal functions - CORRIGIDAS
+// Modal functions
 function showModal() {
     const modal = document.getElementById('edit-modal');
     if (modal) {
@@ -515,9 +682,7 @@ function closeModal() {
         modal.style.display = 'none';
     }
     
-    // CORREÇÃO: Limpar o ID atual ao fechar o modal
     state.currentEditId = null;
-    
     console.log('✖️ Modal fechado, ID limpo');
 }
 
@@ -622,4 +787,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Despesas Mobile carregado (versão corrigida)');
+console.log('✅ Despesas Mobile carregado com otimizações para cold start');
