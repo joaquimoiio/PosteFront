@@ -1,4 +1,4 @@
-// Despesas JavaScript Mobile-First - Versão Refatorada
+// Despesas JavaScript Mobile-First - Versão Corrigida
 const API_BASE = 'https://posteback.onrender.com/api';
 
 // Estado global simplificado
@@ -86,20 +86,33 @@ async function carregarDados() {
     }
 }
 
-// API calls
+// API calls - CORRIGIDOS
 async function apiRequest(endpoint, options = {}) {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    // Construir URL completa
+    const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    
+    console.log('📡 Fazendo requisição:', options.method || 'GET', url);
+    
+    const response = await fetch(url, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             ...options.headers
         }
     });
     
+    console.log('📡 Resposta recebida:', response.status, response.statusText);
+    
     if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Erro na API:', response.status, errorText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    return await response.json();
+    
+    const data = await response.json();
+    console.log('📡 Dados recebidos:', data);
+    return data;
 }
 
 async function fetchDespesas() {
@@ -135,7 +148,7 @@ async function handleDespesaSubmit(e) {
         
     } catch (error) {
         console.error('Erro ao criar despesa:', error);
-        showAlert('Erro ao criar despesa', 'error');
+        showAlert('Erro ao criar despesa: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }
@@ -234,12 +247,14 @@ function createDespesaItem(despesa) {
     return item;
 }
 
-// CRUD operations
+// CRUD operations - CORRIGIDOS
 async function editDespesa(id) {
     try {
+        console.log('📝 Editando despesa ID:', id);
+        
         const despesa = state.despesas.find(d => d.id === id);
         if (!despesa) {
-            throw new Error('Despesa não encontrada');
+            throw new Error('Despesa não encontrada no estado local');
         }
         
         populateEditForm(despesa);
@@ -248,11 +263,13 @@ async function editDespesa(id) {
         
     } catch (error) {
         console.error('Erro ao carregar despesa para edição:', error);
-        showAlert('Erro ao carregar dados da despesa', 'error');
+        showAlert('Erro ao carregar dados da despesa: ' + error.message, 'error');
     }
 }
 
 function populateEditForm(despesa) {
+    console.log('📝 Preenchendo formulário de edição:', despesa);
+    
     document.getElementById('edit-despesa-data').value = despesa.dataDespesa;
     document.getElementById('edit-despesa-descricao').value = despesa.descricao;
     document.getElementById('edit-despesa-valor').value = despesa.valor;
@@ -263,14 +280,21 @@ async function handleEditSubmit(e) {
     e.preventDefault();
     
     try {
+        if (!state.currentEditId) {
+            throw new Error('ID da despesa não encontrado');
+        }
+        
         const formData = buildEditFormData();
         
         if (!validateFormData(formData)) {
             return;
         }
         
+        console.log('📝 Atualizando despesa ID:', state.currentEditId, 'com dados:', formData);
+        
         showLoading(true);
         
+        // CORREÇÃO: Usar PUT corretamente
         await apiRequest(`/despesas/${state.currentEditId}`, {
             method: 'PUT',
             body: JSON.stringify(formData)
@@ -281,38 +305,47 @@ async function handleEditSubmit(e) {
         await carregarDados();
         
     } catch (error) {
-        console.error('Erro ao atualizar despesa:', error);
-        showAlert('Erro ao atualizar despesa', 'error');
+        console.error('❌ Erro ao atualizar despesa:', error);
+        showAlert('Erro ao atualizar despesa: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }
 }
 
 function buildEditFormData() {
-    return {
+    const formData = {
         dataDespesa: document.getElementById('edit-despesa-data').value,
         descricao: document.getElementById('edit-despesa-descricao').value.trim(),
         valor: parseFloat(document.getElementById('edit-despesa-valor').value),
         tipo: document.getElementById('edit-despesa-tipo').value
     };
+    
+    console.log('📝 Dados do formulário de edição:', formData);
+    return formData;
 }
 
 async function deleteDespesa(id) {
-    if (!confirm('Tem certeza que deseja excluir esta despesa?')) {
-        return;
-    }
-    
     try {
+        console.log('🗑️ Tentando excluir despesa ID:', id);
+        
+        if (!confirm('Tem certeza que deseja excluir esta despesa?')) {
+            return;
+        }
+        
         showLoading(true);
         
-        await apiRequest(`/despesas/${id}`, { method: 'DELETE' });
+        // CORREÇÃO: Usar DELETE corretamente
+        await apiRequest(`/despesas/${id}`, { 
+            method: 'DELETE' 
+        });
         
+        console.log('✅ Despesa excluída com sucesso');
         showAlert('Despesa excluída com sucesso!', 'success');
         await carregarDados();
         
     } catch (error) {
-        console.error('Erro ao excluir despesa:', error);
-        showAlert('Erro ao excluir despesa', 'error');
+        console.error('❌ Erro ao excluir despesa:', error);
+        showAlert('Erro ao excluir despesa: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }
@@ -443,7 +476,7 @@ async function loadDespesas() {
     showAlert('Dados atualizados!', 'success');
 }
 
-// Modal functions
+// Modal functions - CORRIGIDAS
 function showModal() {
     const modal = document.getElementById('edit-modal');
     if (modal) {
@@ -455,7 +488,14 @@ function showModal() {
 
 function closeModal() {
     const modal = document.getElementById('edit-modal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    
+    // CORREÇÃO: Limpar o ID atual ao fechar o modal
+    state.currentEditId = null;
+    
+    console.log('✖️ Modal fechado, ID limpo');
 }
 
 // Formatters
@@ -498,7 +538,10 @@ function showLoading(show) {
 
 function showAlert(message, type = 'success', duration = 3000) {
     const container = document.getElementById('alert-container');
-    if (!container) return;
+    if (!container) {
+        console.warn('Container de alertas não encontrado');
+        return;
+    }
     
     const alert = document.createElement('div');
     alert.className = `alert alert-${type}`;
@@ -556,4 +599,4 @@ function exportToCSV(data, filename) {
     showAlert('Dados exportados com sucesso!', 'success');
 }
 
-console.log('✅ Despesas Mobile carregado');
+console.log('✅ Despesas Mobile carregado (versão corrigida)');
