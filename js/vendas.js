@@ -634,7 +634,7 @@ function createVendaItem(venda) {
         </div>
         
         <div class="item-content">
-            <div class="item-title">${getPosteDescricao(venda)}</div>
+            <div class="item-title">${getPosteDescricaoCompleta(venda)}</div>
             ${stockIndicator}
             <div class="item-details">Frete: ${formatCurrency(venda.freteEletrons || 0)}</div>
             <div class="item-value">${getValorVenda(venda)}</div>
@@ -885,7 +885,7 @@ async function exportarVendas() {
     const dadosExportar = state.vendas.map(venda => ({
         'Data': formatDateBR(venda.dataVenda),
         'Tipo': getTipoLabel(venda.tipoVenda),
-        'Poste': getPosteDescricao(venda),
+        'Poste': getPosteDescricaoCompleta(venda),
         'Quantidade': venda.quantidade || 1,
         'Frete': venda.freteEletrons || 0,
         'Valor': getValorVendaNum(venda),
@@ -962,17 +962,42 @@ function getTipoLabel(tipo) {
     return labels[tipo] || tipo;
 }
 
-function getPosteDescricao(venda) {
+// FUNÇÃO ATUALIZADA: Mostra código e nome completo do poste
+function getPosteDescricaoCompleta(venda) {
     if (venda.tipoVenda === 'E') {
         return 'Venda Extra';
     }
     
+    // Buscar dados completos do poste no estado local
+    let posteInfo = null;
+    if (venda.posteId) {
+        posteInfo = state.postes.find(p => p.id === venda.posteId);
+    }
+    
+    // Se temos informações do poste no estado local
+    if (posteInfo) {
+        const quantidade = venda.quantidade || 1;
+        return `${posteInfo.codigo} - ${posteInfo.descricao} ${quantidade > 1 ? `(${quantidade}x)` : ''}`;
+    }
+    
+    // Fallback: usar dados que vêm da API (se disponíveis)
+    if (venda.codigoPoste && venda.descricaoPoste) {
+        const quantidade = venda.quantidade || 1;
+        return `${venda.codigoPoste} - ${venda.descricaoPoste} ${quantidade > 1 ? `(${quantidade}x)` : ''}`;
+    }
+    
+    // Fallback: usar apenas código (compatibilidade)
     if (venda.codigoPoste) {
         const quantidade = venda.quantidade || 1;
         return `${venda.codigoPoste} ${quantidade > 1 ? `(${quantidade}x)` : ''}`;
     }
     
     return 'Poste não encontrado';
+}
+
+// FUNÇÃO SIMPLIFICADA PARA COMPATIBILIDADE
+function getPosteDescricao(venda) {
+    return getPosteDescricaoCompleta(venda);
 }
 
 function getValorVenda(venda) {

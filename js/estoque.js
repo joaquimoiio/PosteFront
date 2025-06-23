@@ -248,6 +248,9 @@ async function carregarDados() {
         state.estoque = estoque || [];
         state.postes = postes || [];
         
+        // Enriquecer dados do estoque com informações dos postes
+        enrichEstoqueData();
+        
         populatePosteSelect();
         updateResumo();
         updateAlertas();
@@ -261,6 +264,7 @@ async function carregarDados() {
         // Mostrar dados em cache se disponível
         if (state.estoque.length > 0) {
             console.log('📦 Usando dados em cache');
+            enrichEstoqueData();
             populatePosteSelect();
             updateResumo();
             updateAlertas();
@@ -272,6 +276,23 @@ async function carregarDados() {
     } finally {
         showLoading(false);
     }
+}
+
+// NOVA FUNÇÃO: Enriquecer dados do estoque com informações dos postes
+function enrichEstoqueData() {
+    state.estoque.forEach(item => {
+        const poste = state.postes.find(p => p.id === item.posteId);
+        if (poste) {
+            item.codigoPoste = poste.codigo;
+            item.descricaoPoste = poste.descricao;
+            item.precoPoste = poste.preco;
+        } else {
+            // Fallback para casos onde o poste não é encontrado
+            item.codigoPoste = item.codigoPoste || 'N/A';
+            item.descricaoPoste = item.descricaoPoste || 'Poste não encontrado';
+            item.precoPoste = item.precoPoste || 0;
+        }
+    });
 }
 
 // Requisições API otimizadas
@@ -414,18 +435,23 @@ function createEstoqueItem(item) {
     
     element.className = `mobile-list-item ${statusClass}`;
     
+    // ATUALIZADO: Mostrar código e nome completo do poste
+    const codigoPoste = item.codigoPoste || 'N/A';
+    const descricaoPoste = item.descricaoPoste || 'Descrição não disponível';
+    const precoPoste = item.precoPoste || 0;
+    
     element.innerHTML = `
         <div class="item-header">
             <span class="item-status ${statusClass}">
                 ${getStatusText(quantidade)}
             </span>
-            <span class="item-code">${item.codigoPoste || 'N/A'}</span>
+            <span class="item-code">${codigoPoste}</span>
         </div>
         
         <div class="item-content">
             <div class="item-quantidade ${statusClass}">${quantidade}</div>
-            <div class="item-title">${item.descricaoPoste || 'Descrição não disponível'}</div>
-            <div class="item-details">Preço: ${formatCurrency(item.precoPoste || 0)}</div>
+            <div class="item-title">${codigoPoste} - ${descricaoPoste}</div>
+            <div class="item-details">Preço: ${formatCurrency(precoPoste)}</div>
         </div>
         
         <div class="item-date">
@@ -433,7 +459,7 @@ function createEstoqueItem(item) {
         </div>
     `;
     
-    return element;
+    return item;
 }
 
 function getStatusClass(quantidade) {
@@ -547,11 +573,16 @@ function createAlertItem(item, type, title) {
     
     const icon = type === 'negativo' ? '⚠️' : '📦';
     
+    // ATUALIZADO: Mostrar código e nome completo do poste nos alertas
+    const codigoPoste = item.codigoPoste || 'N/A';
+    const descricaoPoste = item.descricaoPoste || 'Poste não encontrado';
+    
     alertItem.innerHTML = `
         <span class="alert-icon">${icon}</span>
         <div class="alert-info">
             <h4>${title}</h4>
-            <p><strong>${item.codigoPoste}</strong> - Quantidade: ${item.quantidadeAtual}</p>
+            <p><strong>${codigoPoste} - ${descricaoPoste}</strong></p>
+            <p>Quantidade: ${item.quantidadeAtual}</p>
         </div>
     `;
     
@@ -579,9 +610,11 @@ async function exportarEstoque() {
         return;
     }
     
+    // ATUALIZADO: Incluir código e nome completo do poste na exportação
     const dadosExportar = state.estoque.map(item => ({
         'Código': item.codigoPoste || 'N/A',
         'Descrição': item.descricaoPoste || 'Descrição não disponível',
+        'Preço': formatCurrency(item.precoPoste || 0),
         'Quantidade': item.quantidadeAtual || 0,
         'Status': getStatusText(item.quantidadeAtual || 0),
         'Última Atualização': formatDateBR(item.dataAtualizacao)
