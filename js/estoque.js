@@ -1,11 +1,16 @@
 // Estoque JavaScript - Versão Leve
 // Utiliza AppUtils para funcionalidades compartilhadas
 
-const { 
-    apiRequest, clearCache, formatCurrency, formatDateBR,
-    updateElement, showLoading, showAlert, setupFilters,
-    validateRequired, validateNumber, exportToCSV
-} = window.AppUtils;
+// Aguardar AppUtils estar disponível
+document.addEventListener('DOMContentLoaded', () => {
+    // Verificar se AppUtils está disponível
+    if (!window.AppUtils) {
+        console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
+        return;
+    }
+    
+    initEstoque();
+});
 
 // Estado local
 let estoqueData = {
@@ -17,7 +22,7 @@ let estoqueData = {
 // ================================
 // INICIALIZAÇÃO
 // ================================
-document.addEventListener('DOMContentLoaded', async () => {
+async function initEstoque() {
     console.log('🎯 Inicializando Estoque...');
     
     try {
@@ -26,9 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ Estoque carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
+        window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
-});
+}
 
 // ================================
 // EVENT LISTENERS
@@ -42,7 +47,7 @@ function setupEventListeners() {
     }
     
     // Filtros
-    setupFilters({
+    window.AppUtils.setupFilters({
         'filtro-status': 'status',
         'filtro-codigo': 'codigo',
         'filtro-descricao': 'descricao'
@@ -54,7 +59,7 @@ function setupEventListeners() {
 // ================================
 async function loadData() {
     try {
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
         const [estoque, postes] = await Promise.all([
             fetchEstoque(),
@@ -74,16 +79,16 @@ async function loadData() {
         console.error('Erro ao carregar dados:', error);
         throw error;
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
 async function fetchEstoque() {
-    return await apiRequest('/estoque');
+    return await window.AppUtils.apiRequest('/estoque');
 }
 
 async function fetchPostes() {
-    const postes = await apiRequest('/postes');
+    const postes = await window.AppUtils.apiRequest('/postes');
     return (postes || []).filter(p => p.ativo);
 }
 
@@ -116,25 +121,25 @@ async function handleEstoqueSubmit(e) {
             return;
         }
         
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest('/estoque/adicionar', {
+        await window.AppUtils.apiRequest('/estoque/adicionar', {
             method: 'POST',
             body: JSON.stringify(formData),
             skipCache: true
         });
         
-        showAlert('Estoque adicionado com sucesso!', 'success');
+        window.AppUtils.showAlert('Estoque adicionado com sucesso!', 'success');
         resetForm();
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao adicionar estoque:', error);
-        showAlert('Erro ao adicionar estoque: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao adicionar estoque: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -147,11 +152,11 @@ function buildFormData() {
 }
 
 function validateFormData(data) {
-    if (!validateRequired(data.posteId, 'Poste')) {
+    if (!window.AppUtils.validateRequired(data.posteId, 'Poste')) {
         return false;
     }
     
-    return validateNumber(data.quantidade, 'Quantidade', 0);
+    return window.AppUtils.validateNumber(data.quantidade, 'Quantidade', 0);
 }
 
 // ================================
@@ -170,7 +175,7 @@ function populatePosteSelect() {
     estoqueData.postes.forEach(poste => {
         const option = document.createElement('option');
         option.value = poste.id;
-        option.textContent = `${poste.codigo} - ${poste.descricao} (${formatCurrency(poste.preco)})`;
+        option.textContent = `${poste.codigo} - ${poste.descricao} (${window.AppUtils.formatCurrency(poste.preco)})`;
         select.appendChild(option);
     });
 }
@@ -237,11 +242,11 @@ function createEstoqueItem(item) {
         <div class="item-content">
             <div class="item-quantidade ${statusClass}">${quantidade}</div>
             <div class="item-title">${codigoPoste} - ${descricaoPoste}</div>
-            <div class="item-details">Preço: ${formatCurrency(precoPoste)}</div>
+            <div class="item-details">Preço: ${window.AppUtils.formatCurrency(precoPoste)}</div>
         </div>
         
         <div class="item-date">
-            Atualizado: ${formatDateBR(item.dataAtualizacao, true)}
+            Atualizado: ${window.AppUtils.formatDateBR(item.dataAtualizacao, true)}
         </div>
     `;
     
@@ -305,10 +310,10 @@ function updateResumo() {
     const negativo = estoque.filter(item => (item.quantidadeAtual || 0) < 0).length;
     const zero = estoque.filter(item => (item.quantidadeAtual || 0) === 0).length;
     
-    updateElement('total-tipos', total);
-    updateElement('estoque-positivo', positivo);
-    updateElement('estoque-negativo', negativo);
-    updateElement('estoque-zero', zero);
+    window.AppUtils.updateElement('total-tipos', total);
+    window.AppUtils.updateElement('estoque-positivo', positivo);
+    window.AppUtils.updateElement('estoque-negativo', negativo);
+    window.AppUtils.updateElement('estoque-zero', zero);
 }
 
 function updateAlertas() {
@@ -392,35 +397,35 @@ function limparFiltros() {
     
     estoqueData.filters = { status: '', codigo: '', descricao: '' };
     applyFilters();
-    showAlert('Filtros limpos', 'success');
+    window.AppUtils.showAlert('Filtros limpos', 'success');
 }
 
 async function exportarEstoque() {
     if (!estoqueData.estoque || estoqueData.estoque.length === 0) {
-        showAlert('Nenhum estoque para exportar', 'warning');
+        window.AppUtils.showAlert('Nenhum estoque para exportar', 'warning');
         return;
     }
     
     const dadosExportar = estoqueData.estoque.map(item => ({
         'Código': item.codigoPoste || 'N/A',
         'Descrição': item.descricaoPoste || 'Descrição não disponível',
-        'Preço': formatCurrency(item.precoPoste || 0),
+        'Preço': window.AppUtils.formatCurrency(item.precoPoste || 0),
         'Quantidade': item.quantidadeAtual || 0,
         'Status': getStatusText(item.quantidadeAtual || 0),
-        'Última Atualização': formatDateBR(item.dataAtualizacao, true)
+        'Última Atualização': window.AppUtils.formatDateBR(item.dataAtualizacao, true)
     }));
     
-    exportToCSV(dadosExportar, `estoque_${new Date().toISOString().split('T')[0]}`);
+    window.AppUtils.exportToCSV(dadosExportar, `estoque_${new Date().toISOString().split('T')[0]}`);
 }
 
 async function loadEstoque() {
     try {
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
-        showAlert('Dados atualizados com sucesso!', 'success');
+        window.AppUtils.showAlert('Dados atualizados com sucesso!', 'success');
     } catch (error) {
         console.error('Erro ao atualizar estoque:', error);
-        showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
+        window.AppUtils.showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
     }
 }
 

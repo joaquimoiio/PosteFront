@@ -1,11 +1,16 @@
 // Postes JavaScript - Versão Leve
 // Utiliza AppUtils para funcionalidades compartilhadas
 
-const { 
-    apiRequest, clearCache, formatCurrency, updateElement, showLoading, showAlert,
-    setupFilters, validateRequired, validateNumber, exportToCSV,
-    showModal, closeModal
-} = window.AppUtils;
+// Aguardar AppUtils estar disponível
+document.addEventListener('DOMContentLoaded', () => {
+    // Verificar se AppUtils está disponível
+    if (!window.AppUtils) {
+        console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
+        return;
+    }
+    
+    initPostes();
+});
 
 // Estado local
 let postesData = {
@@ -17,7 +22,7 @@ let postesData = {
 // ================================
 // INICIALIZAÇÃO
 // ================================
-document.addEventListener('DOMContentLoaded', async () => {
+async function initPostes() {
     console.log('🎯 Inicializando Postes...');
     
     try {
@@ -26,9 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ Postes carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
+        window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
-});
+}
 
 // ================================
 // EVENT LISTENERS
@@ -48,7 +53,7 @@ function setupEventListeners() {
     }
     
     // Filtros
-    setupFilters({
+    window.AppUtils.setupFilters({
         'filtro-status': 'status',
         'filtro-codigo': 'codigo',
         'filtro-descricao': 'descricao'
@@ -60,7 +65,7 @@ function setupEventListeners() {
 // ================================
 async function loadData() {
     try {
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
         const postes = await fetchPostes();
         postesData.postes = postes || [];
@@ -72,12 +77,12 @@ async function loadData() {
         console.error('Erro ao carregar dados:', error);
         throw error;
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
 async function fetchPostes() {
-    return await apiRequest('/postes');
+    return await window.AppUtils.apiRequest('/postes');
 }
 
 // ================================
@@ -93,25 +98,25 @@ async function handlePosteSubmit(e) {
             return;
         }
         
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest('/postes', {
+        await window.AppUtils.apiRequest('/postes', {
             method: 'POST',
             body: JSON.stringify(formData),
             skipCache: true
         });
         
-        showAlert('Poste criado com sucesso!', 'success');
+        window.AppUtils.showAlert('Poste criado com sucesso!', 'success');
         resetForm();
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao criar poste:', error);
-        showAlert('Erro ao criar poste: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao criar poste: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -125,17 +130,17 @@ function buildFormData() {
 }
 
 function validateFormData(data) {
-    if (!validateRequired(data.codigo, 'Código') ||
-        !validateRequired(data.descricao, 'Descrição')) {
+    if (!window.AppUtils.validateRequired(data.codigo, 'Código') ||
+        !window.AppUtils.validateRequired(data.descricao, 'Descrição')) {
         return false;
     }
     
     if (data.descricao.length < 3) {
-        showAlert('Descrição deve ter pelo menos 3 caracteres', 'warning');
+        window.AppUtils.showAlert('Descrição deve ter pelo menos 3 caracteres', 'warning');
         return false;
     }
     
-    if (!validateNumber(data.preco, 'Preço', 0)) {
+    if (!window.AppUtils.validateNumber(data.preco, 'Preço', 0)) {
         return false;
     }
     
@@ -146,7 +151,7 @@ function validateFormData(data) {
     );
     
     if (codigoExistente) {
-        showAlert('Código já existe', 'warning');
+        window.AppUtils.showAlert('Código já existe', 'warning');
         return false;
     }
     
@@ -198,7 +203,7 @@ function createPosteItem(poste) {
         </div>
         
         <div class="item-content">
-            <div class="item-price">${formatCurrency(poste.preco)}</div>
+            <div class="item-price">${window.AppUtils.formatCurrency(poste.preco)}</div>
             <div class="item-title">${poste.descricao}</div>
         </div>
         
@@ -228,11 +233,11 @@ async function editPoste(id) {
         
         populateEditForm(poste);
         postesData.currentEditId = id;
-        showModal('edit-modal');
+        window.AppUtils.showModal('edit-modal');
         
     } catch (error) {
         console.error('Erro ao carregar poste para edição:', error);
-        showAlert('Erro ao carregar dados do poste: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao carregar dados do poste: ' + error.message, 'error');
     }
 }
 
@@ -253,25 +258,25 @@ async function handleEditSubmit(e) {
             return;
         }
         
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest(`/postes/${postesData.currentEditId}`, {
+        await window.AppUtils.apiRequest(`/postes/${postesData.currentEditId}`, {
             method: 'PUT',
             body: JSON.stringify(formData),
             skipCache: true
         });
         
-        showAlert('Poste atualizado com sucesso!', 'success');
-        closeModal('edit-modal');
+        window.AppUtils.showAlert('Poste atualizado com sucesso!', 'success');
+        window.AppUtils.closeModal('edit-modal');
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao atualizar poste:', error);
-        showAlert('Erro ao atualizar poste: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao atualizar poste: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -298,24 +303,24 @@ async function togglePosteStatus(id) {
             return;
         }
         
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest(`/postes/${id}`, {
+        await window.AppUtils.apiRequest(`/postes/${id}`, {
             method: 'PUT',
             body: JSON.stringify({ ...poste, ativo: novoStatus }),
             skipCache: true
         });
         
-        showAlert(`Poste ${acao}do com sucesso!`, 'success');
+        window.AppUtils.showAlert(`Poste ${acao}do com sucesso!`, 'success');
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao alterar status do poste:', error);
-        showAlert('Erro ao alterar status do poste: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao alterar status do poste: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -358,10 +363,10 @@ function updateResumo() {
     const precoMedio = total > 0 ? 
         postes.reduce((sum, p) => sum + (p.preco || 0), 0) / total : 0;
     
-    updateElement('total-postes', total);
-    updateElement('postes-ativos', ativos);
-    updateElement('postes-inativos', inativos);
-    updateElement('preco-medio', formatCurrency(precoMedio));
+    window.AppUtils.updateElement('total-postes', total);
+    window.AppUtils.updateElement('postes-ativos', ativos);
+    window.AppUtils.updateElement('postes-inativos', inativos);
+    window.AppUtils.updateElement('preco-medio', window.AppUtils.formatCurrency(precoMedio));
 }
 
 // ================================
@@ -390,12 +395,12 @@ function limparFiltros() {
     
     postesData.filters = { status: '', codigo: '', descricao: '' };
     applyFilters();
-    showAlert('Filtros limpos', 'success');
+    window.AppUtils.showAlert('Filtros limpos', 'success');
 }
 
 async function exportarPostes() {
     if (!postesData.postes || postesData.postes.length === 0) {
-        showAlert('Nenhum poste para exportar', 'warning');
+        window.AppUtils.showAlert('Nenhum poste para exportar', 'warning');
         return;
     }
     
@@ -406,17 +411,17 @@ async function exportarPostes() {
         'Status': poste.ativo ? 'Ativo' : 'Inativo'
     }));
     
-    exportToCSV(dadosExportar, `postes_${new Date().toISOString().split('T')[0]}`);
+    window.AppUtils.exportToCSV(dadosExportar, `postes_${new Date().toISOString().split('T')[0]}`);
 }
 
 async function loadPostes() {
     try {
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
-        showAlert('Dados atualizados com sucesso!', 'success');
+        window.AppUtils.showAlert('Dados atualizados com sucesso!', 'success');
     } catch (error) {
         console.error('Erro ao atualizar postes:', error);
-        showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
+        window.AppUtils.showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
     }
 }
 
@@ -427,6 +432,6 @@ window.limparFiltros = limparFiltros;
 window.exportarPostes = exportarPostes;
 window.loadPostes = loadPostes;
 window.scrollToForm = scrollToForm;
-window.closeModal = () => closeModal('edit-modal');
+window.closeModal = () => window.AppUtils.closeModal('edit-modal');
 
 console.log('✅ Postes leve carregado');
