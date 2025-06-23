@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📱 Login - Sistema de Postes</title>
+    <title>Sistema de Postes - Login</title>
     <link rel="stylesheet" href="css/universal.css">
-    <script src="js/theme-manager.js"></script>
+    <script src="js/utils.js"></script>
     <style>
-        /* Estilos específicos para a página de login */
         .login-container {
             min-height: 100vh;
             display: flex;
@@ -16,38 +14,16 @@
             justify-content: center;
             padding: var(--space-4);
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .login-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-            pointer-events: none;
         }
 
         .login-card {
             background: var(--bg-secondary);
-            border-radius: 16px;
+            border-radius: var(--radius);
             padding: var(--space-6);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--shadow);
             border: 1px solid var(--border-primary);
             width: 100%;
             max-width: 400px;
-            position: relative;
-            z-index: 1;
-            backdrop-filter: blur(10px);
-        }
-
-        [data-theme="dark"] .login-card {
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            background: rgba(24, 24, 27, 0.95);
         }
 
         .login-header {
@@ -58,7 +34,6 @@
         .login-logo {
             font-size: 4rem;
             margin-bottom: var(--space-3);
-            display: block;
             animation: pulse 2s infinite;
         }
 
@@ -70,15 +45,12 @@
         .login-title {
             font-size: var(--text-xl);
             font-weight: 700;
-            color: var(--text-primary);
             margin-bottom: var(--space-2);
-            transition: color var(--transition-normal);
         }
 
         .login-subtitle {
             font-size: var(--text-sm);
             color: var(--text-secondary);
-            transition: color var(--transition-normal);
         }
 
         .login-form {
@@ -97,7 +69,6 @@
             font-weight: 500;
             color: var(--text-secondary);
             margin-bottom: var(--space-2);
-            transition: color var(--transition-normal);
         }
 
         .input-group input {
@@ -108,39 +79,13 @@
             font-size: var(--text-base);
             background: var(--bg-primary);
             color: var(--text-primary);
-            transition: all var(--transition-normal);
-            font-family: inherit;
+            transition: all var(--transition);
         }
 
         .input-group input:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-            transform: translateY(-1px);
-        }
-
-        .input-group input::placeholder {
-            color: var(--text-tertiary);
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: var(--space-3);
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-tertiary);
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: var(--space-1);
-            border-radius: 4px;
-            transition: all var(--transition-normal);
-        }
-
-        .password-toggle:hover {
-            color: var(--text-secondary);
-            background: var(--bg-tertiary);
         }
 
         .login-button {
@@ -152,9 +97,7 @@
             font-size: var(--text-base);
             font-weight: 600;
             cursor: pointer;
-            transition: all var(--transition-normal);
-            position: relative;
-            overflow: hidden;
+            transition: all var(--transition);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -164,39 +107,14 @@
             box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
         }
 
-        .login-button:active {
-            transform: translateY(0);
-        }
-
         .login-button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
 
-        .login-button .button-text {
-            transition: opacity var(--transition-normal);
-        }
-
-        .login-button .button-loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0;
-            transition: opacity var(--transition-normal);
-        }
-
-        .login-button.loading .button-text {
-            opacity: 0;
-        }
-
-        .login-button.loading .button-loading {
-            opacity: 1;
-        }
-
         .login-error {
-            background: var(--danger-light);
+            background: var(--danger-light, #fef2f2);
             color: var(--danger);
             padding: var(--space-3);
             border-radius: var(--radius);
@@ -204,13 +122,7 @@
             text-align: center;
             border: 1px solid var(--danger);
             margin-top: var(--space-3);
-            animation: shake 0.5s ease-in-out;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+            display: none;
         }
 
         .remember-me {
@@ -239,54 +151,20 @@
 
         .login-footer p {
             font-size: var(--text-sm);
-            color: var(--text-tertiary);
+            color: var(--text-secondary);
             margin: 0;
         }
 
-        /* Responsividade */
         @media (max-width: 480px) {
             .login-container {
                 padding: var(--space-2);
             }
-            
             .login-card {
                 padding: var(--space-4);
             }
-            
             .login-logo {
                 font-size: 3rem;
             }
-        }
-
-        /* Animação de entrada */
-        .login-card {
-            animation: slideInUp 0.6s ease-out;
-        }
-
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Loading spinner */
-        .spinner-small {
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        /* Dark mode adjustments */
-        [data-theme="dark"] .login-container {
-            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
         }
     </style>
 </head>
@@ -323,9 +201,6 @@
                         required
                         autocomplete="current-password"
                     >
-                    <button type="button" class="password-toggle" id="password-toggle" title="Mostrar/ocultar senha">
-                        👁️
-                    </button>
                 </div>
 
                 <div class="remember-me">
@@ -334,13 +209,10 @@
                 </div>
 
                 <button type="submit" class="login-button" id="login-button">
-                    <span class="button-text">Entrar</span>
-                    <div class="button-loading">
-                        <div class="spinner-small"></div>
-                    </div>
+                    Entrar
                 </button>
 
-                <div id="login-error" class="login-error" style="display: none;">
+                <div id="login-error" class="login-error">
                     Usuário ou senha incorretos
                 </div>
             </form>
@@ -362,7 +234,6 @@
         const loginForm = document.getElementById('login-form');
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
-        const passwordToggle = document.getElementById('password-toggle');
         const loginButton = document.getElementById('login-button');
         const loginError = document.getElementById('login-error');
         const rememberCheckbox = document.getElementById('remember');
@@ -371,7 +242,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkExistingLogin();
             setupEventListeners();
-            console.log('🔐 Página de login carregada');
         });
 
         function checkExistingLogin() {
@@ -379,8 +249,11 @@
             const rememberMe = localStorage.getItem('poste-system-remember');
             
             if (isLoggedIn === 'true') {
-                redirectToDashboard();
-            } else if (rememberMe === 'true') {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            if (rememberMe === 'true') {
                 const savedUsername = localStorage.getItem('poste-system-username');
                 if (savedUsername) {
                     usernameInput.value = savedUsername;
@@ -390,32 +263,10 @@
         }
 
         function setupEventListeners() {
-            // Form submission
             loginForm.addEventListener('submit', handleLogin);
-            
-            // Password toggle
-            passwordToggle.addEventListener('click', togglePasswordVisibility);
-            
-            // Enter key listeners
-            usernameInput.addEventListener('keypress', handleEnterKey);
-            passwordInput.addEventListener('keypress', handleEnterKey);
-            
-            // Clear error on input
             usernameInput.addEventListener('input', clearError);
             passwordInput.addEventListener('input', clearError);
-        }
-
-        function handleEnterKey(e) {
-            if (e.key === 'Enter') {
-                handleLogin(e);
-            }
-        }
-
-        function togglePasswordVisibility() {
-            const isPassword = passwordInput.type === 'password';
-            passwordInput.type = isPassword ? 'text' : 'password';
-            passwordToggle.textContent = isPassword ? '🙈' : '👁️';
-            passwordToggle.title = isPassword ? 'Ocultar senha' : 'Mostrar senha';
+            usernameInput.focus();
         }
 
         function clearError() {
@@ -430,35 +281,28 @@
             const username = usernameInput.value.trim();
             const password = passwordInput.value;
             
-            // Validação básica
             if (!username || !password) {
                 showError('Por favor, preencha todos os campos');
                 return;
             }
             
-            // Mostrar loading
             setLoadingState(true);
             clearError();
             
-            // Simular delay de autenticação (mais realista)
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Simular delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Verificar credenciais
             if (username === CREDENTIALS.username && password === CREDENTIALS.password) {
-                // Login bem-sucedido
                 handleSuccessfulLogin(username);
             } else {
-                // Login falhou
                 handleFailedLogin();
             }
         }
 
         function handleSuccessfulLogin(username) {
-            // Salvar estado de login
             localStorage.setItem('poste-system-logged-in', 'true');
             localStorage.setItem('poste-system-login-time', new Date().toISOString());
             
-            // Salvar dados do usuário se "lembrar-me" estiver marcado
             if (rememberCheckbox.checked) {
                 localStorage.setItem('poste-system-remember', 'true');
                 localStorage.setItem('poste-system-username', username);
@@ -467,25 +311,19 @@
                 localStorage.removeItem('poste-system-username');
             }
             
-            // Feedback visual de sucesso
             loginButton.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-            loginButton.querySelector('.button-text').textContent = 'Entrando...';
+            loginButton.textContent = 'Entrando...';
             
-            // Redirecionar após pequeno delay
             setTimeout(() => {
-                redirectToDashboard();
+                window.location.href = 'dashboard.html';
             }, 800);
         }
 
         function handleFailedLogin() {
             setLoadingState(false);
             showError('Usuário ou senha incorretos');
-            
-            // Limpar campos
             passwordInput.value = '';
             passwordInput.focus();
-            
-            // Shake animation já está no CSS
         }
 
         function showError(message) {
@@ -495,32 +333,15 @@
 
         function setLoadingState(isLoading) {
             loginButton.disabled = isLoading;
-            loginButton.classList.toggle('loading', isLoading);
-            
-            if (!isLoading) {
+            if (isLoading) {
+                loginButton.textContent = 'Entrando...';
+            } else {
+                loginButton.textContent = 'Entrar';
                 loginButton.style.background = '';
-                loginButton.querySelector('.button-text').textContent = 'Entrar';
             }
         }
 
-        function redirectToDashboard() {
-            window.location.href = 'dashboard.html';
-        }
-
-        // Auto-focus no primeiro campo
-        window.addEventListener('load', () => {
-            usernameInput.focus();
-        });
-
-        // Prevenir back button após login
-        window.addEventListener('pageshow', (e) => {
-            if (e.persisted) {
-                checkExistingLogin();
-            }
-        });
-
-        console.log('🔐 Sistema de login inicializado');
+        console.log('🔐 Sistema de login leve inicializado');
     </script>
 </body>
-
 </html>

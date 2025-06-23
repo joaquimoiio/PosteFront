@@ -1,52 +1,25 @@
-// Relatórios JavaScript Mobile-First - Versão Otimizada para Cold Start
-const API_BASE = 'https://posteback.onrender.com/api';
+// Relatórios JavaScript - Versão Leve
+// Utiliza AppUtils para funcionalidades compartilhadas
 
-// Estado global simplificado
-const state = {
+const { 
+    apiRequest, clearCache, formatCurrency, formatDateBR, dateToInputValue,
+    updateElement, showLoading, showAlert, validateRequired, exportToCSV
+} = window.AppUtils;
+
+// Estado local
+let relatoriosData = {
     relatorio: [],
-    postes: [],
-    isFirstRequest: !sessionStorage.getItem('api-connected'),
-    requestCache: new Map()
+    postes: []
 };
 
-// Cache simples com TTL
-const cache = {
-    data: new Map(),
-    ttl: 5 * 60 * 1000, // 5 minutos
-    
-    set(key, value) {
-        this.data.set(key, {
-            value,
-            timestamp: Date.now()
-        });
-    },
-    
-    get(key) {
-        const item = this.data.get(key);
-        if (!item) return null;
-        
-        if (Date.now() - item.timestamp > this.ttl) {
-            this.data.delete(key);
-            return null;
-        }
-        
-        return item.value;
-    },
-    
-    clear() {
-        this.data.clear();
-    }
-};
-
-// Inicialização
+// ================================
+// INICIALIZAÇÃO
+// ================================
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🎯 Inicializando Relatórios Mobile...');
-    
-    // Mostrar aviso sobre cold start na primeira visita
-    showColdStartWarning();
+    console.log('🎯 Inicializando Relatórios...');
     
     try {
-        configurarEventos();
+        setupEventListeners();
         setDefaultDates();
         await loadPostes();
         console.log('✅ Relatórios carregado');
@@ -56,154 +29,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Aviso sobre cold start
-function showColdStartWarning() {
-    if (state.isFirstRequest && !sessionStorage.getItem('cold-start-warning-shown')) {
-        sessionStorage.setItem('cold-start-warning-shown', 'true');
-        showAlert(`
-            ℹ️ Primeira conexão pode demorar até 2 minutos devido ao servidor gratuito. 
-            Após isso, ficará mais rápido!
-        `, 'info', 10000);
-    }
-}
-
-// Loading inteligente com feedback progressivo
-function showIntelligentLoading(isFirstLoad = false) {
-    const loading = document.getElementById('loading');
-    const loadingText = loading?.querySelector('p');
-    
-    if (loading) {
-        loading.style.display = 'flex';
-        
-        if (loadingText && isFirstLoad) {
-            loadingText.textContent = 'Iniciando servidor (pode demorar até 2 minutos)...';
-            
-            // Feedback progressivo
-            let seconds = 0;
-            const progressInterval = setInterval(() => {
-                seconds += 5;
-                if (seconds <= 30) {
-                    loadingText.textContent = `Iniciando servidor... ${seconds}s`;
-                } else if (seconds <= 90) {
-                    loadingText.textContent = `Servidor inicializando (demora normal)... ${seconds}s`;
-                } else {
-                    loadingText.textContent = 'Quase pronto, aguarde mais um pouco...';
-                }
-            }, 5000);
-            
-            // Limpar intervalo quando loading sumir
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.target.style.display === 'none') {
-                        clearInterval(progressInterval);
-                        observer.disconnect();
-                    }
-                });
-            });
-            observer.observe(loading, { attributes: true, attributeFilter: ['style'] });
-        } else if (loadingText) {
-            loadingText.textContent = 'Gerando relatório...';
-        }
-    }
-}
-
-// Requisição otimizada com retry e timeout inteligente
-async function apiRequestOptimized(endpoint, options = {}) {
-    const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
-    
-    // Verificar cache primeiro
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && !options.skipCache) {
-        console.log('📦 Dados do cache:', endpoint);
-        return cachedData;
-    }
-    
-    const controller = new AbortController();
-    const isFirstRequest = state.isFirstRequest;
-    
-    // Timeout maior para primeira requisição (cold start)
-    const timeoutMs = isFirstRequest ? 120000 : 30000; // 2min vs 30s
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    
-    const maxRetries = 2;
-    
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            console.log(`🌐 Tentativa ${attempt + 1}/${maxRetries + 1}: ${endpoint}`, isFirstRequest ? '(COLD START)' : '(WARM)');
-            
-            const response = await fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                signal: controller.signal,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...options.headers
-                }
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            // Marcar como conectado
-            if (state.isFirstRequest) {
-                state.isFirstRequest = false;
-                sessionStorage.setItem('api-connected', 'true');
-            }
-            
-            // Verificar se há conteúdo antes de fazer parse JSON
-            if (response.status === 204 || response.status === 205) {
-                return null;
-            }
-            
-            const contentLength = response.headers.get('Content-Length');
-            if (contentLength === '0') {
-                return null;
-            }
-            
-            let data;
-            try {
-                data = await response.json();
-            } catch (jsonError) {
-                return null;
-            }
-            
-            // Cachear resultado
-            if (data !== null) {
-                cache.set(cacheKey, data);
-            }
-            
-            return data;
-            
-        } catch (error) {
-            console.warn(`⚠️ Tentativa ${attempt + 1} falhou:`, error.message);
-            
-            if (attempt === maxRetries) {
-                clearTimeout(timeoutId);
-                
-                // Mostrar erro específico para cold start
-                if (isFirstRequest && error.name === 'AbortError') {
-                    showAlert('⏱️ Servidor demorou para responder. Tente novamente em alguns segundos.', 'warning', 8000);
-                } else if (error.message.includes('Failed to fetch')) {
-                    showAlert('🌐 Sem conexão com a internet ou servidor indisponível.', 'error');
-                } else {
-                    showAlert('Erro ao conectar: ' + error.message, 'error');
-                }
-                
-                throw error;
-            }
-            
-            // Aguardar antes de tentar novamente (backoff exponencial)
-            const delay = Math.min(2000 * Math.pow(2, attempt), 10000);
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-    }
-}
-
-// Configuração de eventos
-function configurarEventos() {
+// ================================
+// EVENT LISTENERS
+// ================================
+function setupEventListeners() {
     // Form principal
     const relatorioForm = document.getElementById('relatorio-form');
     if (relatorioForm) {
@@ -219,7 +48,6 @@ function configurarEventos() {
     }
 }
 
-// Configuração inicial
 function setDefaultDates() {
     const hoje = new Date();
     const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -256,13 +84,15 @@ function updatePeriodIndicator() {
     }
 }
 
-// Carregamento inicial de postes
+// ================================
+// CARREGAMENTO DE DADOS
+// ================================
 async function loadPostes() {
     try {
         console.log('⚡ Carregando lista de postes...');
         
-        const postes = await apiRequestOptimized('/postes');
-        state.postes = (postes || []).filter(p => p.ativo);
+        const postes = await apiRequest('/postes');
+        relatoriosData.postes = (postes || []).filter(p => p.ativo);
         
         console.log('✅ Lista de postes carregada');
         
@@ -273,7 +103,6 @@ async function loadPostes() {
 }
 
 async function loadVendas(params) {
-    // Construir URL com parâmetros
     const searchParams = new URLSearchParams();
     Object.keys(params).forEach(key => {
         if (params[key]) {
@@ -282,16 +111,12 @@ async function loadVendas(params) {
     });
     
     const endpoint = searchParams.toString() ? `/vendas?${searchParams}` : '/vendas';
-    
-    try {
-        return await apiRequestOptimized(endpoint);
-    } catch (error) {
-        console.error('Erro ao carregar vendas:', error);
-        return [];
-    }
+    return await apiRequest(endpoint);
 }
 
-// Manipulação do formulário
+// ================================
+// MANIPULAÇÃO DO FORMULÁRIO
+// ================================
 async function handleRelatorioSubmit(e) {
     e.preventDefault();
     await gerarRelatorio();
@@ -303,8 +128,8 @@ async function gerarRelatorio() {
         const dataFim = document.getElementById('data-fim').value;
         const tipoVenda = document.getElementById('tipo-venda').value;
         
-        if (!dataInicio || !dataFim) {
-            showAlert('Selecione o período para gerar o relatório', 'warning');
+        if (!validateRequired(dataInicio, 'Data de início') || 
+            !validateRequired(dataFim, 'Data fim')) {
             return;
         }
         
@@ -314,7 +139,7 @@ async function gerarRelatorio() {
             return;
         }
         
-        showIntelligentLoading(state.isFirstRequest);
+        showLoading(true);
         
         console.log('📊 Gerando relatório...');
         
@@ -330,7 +155,7 @@ async function gerarRelatorio() {
         
         // Gerar relatório
         const relatorio = gerarRelatorioPorPoste(vendasFiltradas);
-        state.relatorio = relatorio;
+        relatoriosData.relatorio = relatorio;
         
         // Atualizar interface
         displayResumo(vendasFiltradas, relatorio);
@@ -357,7 +182,7 @@ function gerarRelatorioPorPoste(vendas) {
     // Inicializar com todos os postes ativos
     const relatorioPorPoste = {};
     
-    state.postes.forEach(poste => {
+    relatoriosData.postes.forEach(poste => {
         relatorioPorPoste[poste.id] = {
             posteId: poste.id,
             codigoPoste: poste.codigo,
@@ -432,6 +257,9 @@ function gerarRelatorioPorPoste(vendas) {
     return relatorio;
 }
 
+// ================================
+// DISPLAY RELATÓRIO
+// ================================
 function displayResumo(vendas, relatorio) {
     const tiposComVenda = relatorio.filter(item => item.quantidadeVendida > 0).length;
     const totalTipos = relatorio.length;
@@ -557,7 +385,7 @@ function displayChart(relatorio) {
             text-align: center;
             margin-top: 15px;
             font-size: 12px;
-            color: var(--gray-500);
+            color: var(--text-secondary);
         `;
         moreInfo.textContent = `+${postesComVendas.length - 10} outros postes com vendas`;
         container.appendChild(moreInfo);
@@ -573,7 +401,9 @@ function getRankingIcon(ranking) {
     }
 }
 
-// Utilitários
+// ================================
+// HELPER FUNCTIONS
+// ================================
 function limparRelatorio() {
     document.getElementById('data-inicio').value = '';
     document.getElementById('data-fim').value = '';
@@ -588,7 +418,7 @@ function limparRelatorio() {
 }
 
 async function exportarRelatorio() {
-    if (!state.relatorio || state.relatorio.length === 0) {
+    if (!relatoriosData.relatorio || relatoriosData.relatorio.length === 0) {
         showAlert('Nenhum relatório para exportar', 'warning');
         return;
     }
@@ -598,7 +428,7 @@ async function exportarRelatorio() {
     
     const periodo = `${formatDateBR(dataInicio)}_a_${formatDateBR(dataFim)}`;
     
-    const dadosExportar = state.relatorio.map(item => ({
+    const dadosExportar = relatoriosData.relatorio.map(item => ({
         'Ranking': item.ranking || 'Sem vendas',
         'Código': item.codigoPoste,
         'Descrição': item.descricaoPoste,
@@ -613,90 +443,9 @@ async function exportarRelatorio() {
     exportToCSV(dadosExportar, `relatorio_postes_${periodo}`);
 }
 
-// Formatters
-function formatCurrency(value) {
-    if (value == null || isNaN(value)) return 'R$ 0,00';
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(value);
-}
+// Disponibilizar funções globalmente
+window.gerarRelatorio = gerarRelatorio;
+window.limparRelatorio = limparRelatorio;
+window.exportarRelatorio = exportarRelatorio;
 
-function formatDateBR(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-}
-
-function dateToInputValue(date) {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-// Helper functions
-function updateElement(id, value) {
-    const element = document.getElementById(id);
-    if (element) element.textContent = value.toString();
-}
-
-function showLoading(show) {
-    const loading = document.getElementById('loading');
-    if (loading) loading.style.display = show ? 'flex' : 'none';
-}
-
-function showAlert(message, type = 'success', duration = 3000) {
-    const container = document.getElementById('alert-container');
-    if (!container) return;
-    
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
-    
-    container.appendChild(alert);
-    
-    setTimeout(() => {
-        if (alert.parentNode) alert.remove();
-    }, duration);
-}
-
-function exportToCSV(data, filename) {
-    if (!data || data.length === 0) {
-        showAlert('Nenhum dado para exportar', 'warning');
-        return;
-    }
-
-    const headers = Object.keys(data[0]);
-    const csv = [
-        headers.join(','),
-        ...data.map(row => 
-            headers.map(header => {
-                let value = row[header] || '';
-                if (typeof value === 'string' && value.includes(',')) {
-                    value = `"${value.replace(/"/g, '""')}"`;
-                }
-                return value;
-            }).join(',')
-        )
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = `${filename}.csv`;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showAlert('Relatório exportado com sucesso!', 'success');
-}
-
-console.log('✅ Relatórios Mobile carregado com otimizações para cold start');
+console.log('✅ Relatórios leve carregado');

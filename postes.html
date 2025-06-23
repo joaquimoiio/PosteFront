@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📱 Postes - Sistema de Postes</title>
+    <title>Postes - Sistema de Postes</title>
     <link rel="stylesheet" href="css/universal.css">
-    <script src="js/theme-manager.js"></script>
-    <script src="js/auth-manager.js"></script>
+    <script src="js/utils.js"></script>
 </head>
 
 <body>
@@ -68,10 +66,10 @@
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">
-                        <span>💾</span> Salvar Poste
+                        💾 Salvar Poste
                     </button>
                     <button type="reset" class="btn btn-secondary">
-                        <span>🔄</span> Limpar
+                        🔄 Limpar
                     </button>
                 </div>
             </form>
@@ -95,7 +93,7 @@
                     <div class="stat-number" id="postes-inativos">0</div>
                     <div class="stat-label">Inativos</div>
                 </div>
-                <div class="stat-item media">
+                <div class="stat-item">
                     <div class="stat-icon">💰</div>
                     <div class="stat-number" id="preco-medio">R$ 0,00</div>
                     <div class="stat-label">Preço Médio</div>
@@ -124,7 +122,7 @@
                 </div>
                 <div class="filter-actions">
                     <button class="btn btn-secondary" onclick="limparFiltros()">
-                        <span>🧹</span> Limpar
+                        🧹 Limpar
                     </button>
                 </div>
             </div>
@@ -134,11 +132,11 @@
             <div class="section-header">
                 <h2>⚡ Postes Cadastrados</h2>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="loadPostes()" title="Atualizar dados">
-                        <span>🔄</span>
+                    <button class="btn btn-small" onclick="loadPostes()">
+                        🔄
                     </button>
-                    <button class="btn btn-small" onclick="exportarPostes()" title="Exportar para CSV">
-                        <span>📊</span>
+                    <button class="btn btn-small" onclick="exportarPostes()">
+                        📊
                     </button>
                 </div>
             </div>
@@ -155,18 +153,18 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>✏️ Editar Poste</h3>
-                <button class="close-btn" onclick="closeModal()" aria-label="Fechar modal">&times;</button>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
             <form id="edit-form">
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="edit-poste-codigo">Código *</label>
-                        <input type="text" id="edit-poste-codigo" required maxlength="50" placeholder="Código do poste">
+                        <input type="text" id="edit-poste-codigo" required maxlength="50">
                     </div>
 
                     <div class="form-group">
                         <label for="edit-poste-descricao">Descrição *</label>
-                        <input type="text" id="edit-poste-descricao" required maxlength="255" placeholder="Descrição do poste">
+                        <input type="text" id="edit-poste-descricao" required maxlength="255">
                     </div>
 
                     <div class="form-group">
@@ -185,7 +183,7 @@
 
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">
-                        <span>💾</span> Salvar
+                        💾 Salvar
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">
                         Cancelar
@@ -203,12 +201,5 @@
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/postes.js"></script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('⚡ Postes carregados com dark mode');
-        });
-    </script>
 </body>
-
 </html>

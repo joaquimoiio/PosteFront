@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚫 Acesso Negado - Sistema de Postes</title>
+    <title>Acesso Negado - Sistema de Postes</title>
     <link rel="stylesheet" href="css/universal.css">
-    <script src="js/theme-manager.js"></script>
+    <script src="js/utils.js"></script>
     <style>
         .error-container {
             min-height: 100vh;
@@ -19,9 +18,9 @@
 
         .error-card {
             background: var(--bg-secondary);
-            border-radius: 16px;
+            border-radius: var(--radius);
             padding: var(--space-6);
-            box-shadow: var(--shadow-secondary);
+            box-shadow: var(--shadow);
             border: 1px solid var(--border-primary);
             width: 100%;
             max-width: 500px;
@@ -50,7 +49,6 @@
         .error-subtitle {
             font-size: var(--text-lg);
             font-weight: 600;
-            color: var(--text-primary);
             margin-bottom: var(--space-4);
         }
 
@@ -65,41 +63,6 @@
             display: flex;
             flex-direction: column;
             gap: var(--space-3);
-        }
-
-        .error-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--space-2);
-            padding: var(--space-4);
-            border: none;
-            border-radius: var(--radius);
-            font-size: var(--text-base);
-            font-weight: 500;
-            text-decoration: none;
-            cursor: pointer;
-            transition: all var(--transition-normal);
-        }
-
-        .error-button.primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .error-button.primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-        }
-
-        .error-button.secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-primary);
-        }
-
-        .error-button.secondary:hover {
-            background: var(--border-primary);
         }
 
         @media (min-width: 480px) {
@@ -122,13 +85,11 @@
                 Se você já estava logado, sua sessão pode ter expirado.
             </p>
             <div class="error-actions">
-                <a href="index.html" class="error-button primary">
-                    <span>🔐</span>
-                    Fazer Login
+                <a href="index.html" class="btn btn-primary">
+                    🔐 Fazer Login
                 </a>
-                <button onclick="history.back()" class="error-button secondary">
-                    <span>🔙</span>
-                    Voltar
+                <button onclick="history.back()" class="btn btn-secondary">
+                    🔙 Voltar
                 </button>
             </div>
         </div>
@@ -140,7 +101,7 @@
         
         function updateCountdown() {
             if (countdown > 0) {
-                document.title = `🚫 Redirecionando em ${countdown}s - Sistema de Postes`;
+                document.title = `Redirecionando em ${countdown}s - Sistema de Postes`;
                 countdown--;
                 setTimeout(updateCountdown, 1000);
             } else {
@@ -154,5 +115,4 @@
         console.log('🚫 Página de erro 403 carregada');
     </script>
 </body>
-
 </html>

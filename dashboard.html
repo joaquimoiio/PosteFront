@@ -1,14 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Dashboard Mobile - Sistema de Vendas de Postes">
-    <title>📱 Dashboard - Vendas de Postes</title>
+    <title>Dashboard - Sistema de Postes</title>
     <link rel="stylesheet" href="css/universal.css">
-    <script src="js/theme-manager.js"></script>
-    <script src="js/auth-manager.js"></script>
+    <script src="js/utils.js"></script>
 </head>
 
 <body>
@@ -144,31 +141,31 @@
             </div>
         </section>
 
-        <section class="profit-section">
+        <section class="summary-section">
             <h2>💎 Distribuição de Lucros</h2>
             <div class="cards-grid">
-                <div class="profit-card total-profit">
+                <div class="metric-card total-profit">
                     <div class="card-icon">💰</div>
                     <div class="card-content">
                         <h3>Lucro Total</h3>
                         <div class="metric-value" id="lucro-total">R$ 0,00</div>
                     </div>
                 </div>
-                <div class="profit-card partner-cicero">
+                <div class="metric-card partner-cicero">
                     <div class="card-icon">👨</div>
                     <div class="card-content">
                         <h3>Cícero (50%)</h3>
                         <div class="metric-value" id="parte-cicero">R$ 0,00</div>
                     </div>
                 </div>
-                <div class="profit-card partner-gilberto">
+                <div class="metric-card partner-gilberto">
                     <div class="card-icon">👨</div>
                     <div class="card-content">
                         <h3>Gilberto (25%)</h3>
                         <div class="metric-value" id="parte-gilberto">R$ 0,00</div>
                     </div>
                 </div>
-                <div class="profit-card partner-jefferson">
+                <div class="metric-card partner-jefferson">
                     <div class="card-icon">👨</div>
                     <div class="card-content">
                         <h3>Jefferson (25%)</h3>
@@ -245,9 +242,8 @@
             document.getElementById('data-inicio')?.addEventListener('change', updatePeriodIndicator);
             document.getElementById('data-fim')?.addEventListener('change', updatePeriodIndicator);
             
-            console.log('📊 Dashboard carregado com dark mode');
+            console.log('📊 Dashboard carregado com sistema leve');
         });
     </script>
 </body>
-
 </html>

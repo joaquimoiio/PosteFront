@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📱 Despesas - Sistema de Postes</title>
+    <title>Despesas - Sistema de Postes</title>
     <link rel="stylesheet" href="css/universal.css">
-    <script src="js/theme-manager.js"></script>
-    <script src="js/auth-manager.js"></script>
+    <script src="js/utils.js"></script>
 </head>
 
 <body>
@@ -63,8 +61,7 @@
 
                 <div class="form-group">
                     <label for="despesa-descricao">Descrição da Despesa *</label>
-                    <input type="text" id="despesa-descricao" required
-                        placeholder="Ex: Pagamento funcionário, material..." minlength="3" maxlength="500">
+                    <input type="text" id="despesa-descricao" required placeholder="Ex: Pagamento funcionário, material..." minlength="3" maxlength="500">
                 </div>
 
                 <div class="form-group">
@@ -85,10 +82,10 @@
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">
-                        <span>💾</span> Salvar Despesa
+                        💾 Salvar Despesa
                     </button>
                     <button type="reset" class="btn btn-secondary">
-                        <span>🔄</span> Limpar
+                        🔄 Limpar
                     </button>
                 </div>
             </form>
@@ -101,26 +98,22 @@
                     <div class="stat-icon">👥</div>
                     <div class="stat-number" id="total-despesas-funcionario">R$ 0,00</div>
                     <div class="stat-label">Funcionário</div>
-                    <div class="stat-note">Afeta G&J (25% cada)</div>
                 </div>
                 <div class="stat-item outras">
                     <div class="stat-icon">📋</div>
                     <div class="stat-number" id="total-outras-despesas">R$ 0,00</div>
                     <div class="stat-label">Outras</div>
-                    <div class="stat-note">Afeta todos os sócios</div>
                 </div>
                 <div class="stat-item total">
                     <div class="stat-icon">💸</div>
                     <div class="stat-number" id="total-despesas-geral">R$ 0,00</div>
                     <div class="stat-label">Total Geral</div>
-                    <div class="stat-note">Soma de todas</div>
                 </div>
             </div>
         </section>
 
         <section class="filter-section">
             <h2>🔍 Filtros</h2>
-            <p>Por padrão, mostra despesas do mês atual</p>
             <div class="filter-grid">
                 <div class="filter-group">
                     <label for="filtro-tipo">Categoria</label>
@@ -132,11 +125,11 @@
                 </div>
                 <div class="filter-group">
                     <label for="filtro-data-inicio">Data Início</label>
-                    <input type="date" id="filtro-data-inicio" title="Selecione a data de início">
+                    <input type="date" id="filtro-data-inicio">
                 </div>
                 <div class="filter-group">
                     <label for="filtro-data-fim">Data Fim</label>
-                    <input type="date" id="filtro-data-fim" title="Selecione a data final">
+                    <input type="date" id="filtro-data-fim">
                 </div>
                 <div class="filter-group">
                     <label for="filtro-descricao">Descrição</label>
@@ -144,13 +137,9 @@
                 </div>
                 <div class="filter-actions">
                     <button class="btn btn-secondary" onclick="limparFiltros()">
-                        <span>🧹</span> Limpar
+                        🧹 Limpar
                     </button>
                 </div>
-            </div>
-            <div id="period-indicator" class="period-indicator" style="display: none;">
-                <span class="period-icon">📅</span>
-                <span id="period-text">Período selecionado</span>
             </div>
         </section>
 
@@ -158,11 +147,11 @@
             <div class="section-header">
                 <h2>📋 Despesas Cadastradas</h2>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="loadDespesas()" title="Atualizar dados">
-                        <span>🔄</span>
+                    <button class="btn btn-small" onclick="loadDespesas()">
+                        🔄
                     </button>
-                    <button class="btn btn-small" onclick="exportarDespesas()" title="Exportar para CSV">
-                        <span>📊</span>
+                    <button class="btn btn-small" onclick="exportarDespesas()">
+                        📊
                     </button>
                 </div>
             </div>
@@ -179,7 +168,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>✏️ Editar Despesa</h3>
-                <button class="close-btn" onclick="closeModal()" aria-label="Fechar modal">&times;</button>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
             <form id="edit-form">
                 <div class="modal-body">
@@ -195,7 +184,7 @@
 
                     <div class="form-group">
                         <label for="edit-despesa-descricao">Descrição *</label>
-                        <input type="text" id="edit-despesa-descricao" required minlength="3" maxlength="500" placeholder="Descrição da despesa">
+                        <input type="text" id="edit-despesa-descricao" required minlength="3" maxlength="500">
                     </div>
 
                     <div class="form-group">
@@ -209,7 +198,7 @@
 
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">
-                        <span>💾</span> Salvar
+                        💾 Salvar
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">
                         Cancelar
@@ -227,41 +216,5 @@
     <div id="alert-container" class="alert-container"></div>
 
     <script src="js/despesas.js"></script>
-    
-    <script>
-        // Atualizar indicador de período
-        function updatePeriodIndicator() {
-            const dataInicio = document.getElementById('filtro-data-inicio').value;
-            const dataFim = document.getElementById('filtro-data-fim').value;
-            const indicator = document.getElementById('period-indicator');
-            const text = document.getElementById('period-text');
-            
-            if (dataInicio || dataFim) {
-                const inicio = dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : 'Início';
-                const fim = dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : 'Fim';
-                
-                if (dataInicio && dataFim) {
-                    text.textContent = `Período: ${inicio} até ${fim}`;
-                } else if (dataInicio) {
-                    text.textContent = `A partir de: ${inicio}`;
-                } else {
-                    text.textContent = `Até: ${fim}`;
-                }
-                
-                indicator.style.display = 'flex';
-            } else {
-                indicator.style.display = 'none';
-            }
-        }
-        
-        // Listeners para atualizar indicador
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('filtro-data-inicio')?.addEventListener('change', updatePeriodIndicator);
-            document.getElementById('filtro-data-fim')?.addEventListener('change', updatePeriodIndicator);
-            
-            console.log('💸 Despesas carregadas com dark mode');
-        });
-    </script>
 </body>
-
 </html>

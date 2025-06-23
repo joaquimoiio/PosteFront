@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📱 Vendas - Sistema de Postes</title>
+    <title>Vendas - Sistema de Postes</title>
     <link rel="stylesheet" href="css/universal.css">
-    <script src="js/theme-manager.js"></script>
-    <script src="js/auth-manager.js"></script>
+    <script src="js/utils.js"></script>
 </head>
 
 <body>
@@ -84,7 +82,7 @@
                     </div>
                     <div class="form-group">
                         <label for="venda-quantidade-v">Quantidade</label>
-                        <input type="number" id="venda-quantidade-v" min="1" value="1" placeholder="Quantidade">
+                        <input type="number" id="venda-quantidade-v" min="1" value="1">
                     </div>
                     <div class="form-group">
                         <label for="venda-valor-total-v">Valor de Venda *</label>
@@ -102,7 +100,7 @@
                     </div>
                     <div class="form-group">
                         <label for="venda-quantidade-l">Quantidade</label>
-                        <input type="number" id="venda-quantidade-l" min="1" value="1" placeholder="Quantidade">
+                        <input type="number" id="venda-quantidade-l" min="1" value="1">
                     </div>
                     <div class="form-group">
                         <label for="venda-frete-l">Frete Eletrons</label>
@@ -117,10 +115,10 @@
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">
-                        <span>💾</span> Salvar Venda
+                        💾 Salvar Venda
                     </button>
                     <button type="reset" class="btn btn-secondary">
-                        <span>🔄</span> Limpar
+                        🔄 Limpar
                     </button>
                 </div>
             </form>
@@ -152,10 +150,8 @@
             </div>
         </section>
 
-        <!-- FILTROS PADRONIZADOS CONFORME SOLICITADO -->
         <section class="filter-section">
             <h2>🔍 Filtros</h2>
-            <p>Por padrão, mostra vendas do mês atual</p>
             <div class="filter-grid">
                 <div class="filter-group">
                     <label for="filtro-tipo-venda">Tipo de Venda</label>
@@ -168,19 +164,15 @@
                 </div>
                 <div class="filter-group">
                     <label for="filtro-data-inicio">Data Início</label>
-                    <input type="date" id="filtro-data-inicio" title="Selecione a data de início">
+                    <input type="date" id="filtro-data-inicio">
                 </div>
                 <div class="filter-group">
                     <label for="filtro-data-fim">Data Fim</label>
-                    <input type="date" id="filtro-data-fim" title="Selecione a data final">
-                </div>
-                <div class="filter-group">
-                    <label for="filtro-cliente">Cliente</label>
-                    <input type="text" id="filtro-cliente" placeholder="Buscar cliente...">
+                    <input type="date" id="filtro-data-fim">
                 </div>
                 <div class="filter-actions">
                     <button class="btn btn-secondary" onclick="limparFiltros()">
-                        <span>🧹</span> Limpar
+                        🧹 Limpar
                     </button>
                 </div>
             </div>
@@ -190,11 +182,11 @@
             <div class="section-header">
                 <h2>📋 Vendas Realizadas</h2>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="loadVendas()" title="Atualizar dados">
-                        <span>🔄</span>
+                    <button class="btn btn-small" onclick="loadVendas()">
+                        🔄
                     </button>
-                    <button class="btn btn-small" onclick="exportarVendas()" title="Exportar para CSV">
-                        <span>📊</span>
+                    <button class="btn btn-small" onclick="exportarVendas()">
+                        📊
                     </button>
                 </div>
             </div>
@@ -207,12 +199,11 @@
         </section>
     </main>
 
-    <!-- MODAL DE EDIÇÃO -->
     <div id="edit-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>✏️ Editar Venda</h3>
-                <button class="close-btn" onclick="closeModal()" aria-label="Fechar modal">&times;</button>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
             <form id="edit-form">
                 <div class="modal-body">
@@ -242,13 +233,13 @@
 
                     <div class="form-group">
                         <label for="edit-observacoes">Observações</label>
-                        <textarea id="edit-observacoes" rows="3" placeholder="Observações sobre a venda..." maxlength="500"></textarea>
+                        <textarea id="edit-observacoes" rows="3" maxlength="500"></textarea>
                     </div>
                 </div>
 
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">
-                        <span>💾</span> Salvar
+                        💾 Salvar
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">
                         Cancelar
@@ -258,63 +249,13 @@
         </div>
     </div>
 
-    <!-- LOADING OVERLAY -->
     <div id="loading" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
         <p>Carregando...</p>
     </div>
 
-    <!-- ALERT CONTAINER -->
     <div id="alert-container" class="alert-container"></div>
 
-    <!-- SCRIPTS -->
     <script src="js/vendas.js"></script>
-    
-    <!-- Script adicional para funcionalidades específicas -->
-    <script>
-        // Atualizar indicador de período
-        function updatePeriodIndicator() {
-            const dataInicio = document.getElementById('filtro-data-inicio').value;
-            const dataFim = document.getElementById('filtro-data-fim').value;
-            const indicator = document.getElementById('period-indicator');
-            const text = document.getElementById('period-text');
-            
-            if (dataInicio || dataFim) {
-                const inicio = dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : 'Início';
-                const fim = dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : 'Fim';
-                
-                if (dataInicio && dataFim) {
-                    text.textContent = `Período: ${inicio} até ${fim}`;
-                } else if (dataInicio) {
-                    text.textContent = `A partir de: ${inicio}`;
-                } else {
-                    text.textContent = `Até: ${fim}`;
-                }
-                
-                indicator.style.display = 'flex';
-            } else {
-                indicator.style.display = 'none';
-            }
-        }
-        
-        // Event listeners e inicialização
-        document.addEventListener('DOMContentLoaded', () => {
-            // Adicionar listeners aos filtros de data
-            document.getElementById('filtro-data-inicio')?.addEventListener('change', updatePeriodIndicator);
-            document.getElementById('filtro-data-fim')?.addEventListener('change', updatePeriodIndicator);
-            
-            // Listener para mudanças de tema (exemplo de integração)
-            window.addEventListener('themeChanged', (event) => {
-                const { theme, effectiveTheme } = event.detail;
-                console.log(`Tema alterado para: ${theme} (efetivo: ${effectiveTheme})`);
-                
-                // Aqui você pode fazer ajustes específicos se necessário
-                // Por exemplo, recarregar gráficos que não se adaptam automaticamente
-            });
-            
-            console.log('📋 Vendas carregadas com dark mode e filtros padronizados');
-        });
-    </script>
 </body>
-
 </html>

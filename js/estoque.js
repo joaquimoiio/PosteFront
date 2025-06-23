@@ -1,54 +1,28 @@
-// Estoque JavaScript Mobile-First - Versão Otimizada para Cold Start
-const API_BASE = 'https://posteback.onrender.com/api';
+// Estoque JavaScript - Versão Leve
+// Utiliza AppUtils para funcionalidades compartilhadas
 
-// Estado global simplificado
-const state = {
+const { 
+    apiRequest, clearCache, formatCurrency, formatDateBR,
+    updateElement, showLoading, showAlert, setupFilters,
+    validateRequired, validateNumber, exportToCSV
+} = window.AppUtils;
+
+// Estado local
+let estoqueData = {
     estoque: [],
     postes: [],
-    filters: { status: '', codigo: '', descricao: '' },
-    isFirstRequest: !sessionStorage.getItem('api-connected'),
-    requestCache: new Map()
+    filters: { status: '', codigo: '', descricao: '' }
 };
 
-// Cache simples com TTL
-const cache = {
-    data: new Map(),
-    ttl: 5 * 60 * 1000, // 5 minutos
-    
-    set(key, value) {
-        this.data.set(key, {
-            value,
-            timestamp: Date.now()
-        });
-    },
-    
-    get(key) {
-        const item = this.data.get(key);
-        if (!item) return null;
-        
-        if (Date.now() - item.timestamp > this.ttl) {
-            this.data.delete(key);
-            return null;
-        }
-        
-        return item.value;
-    },
-    
-    clear() {
-        this.data.clear();
-    }
-};
-
-// Inicialização
+// ================================
+// INICIALIZAÇÃO
+// ================================
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🎯 Inicializando Estoque Mobile...');
-    
-    // Mostrar aviso sobre cold start na primeira visita
-    showColdStartWarning();
+    console.log('🎯 Inicializando Estoque...');
     
     try {
-        configurarEventos();
-        await carregarDados();
+        setupEventListeners();
+        await loadData();
         console.log('✅ Estoque carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
@@ -56,154 +30,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Aviso sobre cold start
-function showColdStartWarning() {
-    if (state.isFirstRequest && !sessionStorage.getItem('cold-start-warning-shown')) {
-        sessionStorage.setItem('cold-start-warning-shown', 'true');
-        showAlert(`
-            ℹ️ Primeira conexão pode demorar até 2 minutos devido ao servidor gratuito. 
-            Após isso, ficará mais rápido!
-        `, 'info', 10000);
-    }
-}
-
-// Loading inteligente com feedback progressivo
-function showIntelligentLoading(isFirstLoad = false) {
-    const loading = document.getElementById('loading');
-    const loadingText = loading?.querySelector('p');
-    
-    if (loading) {
-        loading.style.display = 'flex';
-        
-        if (loadingText && isFirstLoad) {
-            loadingText.textContent = 'Iniciando servidor (pode demorar até 2 minutos)...';
-            
-            // Feedback progressivo
-            let seconds = 0;
-            const progressInterval = setInterval(() => {
-                seconds += 5;
-                if (seconds <= 30) {
-                    loadingText.textContent = `Iniciando servidor... ${seconds}s`;
-                } else if (seconds <= 90) {
-                    loadingText.textContent = `Servidor inicializando (demora normal)... ${seconds}s`;
-                } else {
-                    loadingText.textContent = 'Quase pronto, aguarde mais um pouco...';
-                }
-            }, 5000);
-            
-            // Limpar intervalo quando loading sumir
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.target.style.display === 'none') {
-                        clearInterval(progressInterval);
-                        observer.disconnect();
-                    }
-                });
-            });
-            observer.observe(loading, { attributes: true, attributeFilter: ['style'] });
-        } else if (loadingText) {
-            loadingText.textContent = 'Carregando...';
-        }
-    }
-}
-
-// Requisição otimizada com retry e timeout inteligente
-async function apiRequestOptimized(endpoint, options = {}) {
-    const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
-    
-    // Verificar cache primeiro
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && !options.skipCache) {
-        console.log('📦 Dados do cache:', endpoint);
-        return cachedData;
-    }
-    
-    const controller = new AbortController();
-    const isFirstRequest = state.isFirstRequest;
-    
-    // Timeout maior para primeira requisição (cold start)
-    const timeoutMs = isFirstRequest ? 120000 : 30000; // 2min vs 30s
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    
-    const maxRetries = 2;
-    
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            console.log(`🌐 Tentativa ${attempt + 1}/${maxRetries + 1}: ${endpoint}`, isFirstRequest ? '(COLD START)' : '(WARM)');
-            
-            const response = await fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                signal: controller.signal,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...options.headers
-                }
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            // Marcar como conectado
-            if (state.isFirstRequest) {
-                state.isFirstRequest = false;
-                sessionStorage.setItem('api-connected', 'true');
-            }
-            
-            // Verificar se há conteúdo antes de fazer parse JSON
-            if (response.status === 204 || response.status === 205) {
-                return null;
-            }
-            
-            const contentLength = response.headers.get('Content-Length');
-            if (contentLength === '0') {
-                return null;
-            }
-            
-            let data;
-            try {
-                data = await response.json();
-            } catch (jsonError) {
-                return null;
-            }
-            
-            // Cachear resultado
-            if (data !== null) {
-                cache.set(cacheKey, data);
-            }
-            
-            return data;
-            
-        } catch (error) {
-            console.warn(`⚠️ Tentativa ${attempt + 1} falhou:`, error.message);
-            
-            if (attempt === maxRetries) {
-                clearTimeout(timeoutId);
-                
-                // Mostrar erro específico para cold start
-                if (isFirstRequest && error.name === 'AbortError') {
-                    showAlert('⏱️ Servidor demorou para responder. Tente novamente em alguns segundos.', 'warning', 8000);
-                } else if (error.message.includes('Failed to fetch')) {
-                    showAlert('🌐 Sem conexão com a internet ou servidor indisponível.', 'error');
-                } else {
-                    showAlert('Erro ao conectar: ' + error.message, 'error');
-                }
-                
-                throw error;
-            }
-            
-            // Aguardar antes de tentar novamente (backoff exponencial)
-            const delay = Math.min(2000 * Math.pow(2, attempt), 10000);
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-    }
-}
-
-// Configuração de eventos
-function configurarEventos() {
+// ================================
+// EVENT LISTENERS
+// ================================
+function setupEventListeners() {
     // Form principal
     const estoqueForm = document.getElementById('estoque-form');
     if (estoqueForm) {
@@ -212,82 +42,60 @@ function configurarEventos() {
     }
     
     // Filtros
-    setupFilters();
-}
-
-function setupFilters() {
-    const filters = {
+    setupFilters({
         'filtro-status': 'status',
         'filtro-codigo': 'codigo',
         'filtro-descricao': 'descricao'
-    };
-    
-    Object.entries(filters).forEach(([elementId, filterKey]) => {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.addEventListener('input', debounce(() => {
-                state.filters[filterKey] = element.value;
-                applyFilters();
-            }, 300));
-        }
-    });
+    }, applyFilters);
 }
 
-// Carregamento de dados otimizado
-async function carregarDados() {
+// ================================
+// CARREGAMENTO DE DADOS
+// ================================
+async function loadData() {
     try {
-        showIntelligentLoading(state.isFirstRequest);
-        
-        console.log('📦 Carregando dados de estoque...');
+        showLoading(true);
         
         const [estoque, postes] = await Promise.all([
             fetchEstoque(),
             fetchPostes()
         ]);
         
-        state.estoque = estoque || [];
-        state.postes = postes || [];
+        estoqueData.estoque = estoque || [];
+        estoqueData.postes = postes || [];
         
-        // Enriquecer dados do estoque com informações dos postes
         enrichEstoqueData();
-        
         populatePosteSelect();
         updateResumo();
         updateAlertas();
         applyFilters();
         
-        console.log('✅ Dados de estoque carregados');
-        
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        
-        // Mostrar dados em cache se disponível
-        if (state.estoque.length > 0) {
-            console.log('📦 Usando dados em cache');
-            enrichEstoqueData();
-            populatePosteSelect();
-            updateResumo();
-            updateAlertas();
-            applyFilters();
-            showAlert('Usando dados salvos. Alguns dados podem estar desatualizados.', 'warning');
-        }
-        
         throw error;
     } finally {
         showLoading(false);
     }
 }
 
-// NOVA FUNÇÃO: Enriquecer dados do estoque com informações dos postes
+async function fetchEstoque() {
+    return await apiRequest('/estoque');
+}
+
+async function fetchPostes() {
+    const postes = await apiRequest('/postes');
+    return (postes || []).filter(p => p.ativo);
+}
+
+// Enriquecer dados do estoque com informações dos postes
 function enrichEstoqueData() {
-    state.estoque.forEach(item => {
-        const poste = state.postes.find(p => p.id === item.posteId);
+    estoqueData.estoque.forEach(item => {
+        const poste = estoqueData.postes.find(p => p.id === item.posteId);
         if (poste) {
             item.codigoPoste = poste.codigo;
             item.descricaoPoste = poste.descricao;
             item.precoPoste = poste.preco;
         } else {
-            // Fallback para casos onde o poste não é encontrado
             item.codigoPoste = item.codigoPoste || 'N/A';
             item.descricaoPoste = item.descricaoPoste || 'Poste não encontrado';
             item.precoPoste = item.precoPoste || 0;
@@ -295,27 +103,9 @@ function enrichEstoqueData() {
     });
 }
 
-// Requisições API otimizadas
-async function fetchEstoque() {
-    try {
-        return await apiRequestOptimized('/estoque');
-    } catch (error) {
-        console.error('Erro ao buscar estoque:', error);
-        return [];
-    }
-}
-
-async function fetchPostes() {
-    try {
-        const postes = await apiRequestOptimized('/postes');
-        return (postes || []).filter(p => p.ativo);
-    } catch (error) {
-        console.error('Erro ao buscar postes:', error);
-        return [];
-    }
-}
-
-// Manipulação do formulário
+// ================================
+// MANIPULAÇÃO DO FORMULÁRIO
+// ================================
 async function handleEstoqueSubmit(e) {
     e.preventDefault();
     
@@ -326,9 +116,9 @@ async function handleEstoqueSubmit(e) {
             return;
         }
         
-        showIntelligentLoading(false);
+        showLoading(true);
         
-        await apiRequestOptimized('/estoque/adicionar', {
+        await apiRequest('/estoque/adicionar', {
             method: 'POST',
             body: JSON.stringify(formData),
             skipCache: true
@@ -337,9 +127,8 @@ async function handleEstoqueSubmit(e) {
         showAlert('Estoque adicionado com sucesso!', 'success');
         resetForm();
         
-        // Limpar cache e recarregar
-        cache.clear();
-        await carregarDados();
+        clearCache();
+        await loadData();
         
     } catch (error) {
         console.error('Erro ao adicionar estoque:', error);
@@ -358,20 +147,16 @@ function buildFormData() {
 }
 
 function validateFormData(data) {
-    if (!data.posteId) {
-        showAlert('Selecione um poste', 'warning');
+    if (!validateRequired(data.posteId, 'Poste')) {
         return false;
     }
     
-    if (!data.quantidade || data.quantidade <= 0) {
-        showAlert('Quantidade deve ser maior que zero', 'warning');
-        return false;
-    }
-    
-    return true;
+    return validateNumber(data.quantidade, 'Quantidade', 0);
 }
 
-// Populate selects
+// ================================
+// POPULATE SELECTS
+// ================================
 function populatePosteSelect() {
     const select = document.getElementById('estoque-poste');
     if (!select) return;
@@ -382,7 +167,7 @@ function populatePosteSelect() {
     }
     
     // Adicionar opções dos postes
-    state.postes.forEach(poste => {
+    estoqueData.postes.forEach(poste => {
         const option = document.createElement('option');
         option.value = poste.id;
         option.textContent = `${poste.codigo} - ${poste.descricao} (${formatCurrency(poste.preco)})`;
@@ -390,7 +175,9 @@ function populatePosteSelect() {
     });
 }
 
-// Display estoque
+// ================================
+// DISPLAY ESTOQUE
+// ================================
 function displayEstoque(estoque) {
     const container = document.getElementById('estoque-list');
     if (!container) return;
@@ -418,8 +205,8 @@ function displayEstoque(estoque) {
         if (qA >= 0 && qB < 0) return 1;
         
         // Dentro da mesma categoria, por quantidade
-        if (qA < 0 && qB < 0) return qA - qB; // Mais negativo primeiro
-        return qB - qA; // Maior quantidade primeiro
+        if (qA < 0 && qB < 0) return qA - qB;
+        return qB - qA;
     });
     
     estoqueOrdenado.forEach(item => {
@@ -435,7 +222,6 @@ function createEstoqueItem(item) {
     
     element.className = `mobile-list-item ${statusClass}`;
     
-    // ATUALIZADO: Mostrar código e nome completo do poste
     const codigoPoste = item.codigoPoste || 'N/A';
     const descricaoPoste = item.descricaoPoste || 'Descrição não disponível';
     const precoPoste = item.precoPoste || 0;
@@ -455,11 +241,11 @@ function createEstoqueItem(item) {
         </div>
         
         <div class="item-date">
-            Atualizado: ${formatDateBR(item.dataAtualizacao)}
+            Atualizado: ${formatDateBR(item.dataAtualizacao, true)}
         </div>
     `;
     
-    return item;
+    return element;
 }
 
 function getStatusClass(quantidade) {
@@ -474,11 +260,13 @@ function getStatusText(quantidade) {
     return '📦 Esgotado';
 }
 
-// Filtros e resumo
+// ================================
+// FILTROS E RESUMO
+// ================================
 function applyFilters() {
-    const { status, codigo, descricao } = state.filters;
+    const { status, codigo, descricao } = estoqueData.filters;
     
-    let filtered = [...state.estoque];
+    let filtered = [...estoqueData.estoque];
     
     if (status) {
         filtered = filtered.filter(item => {
@@ -510,7 +298,7 @@ function applyFilters() {
 }
 
 function updateResumo() {
-    const estoque = state.estoque;
+    const estoque = estoqueData.estoque;
     
     const total = estoque.length;
     const positivo = estoque.filter(item => (item.quantidadeAtual || 0) > 0).length;
@@ -524,8 +312,8 @@ function updateResumo() {
 }
 
 function updateAlertas() {
-    const estoqueNegativo = state.estoque.filter(item => (item.quantidadeAtual || 0) < 0);
-    const estoqueZero = state.estoque.filter(item => (item.quantidadeAtual || 0) === 0);
+    const estoqueNegativo = estoqueData.estoque.filter(item => (item.quantidadeAtual || 0) < 0);
+    const estoqueZero = estoqueData.estoque.filter(item => (item.quantidadeAtual || 0) === 0);
     
     const alertasSection = document.getElementById('alertas-section');
     const alertasList = document.getElementById('alertas-list');
@@ -572,8 +360,6 @@ function createAlertItem(item, type, title) {
     alertItem.className = `alert-item ${type}`;
     
     const icon = type === 'negativo' ? '⚠️' : '📦';
-    
-    // ATUALIZADO: Mostrar código e nome completo do poste nos alertas
     const codigoPoste = item.codigoPoste || 'N/A';
     const descricaoPoste = item.descricaoPoste || 'Poste não encontrado';
     
@@ -589,35 +375,39 @@ function createAlertItem(item, type, title) {
     return alertItem;
 }
 
-// Utilitários
+// ================================
+// HELPER FUNCTIONS
+// ================================
 function resetForm() {
     document.getElementById('estoque-form').reset();
 }
 
+// ================================
+// FUNÇÕES GLOBAIS
+// ================================
 function limparFiltros() {
     document.getElementById('filtro-status').value = '';
     document.getElementById('filtro-codigo').value = '';
     document.getElementById('filtro-descricao').value = '';
     
-    state.filters = { status: '', codigo: '', descricao: '' };
+    estoqueData.filters = { status: '', codigo: '', descricao: '' };
     applyFilters();
     showAlert('Filtros limpos', 'success');
 }
 
 async function exportarEstoque() {
-    if (!state.estoque || state.estoque.length === 0) {
+    if (!estoqueData.estoque || estoqueData.estoque.length === 0) {
         showAlert('Nenhum estoque para exportar', 'warning');
         return;
     }
     
-    // ATUALIZADO: Incluir código e nome completo do poste na exportação
-    const dadosExportar = state.estoque.map(item => ({
+    const dadosExportar = estoqueData.estoque.map(item => ({
         'Código': item.codigoPoste || 'N/A',
         'Descrição': item.descricaoPoste || 'Descrição não disponível',
         'Preço': formatCurrency(item.precoPoste || 0),
         'Quantidade': item.quantidadeAtual || 0,
         'Status': getStatusText(item.quantidadeAtual || 0),
-        'Última Atualização': formatDateBR(item.dataAtualizacao)
+        'Última Atualização': formatDateBR(item.dataAtualizacao, true)
     }));
     
     exportToCSV(dadosExportar, `estoque_${new Date().toISOString().split('T')[0]}`);
@@ -625,108 +415,18 @@ async function exportarEstoque() {
 
 async function loadEstoque() {
     try {
-        // Limpar cache para forçar nova requisição
-        cache.clear();
-        
-        await carregarDados();
+        clearCache();
+        await loadData();
         showAlert('Dados atualizados com sucesso!', 'success');
-        
     } catch (error) {
         console.error('Erro ao atualizar estoque:', error);
         showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
     }
 }
 
-// Formatters
-function formatCurrency(value) {
-    if (value == null || isNaN(value)) return 'R$ 0,00';
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(value);
-}
+// Disponibilizar funções globalmente
+window.limparFiltros = limparFiltros;
+window.exportarEstoque = exportarEstoque;
+window.loadEstoque = loadEstoque;
 
-function formatDateBR(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-// Helper functions
-function updateElement(id, value) {
-    const element = document.getElementById(id);
-    if (element) element.textContent = value.toString();
-}
-
-function showLoading(show) {
-    const loading = document.getElementById('loading');
-    if (loading) loading.style.display = show ? 'flex' : 'none';
-}
-
-function showAlert(message, type = 'success', duration = 3000) {
-    const container = document.getElementById('alert-container');
-    if (!container) return;
-    
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
-    
-    container.appendChild(alert);
-    
-    setTimeout(() => {
-        if (alert.parentNode) alert.remove();
-    }, duration);
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-function exportToCSV(data, filename) {
-    if (!data || data.length === 0) {
-        showAlert('Nenhum dado para exportar', 'warning');
-        return;
-    }
-
-    const headers = Object.keys(data[0]);
-    const csv = [
-        headers.join(','),
-        ...data.map(row => 
-            headers.map(header => {
-                let value = row[header] || '';
-                if (typeof value === 'string' && value.includes(',')) {
-                    value = `"${value.replace(/"/g, '""')}"`;
-                }
-                return value;
-            }).join(',')
-        )
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = `${filename}.csv`;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showAlert('Dados exportados com sucesso!', 'success');
-}
-
-console.log('✅ Estoque Mobile carregado com otimizações para cold start');
+console.log('✅ Estoque leve carregado');
