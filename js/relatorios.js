@@ -1,10 +1,16 @@
 // Relatórios JavaScript - Versão Leve
 // Utiliza AppUtils para funcionalidades compartilhadas
 
-const { 
-    apiRequest, clearCache, formatCurrency, formatDateBR, dateToInputValue,
-    updateElement, showLoading, showAlert, validateRequired, exportToCSV
-} = window.AppUtils;
+// Aguardar AppUtils estar disponível
+document.addEventListener('DOMContentLoaded', () => {
+    // Verificar se AppUtils está disponível
+    if (!window.AppUtils) {
+        console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
+        return;
+    }
+    
+    initRelatorios();
+});
 
 // Estado local
 let relatoriosData = {
@@ -15,7 +21,7 @@ let relatoriosData = {
 // ================================
 // INICIALIZAÇÃO
 // ================================
-document.addEventListener('DOMContentLoaded', async () => {
+async function initRelatorios() {
     console.log('🎯 Inicializando Relatórios...');
     
     try {
@@ -25,9 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ Relatórios carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
+        window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
-});
+}
 
 // ================================
 // EVENT LISTENERS
@@ -56,8 +62,8 @@ function setDefaultDates() {
     const dataFim = document.getElementById('data-fim');
     
     if (dataInicio && dataFim) {
-        dataInicio.value = dateToInputValue(primeiroDiaMes);
-        dataFim.value = dateToInputValue(hoje);
+        dataInicio.value = window.AppUtils.dateToInputValue(primeiroDiaMes);
+        dataFim.value = window.AppUtils.dateToInputValue(hoje);
         updatePeriodIndicator();
     }
 }
@@ -69,8 +75,8 @@ function updatePeriodIndicator() {
     const periodoTexto = document.getElementById('periodo-texto');
     
     if (dataInicio && dataFim) {
-        const inicio = formatDateBR(dataInicio);
-        const fim = formatDateBR(dataFim);
+        const inicio = window.AppUtils.formatDateBR(dataInicio);
+        const fim = window.AppUtils.formatDateBR(dataFim);
         
         if (dataInicio === dataFim) {
             periodoTexto.textContent = `📊 Relatório para ${inicio}`;
@@ -91,14 +97,14 @@ async function loadPostes() {
     try {
         console.log('⚡ Carregando lista de postes...');
         
-        const postes = await apiRequest('/postes');
+        const postes = await window.AppUtils.apiRequest('/postes');
         relatoriosData.postes = (postes || []).filter(p => p.ativo);
         
         console.log('✅ Lista de postes carregada');
         
     } catch (error) {
         console.error('Erro ao carregar postes:', error);
-        showAlert('Erro ao carregar lista de postes', 'warning');
+        window.AppUtils.showAlert('Erro ao carregar lista de postes', 'warning');
     }
 }
 
@@ -111,7 +117,7 @@ async function loadVendas(params) {
     });
     
     const endpoint = searchParams.toString() ? `/vendas?${searchParams}` : '/vendas';
-    return await apiRequest(endpoint);
+    return await window.AppUtils.apiRequest(endpoint);
 }
 
 // ================================
@@ -128,18 +134,18 @@ async function gerarRelatorio() {
         const dataFim = document.getElementById('data-fim').value;
         const tipoVenda = document.getElementById('tipo-venda').value;
         
-        if (!validateRequired(dataInicio, 'Data de início') || 
-            !validateRequired(dataFim, 'Data fim')) {
+        if (!window.AppUtils.validateRequired(dataInicio, 'Data de início') || 
+            !window.AppUtils.validateRequired(dataFim, 'Data fim')) {
             return;
         }
         
         // Validar datas
         if (new Date(dataInicio) > new Date(dataFim)) {
-            showAlert('Data de início deve ser anterior à data fim', 'warning');
+            window.AppUtils.showAlert('Data de início deve ser anterior à data fim', 'warning');
             return;
         }
         
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
         console.log('📊 Gerando relatório...');
         
@@ -167,14 +173,14 @@ async function gerarRelatorio() {
         document.getElementById('relatorio-section').style.display = 'block';
         document.getElementById('charts-section').style.display = 'block';
         
-        showAlert('Relatório gerado com sucesso!', 'success');
+        window.AppUtils.showAlert('Relatório gerado com sucesso!', 'success');
         console.log('✅ Relatório gerado');
         
     } catch (error) {
         console.error('Erro ao gerar relatório:', error);
-        showAlert('Erro ao gerar relatório: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao gerar relatório: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -267,10 +273,10 @@ function displayResumo(vendas, relatorio) {
     const quantidadeTotal = relatorio.reduce((sum, item) => sum + item.quantidadeVendida, 0);
     const valorTotal = relatorio.reduce((sum, item) => sum + item.valorTotal, 0);
     
-    updateElement('total-tipos-postes', `${tiposComVenda}/${totalTipos}`);
-    updateElement('total-vendas-periodo', totalVendas);
-    updateElement('quantidade-total', quantidadeTotal);
-    updateElement('valor-total', formatCurrency(valorTotal));
+    window.AppUtils.updateElement('total-tipos-postes', `${tiposComVenda}/${totalTipos}`);
+    window.AppUtils.updateElement('total-vendas-periodo', totalVendas);
+    window.AppUtils.updateElement('quantidade-total', quantidadeTotal);
+    window.AppUtils.updateElement('valor-total', window.AppUtils.formatCurrency(valorTotal));
 }
 
 function displayRelatorio(relatorio) {
@@ -319,15 +325,15 @@ function createRelatorioItem(item) {
             <div class="item-details">
                 <div class="item-detail">
                     <span class="item-detail-label">Preço Unit.</span>
-                    <span class="item-detail-value currency">${formatCurrency(item.precoUnitario)}</span>
+                    <span class="item-detail-value currency">${window.AppUtils.formatCurrency(item.precoUnitario)}</span>
                 </div>
                 <div class="item-detail">
                     <span class="item-detail-label">Custo Eletrons</span>
-                    <span class="item-detail-value currency">${formatCurrency(item.custoEletrons)}</span>
+                    <span class="item-detail-value currency">${window.AppUtils.formatCurrency(item.custoEletrons)}</span>
                 </div>
                 <div class="item-detail">
                     <span class="item-detail-label">Arrecadado</span>
-                    <span class="item-detail-value currency">${formatCurrency(item.valorTotal)}</span>
+                    <span class="item-detail-value currency">${window.AppUtils.formatCurrency(item.valorTotal)}</span>
                 </div>
                 <div class="item-detail">
                     <span class="item-detail-label">% do Total</span>
@@ -414,19 +420,19 @@ function limparRelatorio() {
     document.getElementById('relatorio-section').style.display = 'none';
     document.getElementById('charts-section').style.display = 'none';
     
-    showAlert('Relatório limpo', 'success');
+    window.AppUtils.showAlert('Relatório limpo', 'success');
 }
 
 async function exportarRelatorio() {
     if (!relatoriosData.relatorio || relatoriosData.relatorio.length === 0) {
-        showAlert('Nenhum relatório para exportar', 'warning');
+        window.AppUtils.showAlert('Nenhum relatório para exportar', 'warning');
         return;
     }
     
     const dataInicio = document.getElementById('data-inicio').value;
     const dataFim = document.getElementById('data-fim').value;
     
-    const periodo = `${formatDateBR(dataInicio)}_a_${formatDateBR(dataFim)}`;
+    const periodo = `${window.AppUtils.formatDateBR(dataInicio)}_a_${window.AppUtils.formatDateBR(dataFim)}`;
     
     const dadosExportar = relatoriosData.relatorio.map(item => ({
         'Ranking': item.ranking || 'Sem vendas',
@@ -440,7 +446,7 @@ async function exportarRelatorio() {
         'Número de Vendas': item.numeroVendas
     }));
     
-    exportToCSV(dadosExportar, `relatorio_postes_${periodo}`);
+    window.AppUtils.exportToCSV(dadosExportar, `relatorio_postes_${periodo}`);
 }
 
 // Disponibilizar funções globalmente

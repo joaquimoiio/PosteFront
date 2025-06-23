@@ -1,12 +1,16 @@
 // Vendas JavaScript - Versão Leve
 // Utiliza AppUtils para funcionalidades compartilhadas
 
-const { 
-    apiRequest, clearCache, formatCurrency, formatDateBR, getCurrentDateTime,
-    updateElement, showLoading, showAlert, setDefaultDateFilters, setupFilters,
-    getTipoLabel, validateRequired, validateNumber, exportToCSV,
-    showModal, closeModal
-} = window.AppUtils;
+// Aguardar AppUtils estar disponível
+document.addEventListener('DOMContentLoaded', () => {
+    // Verificar se AppUtils está disponível
+    if (!window.AppUtils) {
+        console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
+        return;
+    }
+    
+    initVendas();
+});
 
 // Estado local
 let vendasData = {
@@ -19,20 +23,20 @@ let vendasData = {
 // ================================
 // INICIALIZAÇÃO
 // ================================
-document.addEventListener('DOMContentLoaded', async () => {
+async function initVendas() {
     console.log('🎯 Inicializando Vendas...');
     
     try {
         setupEventListeners();
         setDefaultDateTime();
-        setDefaultDateFilters('filtro-data-inicio', 'filtro-data-fim');
+        window.AppUtils.setDefaultDateFilters('filtro-data-inicio', 'filtro-data-fim');
         await loadData();
         console.log('✅ Vendas carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
+        window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
-});
+}
 
 // ================================
 // EVENT LISTENERS
@@ -66,7 +70,7 @@ function setupEventListeners() {
     }
     
     // Filtros
-    setupFilters({
+    window.AppUtils.setupFilters({
         'filtro-tipo-venda': 'tipo',
         'filtro-data-inicio': 'dataInicio',
         'filtro-data-fim': 'dataFim'
@@ -76,7 +80,7 @@ function setupEventListeners() {
 function setDefaultDateTime() {
     const vendaData = document.getElementById('venda-data');
     if (vendaData) {
-        vendaData.value = getCurrentDateTime();
+        vendaData.value = window.AppUtils.getCurrentDateTime();
     }
 }
 
@@ -85,7 +89,7 @@ function setDefaultDateTime() {
 // ================================
 async function loadData() {
     try {
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
         const [vendas, postes] = await Promise.all([
             fetchVendas(),
@@ -103,7 +107,7 @@ async function loadData() {
         console.error('Erro ao carregar dados:', error);
         throw error;
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -113,11 +117,11 @@ async function fetchVendas() {
     if (vendasData.filters.dataFim) params.append('dataFim', vendasData.filters.dataFim);
     
     const endpoint = params.toString() ? `/vendas?${params}` : '/vendas';
-    return await apiRequest(endpoint);
+    return await window.AppUtils.apiRequest(endpoint);
 }
 
 async function fetchPostes() {
-    const postes = await apiRequest('/postes');
+    const postes = await window.AppUtils.apiRequest('/postes');
     return (postes || []).filter(p => p.ativo);
 }
 
@@ -134,25 +138,25 @@ async function handleVendaSubmit(e) {
             return;
         }
         
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest('/vendas', {
+        await window.AppUtils.apiRequest('/vendas', {
             method: 'POST',
             body: JSON.stringify(formData),
             skipCache: true
         });
         
-        showAlert('Venda criada com sucesso!', 'success');
+        window.AppUtils.showAlert('Venda criada com sucesso!', 'success');
         resetForm();
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao criar venda:', error);
-        showAlert('Erro ao criar venda: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao criar venda: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -187,19 +191,19 @@ function buildFormData() {
 }
 
 function validateFormData(data) {
-    if (!validateRequired(data.tipoVenda, 'Tipo de venda') || 
-        !validateRequired(data.dataVenda, 'Data da venda')) {
+    if (!window.AppUtils.validateRequired(data.tipoVenda, 'Tipo de venda') || 
+        !window.AppUtils.validateRequired(data.dataVenda, 'Data da venda')) {
         return false;
     }
     
     switch (data.tipoVenda) {
         case 'E':
-            return validateNumber(data.valorExtra, 'Valor extra', 0);
+            return window.AppUtils.validateNumber(data.valorExtra, 'Valor extra', 0);
         case 'V':
-            return validateRequired(data.posteId, 'Poste') && 
-                   validateNumber(data.valorVenda, 'Valor de venda', 0);
+            return window.AppUtils.validateRequired(data.posteId, 'Poste') && 
+                   window.AppUtils.validateNumber(data.valorVenda, 'Valor de venda', 0);
         case 'L':
-            return validateRequired(data.posteId, 'Poste');
+            return window.AppUtils.validateRequired(data.posteId, 'Poste');
     }
     
     return true;
@@ -279,7 +283,7 @@ function populatePosteSelects() {
         vendasData.postes.forEach(poste => {
             const option = document.createElement('option');
             option.value = poste.id;
-            option.textContent = `${poste.codigo} - ${poste.descricao} (${formatCurrency(poste.preco)})`;
+            option.textContent = `${poste.codigo} - ${poste.descricao} (${window.AppUtils.formatCurrency(poste.preco)})`;
             select.appendChild(option);
         });
     });
@@ -321,9 +325,9 @@ function createVendaItem(venda) {
     item.innerHTML = `
         <div class="item-header">
             <span class="item-type ${venda.tipoVenda.toLowerCase()}">
-                ${getTipoLabel(venda.tipoVenda)}
+                ${window.AppUtils.getTipoLabel(venda.tipoVenda)}
             </span>
-            <span class="item-date">${formatDateBR(venda.dataVenda, true)}</span>
+            <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
         </div>
         
         <div class="item-content">
@@ -357,11 +361,11 @@ async function editVenda(id) {
         
         populateEditForm(venda);
         vendasData.currentEditId = id;
-        showModal('edit-modal');
+        window.AppUtils.showModal('edit-modal');
         
     } catch (error) {
         console.error('Erro ao carregar venda para edição:', error);
-        showAlert('Erro ao carregar dados da venda: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao carregar dados da venda: ' + error.message, 'error');
     }
 }
 
@@ -401,25 +405,25 @@ async function handleEditSubmit(e) {
     try {
         const formData = buildEditFormData();
         
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest(`/vendas/${vendasData.currentEditId}`, {
+        await window.AppUtils.apiRequest(`/vendas/${vendasData.currentEditId}`, {
             method: 'PUT',
             body: JSON.stringify(formData),
             skipCache: true
         });
         
-        showAlert('Venda atualizada com sucesso!', 'success');
-        closeModal('edit-modal');
+        window.AppUtils.showAlert('Venda atualizada com sucesso!', 'success');
+        window.AppUtils.closeModal('edit-modal');
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao atualizar venda:', error);
-        showAlert('Erro ao atualizar venda: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao atualizar venda: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -452,23 +456,23 @@ async function deleteVenda(id) {
     }
     
     try {
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest(`/vendas/${id}`, { 
+        await window.AppUtils.apiRequest(`/vendas/${id}`, { 
             method: 'DELETE',
             skipCache: true 
         });
         
-        showAlert('Venda excluída com sucesso!', 'success');
+        window.AppUtils.showAlert('Venda excluída com sucesso!', 'success');
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao excluir venda:', error);
-        showAlert('Erro ao excluir venda: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao excluir venda: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -507,10 +511,10 @@ function updateResumo() {
         totalGeral: vendas.length
     };
     
-    updateElement('total-vendas-e', resumo.totalE);
-    updateElement('total-vendas-v', resumo.totalV);
-    updateElement('total-vendas-l', resumo.totalL);
-    updateElement('total-vendas-geral', resumo.totalGeral);
+    window.AppUtils.updateElement('total-vendas-e', resumo.totalE);
+    window.AppUtils.updateElement('total-vendas-v', resumo.totalV);
+    window.AppUtils.updateElement('total-vendas-l', resumo.totalL);
+    window.AppUtils.updateElement('total-vendas-geral', resumo.totalGeral);
 }
 
 // ================================
@@ -532,11 +536,11 @@ function getPosteDescricao(venda) {
 
 function getValorVenda(venda) {
     if (venda.tipoVenda === 'E') {
-        return formatCurrency(venda.valorExtra || 0);
+        return window.AppUtils.formatCurrency(venda.valorExtra || 0);
     } else if (venda.tipoVenda === 'L') {
         return 'Só frete';
     } else {
-        return formatCurrency(venda.valorVenda || 0);
+        return window.AppUtils.formatCurrency(venda.valorVenda || 0);
     }
 }
 
@@ -565,35 +569,35 @@ function limparFiltros() {
     
     vendasData.filters = { tipo: '', dataInicio: '', dataFim: '' };
     applyFilters();
-    showAlert('Filtros limpos', 'success');
+    window.AppUtils.showAlert('Filtros limpos', 'success');
 }
 
 async function exportarVendas() {
     if (!vendasData.vendas || vendasData.vendas.length === 0) {
-        showAlert('Nenhuma venda para exportar', 'warning');
+        window.AppUtils.showAlert('Nenhuma venda para exportar', 'warning');
         return;
     }
     
     const dadosExportar = vendasData.vendas.map(venda => ({
-        'Data': formatDateBR(venda.dataVenda, true),
-        'Tipo': getTipoLabel(venda.tipoVenda),
+        'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
+        'Tipo': window.AppUtils.getTipoLabel(venda.tipoVenda),
         'Poste': getPosteDescricao(venda),
         'Quantidade': venda.quantidade || 1,
         'Valor': getValorVenda(venda),
         'Observações': venda.observacoes || ''
     }));
     
-    exportToCSV(dadosExportar, `vendas_${new Date().toISOString().split('T')[0]}`);
+    window.AppUtils.exportToCSV(dadosExportar, `vendas_${new Date().toISOString().split('T')[0]}`);
 }
 
 async function loadVendas() {
     try {
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
-        showAlert('Dados atualizados com sucesso!', 'success');
+        window.AppUtils.showAlert('Dados atualizados com sucesso!', 'success');
     } catch (error) {
         console.error('Erro ao atualizar vendas:', error);
-        showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
+        window.AppUtils.showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
     }
 }
 
@@ -604,6 +608,6 @@ window.limparFiltros = limparFiltros;
 window.exportarVendas = exportarVendas;
 window.loadVendas = loadVendas;
 window.scrollToForm = scrollToForm;
-window.closeModal = () => closeModal('edit-modal');
+window.closeModal = () => window.AppUtils.closeModal('edit-modal');
 
 console.log('✅ Vendas leve carregado');
