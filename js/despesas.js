@@ -1,12 +1,16 @@
 // Despesas JavaScript - Versão Leve
 // Utiliza AppUtils para funcionalidades compartilhadas
 
-const { 
-    apiRequest, clearCache, formatCurrency, formatDateBR, getCurrentDateTime,
-    updateElement, showLoading, showAlert, setDefaultDateFilters, setupFilters,
-    getStatusLabel, validateRequired, validateNumber, exportToCSV,
-    showModal, closeModal, dateToInputValue
-} = window.AppUtils;
+// Aguardar AppUtils estar disponível
+document.addEventListener('DOMContentLoaded', () => {
+    // Verificar se AppUtils está disponível
+    if (!window.AppUtils) {
+        console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
+        return;
+    }
+    
+    initDespesas();
+});
 
 // Estado local
 let despesasData = {
@@ -18,20 +22,20 @@ let despesasData = {
 // ================================
 // INICIALIZAÇÃO
 // ================================
-document.addEventListener('DOMContentLoaded', async () => {
+async function initDespesas() {
     console.log('🎯 Inicializando Despesas...');
     
     try {
         setupEventListeners();
         setDefaultDate();
-        setDefaultDateFilters('filtro-data-inicio', 'filtro-data-fim');
+        window.AppUtils.setDefaultDateFilters('filtro-data-inicio', 'filtro-data-fim');
         await loadData();
         console.log('✅ Despesas carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
+        window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
-});
+}
 
 // ================================
 // EVENT LISTENERS
@@ -51,7 +55,7 @@ function setupEventListeners() {
     }
     
     // Filtros
-    setupFilters({
+    window.AppUtils.setupFilters({
         'filtro-tipo': 'tipo',
         'filtro-data-inicio': 'dataInicio',
         'filtro-data-fim': 'dataFim',
@@ -63,7 +67,7 @@ function setDefaultDate() {
     const despesaData = document.getElementById('despesa-data');
     if (despesaData) {
         const hoje = new Date();
-        despesaData.value = dateToInputValue(hoje);
+        despesaData.value = window.AppUtils.dateToInputValue(hoje);
     }
 }
 
@@ -72,7 +76,7 @@ function setDefaultDate() {
 // ================================
 async function loadData() {
     try {
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
         const despesas = await fetchDespesas();
         despesasData.despesas = despesas || [];
@@ -84,7 +88,7 @@ async function loadData() {
         console.error('Erro ao carregar dados:', error);
         throw error;
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -94,7 +98,7 @@ async function fetchDespesas() {
     if (despesasData.filters.dataFim) params.append('dataFim', despesasData.filters.dataFim);
     
     const endpoint = params.toString() ? `/despesas?${params}` : '/despesas';
-    return await apiRequest(endpoint);
+    return await window.AppUtils.apiRequest(endpoint);
 }
 
 // ================================
@@ -110,25 +114,25 @@ async function handleDespesaSubmit(e) {
             return;
         }
         
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest('/despesas', {
+        await window.AppUtils.apiRequest('/despesas', {
             method: 'POST',
             body: JSON.stringify(formData),
             skipCache: true
         });
         
-        showAlert('Despesa criada com sucesso!', 'success');
+        window.AppUtils.showAlert('Despesa criada com sucesso!', 'success');
         resetForm();
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao criar despesa:', error);
-        showAlert('Erro ao criar despesa: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao criar despesa: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -142,18 +146,18 @@ function buildFormData() {
 }
 
 function validateFormData(data) {
-    if (!validateRequired(data.dataDespesa, 'Data da despesa') ||
-        !validateRequired(data.descricao, 'Descrição') ||
-        !validateRequired(data.tipo, 'Tipo de despesa')) {
+    if (!window.AppUtils.validateRequired(data.dataDespesa, 'Data da despesa') ||
+        !window.AppUtils.validateRequired(data.descricao, 'Descrição') ||
+        !window.AppUtils.validateRequired(data.tipo, 'Tipo de despesa')) {
         return false;
     }
     
     if (data.descricao.length < 3) {
-        showAlert('Descrição deve ter pelo menos 3 caracteres', 'warning');
+        window.AppUtils.showAlert('Descrição deve ter pelo menos 3 caracteres', 'warning');
         return false;
     }
     
-    return validateNumber(data.valor, 'Valor', 0);
+    return window.AppUtils.validateNumber(data.valor, 'Valor', 0);
 }
 
 // ================================
@@ -189,7 +193,7 @@ function createDespesaItem(despesa) {
     const item = document.createElement('div');
     item.className = `mobile-list-item ${despesa.tipo.toLowerCase()}`;
     
-    const tipoLabel = getStatusLabel(despesa.tipo);
+    const tipoLabel = window.AppUtils.getStatusLabel(despesa.tipo);
     const tipoClass = despesa.tipo.toLowerCase();
     
     item.innerHTML = `
@@ -197,11 +201,11 @@ function createDespesaItem(despesa) {
             <span class="item-type ${tipoClass}">
                 ${tipoLabel}
             </span>
-            <span class="item-date">${formatDateBR(despesa.dataDespesa)}</span>
+            <span class="item-date">${window.AppUtils.formatDateBR(despesa.dataDespesa)}</span>
         </div>
         
         <div class="item-content">
-            <div class="item-value ${tipoClass}">${formatCurrency(despesa.valor)}</div>
+            <div class="item-value ${tipoClass}">${window.AppUtils.formatCurrency(despesa.valor)}</div>
             <div class="item-title">${despesa.descricao}</div>
         </div>
         
@@ -230,11 +234,11 @@ async function editDespesa(id) {
         
         populateEditForm(despesa);
         despesasData.currentEditId = id;
-        showModal('edit-modal');
+        window.AppUtils.showModal('edit-modal');
         
     } catch (error) {
         console.error('Erro ao carregar despesa para edição:', error);
-        showAlert('Erro ao carregar dados da despesa: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao carregar dados da despesa: ' + error.message, 'error');
     }
 }
 
@@ -255,25 +259,25 @@ async function handleEditSubmit(e) {
             return;
         }
         
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest(`/despesas/${despesasData.currentEditId}`, {
+        await window.AppUtils.apiRequest(`/despesas/${despesasData.currentEditId}`, {
             method: 'PUT',
             body: JSON.stringify(formData),
             skipCache: true
         });
         
-        showAlert('Despesa atualizada com sucesso!', 'success');
-        closeModal('edit-modal');
+        window.AppUtils.showAlert('Despesa atualizada com sucesso!', 'success');
+        window.AppUtils.closeModal('edit-modal');
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao atualizar despesa:', error);
-        showAlert('Erro ao atualizar despesa: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao atualizar despesa: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -292,23 +296,23 @@ async function deleteDespesa(id) {
     }
     
     try {
-        showLoading(true);
+        window.AppUtils.showLoading(true);
         
-        await apiRequest(`/despesas/${id}`, { 
+        await window.AppUtils.apiRequest(`/despesas/${id}`, { 
             method: 'DELETE',
             skipCache: true
         });
         
-        showAlert('Despesa excluída com sucesso!', 'success');
+        window.AppUtils.showAlert('Despesa excluída com sucesso!', 'success');
         
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
         
     } catch (error) {
         console.error('Erro ao excluir despesa:', error);
-        showAlert('Erro ao excluir despesa: ' + error.message, 'error');
+        window.AppUtils.showAlert('Erro ao excluir despesa: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        window.AppUtils.showLoading(false);
     }
 }
 
@@ -363,9 +367,9 @@ function updateResumo() {
         
     const totalGeral = despesasFuncionario + outrasDespesas;
     
-    updateElement('total-despesas-funcionario', formatCurrency(despesasFuncionario));
-    updateElement('total-outras-despesas', formatCurrency(outrasDespesas));
-    updateElement('total-despesas-geral', formatCurrency(totalGeral));
+    window.AppUtils.updateElement('total-despesas-funcionario', window.AppUtils.formatCurrency(despesasFuncionario));
+    window.AppUtils.updateElement('total-outras-despesas', window.AppUtils.formatCurrency(outrasDespesas));
+    window.AppUtils.updateElement('total-despesas-geral', window.AppUtils.formatCurrency(totalGeral));
 }
 
 // ================================
@@ -396,33 +400,33 @@ function limparFiltros() {
     
     despesasData.filters = { tipo: '', dataInicio: '', dataFim: '', descricao: '' };
     applyFilters();
-    showAlert('Filtros limpos', 'success');
+    window.AppUtils.showAlert('Filtros limpos', 'success');
 }
 
 async function exportarDespesas() {
     if (!despesasData.despesas || despesasData.despesas.length === 0) {
-        showAlert('Nenhuma despesa para exportar', 'warning');
+        window.AppUtils.showAlert('Nenhuma despesa para exportar', 'warning');
         return;
     }
     
     const dadosExportar = despesasData.despesas.map(despesa => ({
-        'Data': formatDateBR(despesa.dataDespesa),
+        'Data': window.AppUtils.formatDateBR(despesa.dataDespesa),
         'Descrição': despesa.descricao,
         'Valor': despesa.valor,
         'Tipo': despesa.tipo === 'FUNCIONARIO' ? 'Funcionário' : 'Outras'
     }));
     
-    exportToCSV(dadosExportar, `despesas_${new Date().toISOString().split('T')[0]}`);
+    window.AppUtils.exportToCSV(dadosExportar, `despesas_${new Date().toISOString().split('T')[0]}`);
 }
 
 async function loadDespesas() {
     try {
-        clearCache();
+        window.AppUtils.clearCache();
         await loadData();
-        showAlert('Dados atualizados com sucesso!', 'success');
+        window.AppUtils.showAlert('Dados atualizados com sucesso!', 'success');
     } catch (error) {
         console.error('Erro ao atualizar despesas:', error);
-        showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
+        window.AppUtils.showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
     }
 }
 
@@ -433,6 +437,6 @@ window.limparFiltros = limparFiltros;
 window.exportarDespesas = exportarDespesas;
 window.loadDespesas = loadDespesas;
 window.scrollToForm = scrollToForm;
-window.closeModal = () => closeModal('edit-modal');
+window.closeModal = () => window.AppUtils.closeModal('edit-modal');
 
 console.log('✅ Despesas leve carregado');
