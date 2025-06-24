@@ -1,5 +1,5 @@
 // utils.js - Utilitários Compartilhados
-// Versão leve e otimizada para o Sistema de Postes
+// Versão leve e otimizada para o Sistema de Postes - COM CORREÇÕES DE DATA
 
 const API_BASE = 'https://posteback.onrender.com/api';
 
@@ -87,24 +87,86 @@ function clearCache() {
 }
 
 // ================================
-// FORMATADORES
+// FORMATADORES DE DATA CORRIGIDOS
 // ================================
-function formatCurrency(value) {
-    if (value == null || isNaN(value)) return 'R$ 0,00';
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(value);
+
+// Função para converter data input para string sem problemas de timezone
+function dateInputToString(dateInputValue) {
+    if (!dateInputValue) return '';
+    // Se já está no formato YYYY-MM-DD, retorna diretamente
+    if (typeof dateInputValue === 'string' && dateInputValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateInputValue;
+    }
+    
+    const date = new Date(dateInputValue);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
-function formatDateBR(dateString, includeTime = false) {
+// Função para converter string de data para input sem problemas de timezone
+function stringToDateInput(dateString) {
+    if (!dateString) return '';
+    
+    // Se já está no formato correto, retorna
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateString;
+    }
+    
+    // Tratar diferentes formatos de data
+    let date;
+    if (dateString.includes('T')) {
+        // ISO string ou datetime-local
+        date = new Date(dateString);
+    } else if (dateString.includes('/')) {
+        // Formato brasileiro DD/MM/YYYY
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+            date = new Date(parts[2], parts[1] - 1, parts[0]);
+        } else {
+            date = new Date(dateString);
+        }
+    } else {
+        // Formato YYYY-MM-DD ou outros
+        date = new Date(dateString + 'T00:00:00');
+    }
+    
+    if (isNaN(date.getTime())) {
+        console.warn('Data inválida:', dateString);
+        return '';
+    }
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Função para formatar data brasileira corrigida
+function formatDateBRFixed(dateString, includeTime = false) {
     if (!dateString) return '-';
     
-    const date = new Date(dateString);
+    let date;
+    
+    // Se é uma string no formato YYYY-MM-DD, criar data local
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const parts = dateString.split('-');
+        date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    } else {
+        date = new Date(dateString);
+    }
+    
+    if (isNaN(date.getTime())) {
+        console.warn('Data inválida para formatação:', dateString);
+        return '-';
+    }
+    
     const options = {
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'America/Sao_Paulo' // Forçar timezone brasileiro
     };
     
     if (includeTime) {
@@ -115,13 +177,64 @@ function formatDateBR(dateString, includeTime = false) {
     return date.toLocaleDateString('pt-BR', options);
 }
 
+// Função para obter data atual no formato input (YYYY-MM-DD)
+function getCurrentDateInput() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Função para filtrar por intervalo de datas
+function isDateInRange(dateToCheck, startDate, endDate) {
+    if (!dateToCheck) return false;
+    
+    const checkDate = new Date(dateToCheck + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
+    
+    if (startDate) {
+        const start = new Date(startDate + 'T00:00:00');
+        if (checkDate < start) return false;
+    }
+    
+    if (endDate) {
+        const end = new Date(endDate + 'T23:59:59');
+        if (checkDate > end) return false;
+    }
+    
+    return true;
+}
+
+// ================================
+// FORMATADORES (MANTENDO COMPATIBILIDADE)
+// ================================
+function formatCurrency(value) {
+    if (value == null || isNaN(value)) return 'R$ 0,00';
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
+
+function formatDateBR(dateString, includeTime = false) {
+    return formatDateBRFixed(dateString, includeTime);
+}
+
 function dateToInputValue(date) {
     if (!date) return '';
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    
+    if (typeof date === 'string') {
+        return stringToDateInput(date);
+    }
+    
+    if (date instanceof Date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    return '';
 }
 
 function getCurrentDateTime() {
@@ -530,8 +643,13 @@ window.AppUtils = {
     clearCache,
     formatCurrency,
     formatDateBR,
+    formatDateBRFixed,
     dateToInputValue,
+    dateInputToString,
+    stringToDateInput,
     getCurrentDateTime,
+    getCurrentDateInput,
+    isDateInRange,
     updateElement,
     showLoading,
     showAlert,

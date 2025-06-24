@@ -1,4 +1,4 @@
-// Despesas JavaScript - Versão Leve
+// Despesas JavaScript - Versão Leve COM CORREÇÕES DE DATA
 // Utiliza AppUtils para funcionalidades compartilhadas
 
 // Aguardar AppUtils estar disponível
@@ -66,8 +66,8 @@ function setupEventListeners() {
 function setDefaultDate() {
     const despesaData = document.getElementById('despesa-data');
     if (despesaData) {
-        const hoje = new Date();
-        despesaData.value = window.AppUtils.dateToInputValue(hoje);
+        // Usar a nova função para data atual
+        despesaData.value = window.AppUtils.getCurrentDateInput();
     }
 }
 
@@ -137,8 +137,10 @@ async function handleDespesaSubmit(e) {
 }
 
 function buildFormData() {
+    const dataInput = document.getElementById('despesa-data');
     return {
-        dataDespesa: document.getElementById('despesa-data').value,
+        // Garantir que a data seja enviada no formato correto
+        dataDespesa: window.AppUtils.dateInputToString(dataInput.value),
         descricao: document.getElementById('despesa-descricao').value.trim(),
         valor: parseFloat(document.getElementById('despesa-valor').value),
         tipo: document.getElementById('despesa-tipo').value
@@ -201,7 +203,7 @@ function createDespesaItem(despesa) {
             <span class="item-type ${tipoClass}">
                 ${tipoLabel}
             </span>
-            <span class="item-date">${window.AppUtils.formatDateBR(despesa.dataDespesa)}</span>
+            <span class="item-date">${window.AppUtils.formatDateBRFixed(despesa.dataDespesa)}</span>
         </div>
         
         <div class="item-content">
@@ -243,7 +245,8 @@ async function editDespesa(id) {
 }
 
 function populateEditForm(despesa) {
-    document.getElementById('edit-despesa-data').value = despesa.dataDespesa;
+    // Usar a função corrigida para converter data para input
+    document.getElementById('edit-despesa-data').value = window.AppUtils.stringToDateInput(despesa.dataDespesa);
     document.getElementById('edit-despesa-descricao').value = despesa.descricao;
     document.getElementById('edit-despesa-valor').value = despesa.valor;
     document.getElementById('edit-despesa-tipo').value = despesa.tipo;
@@ -282,8 +285,10 @@ async function handleEditSubmit(e) {
 }
 
 function buildEditFormData() {
+    const dataInput = document.getElementById('edit-despesa-data');
     return {
-        dataDespesa: document.getElementById('edit-despesa-data').value,
+        // Garantir que a data seja enviada no formato correto
+        dataDespesa: window.AppUtils.dateInputToString(dataInput.value),
         descricao: document.getElementById('edit-despesa-descricao').value.trim(),
         valor: parseFloat(document.getElementById('edit-despesa-valor').value),
         tipo: document.getElementById('edit-despesa-tipo').value
@@ -328,19 +333,9 @@ function applyFilters() {
         filtered = filtered.filter(d => d.tipo === tipo);
     }
     
-    if (dataInicio) {
-        const dataInicioObj = new Date(dataInicio + 'T00:00:00');
+    if (dataInicio || dataFim) {
         filtered = filtered.filter(d => {
-            const dataDespesa = new Date(d.dataDespesa + 'T00:00:00');
-            return dataDespesa >= dataInicioObj;
-        });
-    }
-    
-    if (dataFim) {
-        const dataFimObj = new Date(dataFim + 'T23:59:59');
-        filtered = filtered.filter(d => {
-            const dataDespesa = new Date(d.dataDespesa + 'T00:00:00');
-            return dataDespesa <= dataFimObj;
+            return window.AppUtils.isDateInRange(d.dataDespesa, dataInicio, dataFim);
         });
     }
     
@@ -410,7 +405,7 @@ async function exportarDespesas() {
     }
     
     const dadosExportar = despesasData.despesas.map(despesa => ({
-        'Data': window.AppUtils.formatDateBR(despesa.dataDespesa),
+        'Data': window.AppUtils.formatDateBRFixed(despesa.dataDespesa),
         'Descrição': despesa.descricao,
         'Valor': despesa.valor,
         'Tipo': despesa.tipo === 'FUNCIONARIO' ? 'Funcionário' : 'Outras'
@@ -439,4 +434,4 @@ window.loadDespesas = loadDespesas;
 window.scrollToForm = scrollToForm;
 window.closeModal = () => window.AppUtils.closeModal('edit-modal');
 
-console.log('✅ Despesas leve carregado');
+console.log('✅ Despesas leve carregado com correções de data');
