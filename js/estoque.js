@@ -72,7 +72,6 @@ async function loadData() {
         enrichEstoqueData();
         populatePosteSelect();
         updateResumo();
-        updateAlertas();
         applyFilters();
         
     } catch (error) {
@@ -314,50 +313,6 @@ function updateResumo() {
     window.AppUtils.updateElement('estoque-positivo', positivo);
     window.AppUtils.updateElement('estoque-negativo', negativo);
     window.AppUtils.updateElement('estoque-zero', zero);
-}
-
-function updateAlertas() {
-    const estoqueNegativo = estoqueData.estoque.filter(item => (item.quantidadeAtual || 0) < 0);
-    const estoqueZero = estoqueData.estoque.filter(item => (item.quantidadeAtual || 0) === 0);
-    
-    const alertasSection = document.getElementById('alertas-section');
-    const alertasList = document.getElementById('alertas-list');
-    
-    if (!alertasSection || !alertasList) return;
-    
-    if (estoqueNegativo.length === 0 && estoqueZero.length === 0) {
-        alertasSection.style.display = 'none';
-        return;
-    }
-    
-    alertasSection.style.display = 'block';
-    alertasList.innerHTML = '';
-    
-    // Alertas de estoque negativo
-    estoqueNegativo.forEach(item => {
-        const alertItem = createAlertItem(item, 'negativo', 'Estoque Negativo');
-        alertasList.appendChild(alertItem);
-    });
-    
-    // Alertas de estoque zero (máximo 5)
-    estoqueZero.slice(0, 5).forEach(item => {
-        const alertItem = createAlertItem(item, 'zero', 'Estoque Esgotado');
-        alertasList.appendChild(alertItem);
-    });
-    
-    // Indicador de mais itens
-    if (estoqueZero.length > 5) {
-        const moreItem = document.createElement('div');
-        moreItem.className = 'alert-item zero';
-        moreItem.innerHTML = `
-            <span class="alert-icon">📦</span>
-            <div class="alert-info">
-                <h4>Mais Itens</h4>
-                <p>+${estoqueZero.length - 5} outros postes com estoque zero</p>
-            </div>
-        `;
-        alertasList.appendChild(moreItem);
-    }
 }
 
 function createAlertItem(item, type, title) {
