@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendas - Caminhão Branco</title>
+    <link rel="stylesheet" href="css/universal.css">
+    <script src="js/utils.js"></script>
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>🚚 Vendas - Caminhão Branco</h1>
+            <p>Gerenciamento de Vendas</p>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <div class="nav-container branco">
+            <a href="dashboard-branco.html" class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="vendas-branco.html" class="nav-item active">
+                <span class="nav-icon">📋</span>
+                <span>Vendas</span>
+            </a>
+            <a href="despesas-branco.html" class="nav-item">
+                <span class="nav-icon">💸</span>
+                <span>Despesas</span>
+            </a>
+            <a href="postes-branco.html" class="nav-item">
+                <span class="nav-icon">⚡</span>
+                <span>Postes</span>
+            </a>
+            <a href="relatorios-branco.html" class="nav-item">
+                <span class="nav-icon">📈</span>
+                <span>Relatórios</span>
+            </a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <section class="form-section">
+            <h2>➕ Nova Venda</h2>
+            <form id="venda-form">
+                <div class="form-group">
+                    <label for="venda-tipo">Tipo de Venda *</label>
+                    <select id="venda-tipo" required>
+                        <option value="">Selecione o tipo</option>
+                        <option value="E">📈 E - Extra</option>
+                        <option value="V">🛒 V - Venda Normal</option>
+                        <option value="L">🏪 L - Venda Loja</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="venda-data">Data da Venda *</label>
+                    <input type="datetime-local" id="venda-data" required>
+                </div>
+
+                <div id="campos-tipo-e" class="conditional-fields" style="display: none;">
+                    <h3>📈 Venda Extra</h3>
+                    <div class="form-group">
+                        <label for="venda-valor-extra">Valor Extra *</label>
+                        <input type="number" step="0.01" id="venda-valor-extra" placeholder="R$ 0,00" min="0.01">
+                    </div>
+                </div>
+
+                <div id="campos-tipo-v" class="conditional-fields" style="display: none;">
+                    <h3>🛒 Venda Normal</h3>
+                    <div class="form-group">
+                        <label for="venda-poste-v">Poste *</label>
+                        <select id="venda-poste-v">
+                            <option value="">Selecione um poste</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="venda-quantidade-v">Quantidade</label>
+                        <input type="number" id="venda-quantidade-v" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="venda-valor-total-v">Valor de Venda *</label>
+                        <input type="number" step="0.01" id="venda-valor-total-v" placeholder="R$ 0,00" min="0.01">
+                    </div>
+                </div>
+
+                <div id="campos-tipo-l" class="conditional-fields" style="display: none;">
+                    <h3>🏪 Venda Loja</h3>
+                    <div class="form-group">
+                        <label for="venda-poste-l">Poste (referência) *</label>
+                        <select id="venda-poste-l">
+                            <option value="">Selecione um poste</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="venda-quantidade-l">Quantidade</label>
+                        <input type="number" id="venda-quantidade-l" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="venda-frete-l">Frete Eletrons</label>
+                        <input type="number" step="0.01" id="venda-frete-l" placeholder="R$ 0,00" value="0" min="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="venda-observacoes">Observações</label>
+                    <textarea id="venda-observacoes" rows="3" placeholder="Observações sobre a venda..." maxlength="500"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        💾 Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="loading" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Carregando...</p>
+    </div>
+
+    <div id="alert-container" class="alert-container"></div>
+
+    <script src="js/vendas-branco.js"></script>
+</body>
+</html>

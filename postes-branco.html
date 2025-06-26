@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Postes - Caminhão Vermelho</title>
+    <title>Postes - Caminhão Branco</title>
     <link rel="stylesheet" href="css/universal.css">
     <script src="js/utils.js"></script>
 </head>
@@ -11,30 +11,30 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <h1>🚛 Postes - Caminhão Vermelho</h1>
+            <h1>🚚 Postes - Caminhão Branco</h1>
             <p>Gerenciamento de Postes</p>
         </div>
     </header>
 
     <nav class="main-nav">
-        <div class="nav-container vermelho">
-            <a href="dashboard.html" class="nav-item">
+        <div class="nav-container branco">
+            <a href="dashboard-branco.html" class="nav-item">
                 <span class="nav-icon">📊</span>
                 <span>Dashboard</span>
             </a>
-            <a href="vendas.html" class="nav-item">
+            <a href="vendas-branco.html" class="nav-item">
                 <span class="nav-icon">📋</span>
                 <span>Vendas</span>
             </a>
-            <a href="despesas.html" class="nav-item">
+            <a href="despesas-branco.html" class="nav-item">
                 <span class="nav-icon">💸</span>
                 <span>Despesas</span>
             </a>
-            <a href="postes.html" class="nav-item active">
+            <a href="postes-branco.html" class="nav-item active">
                 <span class="nav-icon">⚡</span>
                 <span>Postes</span>
             </a>
-            <a href="relatorios.html" class="nav-item">
+            <a href="relatorios-branco.html" class="nav-item">
                 <span class="nav-icon">📈</span>
                 <span>Relatórios</span>
             </a>
@@ -47,12 +47,12 @@
             <form id="poste-form">
                 <div class="form-group">
                     <label for="poste-codigo">Código *</label>
-                    <input type="text" id="poste-codigo" required placeholder="Ex: 4199" maxlength="50">
+                    <input type="text" id="poste-codigo" required placeholder="Ex: 4199-B" maxlength="50">
                 </div>
 
                 <div class="form-group">
                     <label for="poste-descricao">Descrição *</label>
-                    <input type="text" id="poste-descricao" required placeholder="Ex: Kit Poste 7m 1 Cx Mono" maxlength="255">
+                    <input type="text" id="poste-descricao" required placeholder="Ex: Kit Poste 7m 1 Cx Mono - Branco" maxlength="255">
                 </div>
 
                 <div class="form-group">
@@ -72,7 +72,7 @@
         </section>
 
         <section class="summary-section">
-            <h2>📊 Resumo dos Postes - Caminhão Vermelho</h2>
+            <h2>📊 Resumo dos Postes - Caminhão Branco</h2>
             <div class="stats-grid">
                 <div class="stat-item total">
                     <div class="stat-icon">⚡</div>
@@ -126,7 +126,7 @@
 
         <section class="table-section">
             <div class="section-header">
-                <h2>⚡ Postes Cadastrados - Caminhão Vermelho</h2>
+                <h2>⚡ Postes Cadastrados - Caminhão Branco</h2>
                 <div class="section-actions">
                     <button class="btn btn-small" onclick="loadPostes()">
                         🔄
@@ -196,6 +196,6 @@
 
     <div id="alert-container" class="alert-container"></div>
 
-    <script src="js/postes.js"></script>
+    <script src="js/postes-branco.js"></script>
 </body>
 </html>

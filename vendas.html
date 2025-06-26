@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendas - Sistema de Postes</title>
+    <title>Vendas - Caminhão Vermelho</title>
     <link rel="stylesheet" href="css/universal.css">
     <script src="js/utils.js"></script>
 </head>
@@ -11,13 +11,13 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <h1>📋 Vendas</h1>
+            <h1>🚛 Vendas - Caminhão Vermelho</h1>
             <p>Gerenciamento de Vendas</p>
         </div>
     </header>
 
     <nav class="main-nav">
-        <div class="nav-container">
+        <div class="nav-container vermelho">
             <a href="dashboard.html" class="nav-item">
                 <span class="nav-icon">📊</span>
                 <span>Dashboard</span>
@@ -33,10 +33,6 @@
             <a href="postes.html" class="nav-item">
                 <span class="nav-icon">⚡</span>
                 <span>Postes</span>
-            </a>
-            <a href="estoque.html" class="nav-item">
-                <span class="nav-icon">📦</span>
-                <span>Estoque</span>
             </a>
             <a href="relatorios.html" class="nav-item">
                 <span class="nav-icon">📈</span>
@@ -125,7 +121,7 @@
         </section>
 
         <section class="summary-section">
-            <h2>📊 Resumo por Tipo</h2>
+            <h2>📊 Resumo por Tipo - Caminhão Vermelho</h2>
             <div class="stats-grid">
                 <div class="stat-item tipo-e">
                     <div class="stat-icon">📈</div>
@@ -171,16 +167,23 @@
                     <input type="date" id="filtro-data-fim">
                 </div>
                 <div class="filter-actions">
+                    <button class="btn btn-primary" onclick="aplicarFiltros()">
+                        🔍 Filtrar
+                    </button>
                     <button class="btn btn-secondary" onclick="limparFiltros()">
                         🧹 Limpar
                     </button>
                 </div>
             </div>
+            <div id="filtros-aplicados" class="period-indicator" style="display: none;">
+                <span class="period-icon">🔍</span>
+                <span id="filtros-texto">Filtros aplicados</span>
+            </div>
         </section>
 
         <section class="table-section">
             <div class="section-header">
-                <h2>📋 Vendas Realizadas</h2>
+                <h2>📋 Vendas Realizadas - Caminhão Vermelho</h2>
                 <div class="section-actions">
                     <button class="btn btn-small" onclick="loadVendas()">
                         🔄

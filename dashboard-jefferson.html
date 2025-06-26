@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Jefferson - Controle Geral</title>
+    <link rel="stylesheet" href="css/universal.css">
+    <script src="js/utils.js"></script>
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>👨‍💼 Jefferson - Controle Geral</h1>
+            <p>Dashboard - Gestão de Estoque dos Dois Caminhões</p>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <div class="nav-container jefferson">
+            <a href="dashboard-jefferson.html" class="nav-item active">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="estoque-consolidado.html" class="nav-item">
+                <span class="nav-icon">📦</span>
+                <span>Estoque Geral</span>
+            </a>
+            <a href="estoque-vermelho.html" class="nav-item">
+                <span class="nav-icon">🚛</span>
+                <span>Est. Vermelho</span>
+            </a>
+            <a href="estoque-branco.html" class="nav-item">
+                <span class="nav-icon">🚚</span>
+                <span>Est. Branco</span>
+            </a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <section class="summary-section">
+            <h2>🚛🚚 Resumo Geral dos Caminhões</h2>
+            <div class="cards-grid">
+                <div class="metric-card" style="border-left: 4px solid #dc2626;">
+                    <div class="card-icon">🚛</div>
+                    <div class="card-content">
+                        <h3>Caminhão Vermelho</h3>
+                        <div class="metric-value" id="postes-vermelho">0</div>
+                        <small>Tipos de postes</small>
+                    </div>
+                </div>
+                <div class="metric-card" style="border-left: 4px solid #1d4ed8;">
+                    <div class="card-icon">🚚</div>
+                    <div class="card-content">
+                        <h3>Caminhão Branco</h3>
+                        <div class="metric-value" id="postes-branco">0</div>
+                        <small>Tipos de postes</small>
+                    </div>
+                </div>
+                <div class="metric-card total">
+                    <div class="card-icon">📦</div>
+                    <div class="card-content">
+                        <h3>Total Geral</h3>
+                        <div class="metric-value" id="postes-total">0</div>
+                        <small>Tipos únicos</small>
+                    </div>
+                </div>
+                <div class="metric-card success">
+                    <div class="card-icon">✅</div>
+                    <div class="card-content">
+                        <h3>Estoque Positivo</h3>
+                        <div class="metric-value" id="estoque-positivo">0</div>
+                        <small>Itens disponíveis</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="summary-section">
+            <h2>⚠️ Alertas de Estoque</h2>
+            <div class="cards-grid">
+                <div class="metric-card" style="border-left: 4px solid #f59e0b;">
+                    <div class="card-icon">⚠️</div>
+                    <div class="card-content">
+                        <h3>Estoque Baixo</h3>
+                        <div class="metric-value" id="estoque-baixo">0</div>
+                        <small>Itens com estoque <= 5</small>
+                    </div>
+                </div>
+                <div class="metric-card" style="border-left: 4px solid #ef4444;">
+                    <div class="card-icon">❌</div>
+                    <div class="card-content">
+                        <h3>Estoque Zero</h3>
+                        <div class="metric-value" id="estoque-zero">0</div>
+                        <small>Itens esgotados</small>
+                    </div>
+                </div>
+                <div class="metric-card" style="border-left: 4px solid #dc2626;">
+                    <div class="card-icon">🔻</div>
+                    <div class="card-content">
+                        <h3>Estoque Negativo</h3>
+                        <div class="metric-value" id="estoque-negativo">0</div>
+                        <small>Itens negativos</small>
+                    </div>
+                </div>
+                <div class="metric-card" style="border-left: 4px solid #10b981;">
+                    <div class="card-icon">💰</div>
+                    <div class="card-content">
+                        <h3>Valor Total Estoque</h3>
+                        <div class="metric-value" id="valor-estoque">R$ 0,00</div>
+                        <small>Valor dos estoques</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="summary-section">
+            <h2>📈 Vendas Consolidadas (Últimos 30 dias)</h2>
+            <div class="cards-grid">
+                <div class="comparison-card">
+                    <div class="comparison-side vermelho">
+                        <h4>🚛 Vermelho</h4>
+                        <div class="comparison-value" id="vendas-vermelho">0</div>
+                        <small>vendas realizadas</small>
+                    </div>
+                    <div class="comparison-side branco">
+                        <h4>🚚 Branco</h4>
+                        <div class="comparison-value" id="vendas-branco">0</div>
+                        <small>vendas realizadas</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="filter-section">
+            <h2>🔍 Filtros de Estoque</h2>
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label for="filtro-caminhao">Caminhão</label>
+                    <select id="filtro-caminhao">
+                        <option value="">Todos os caminhões</option>
+                        <option value="vermelho">🚛 Vermelho</option>
+                        <option value="branco">🚚 Branco</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-status">Status do Estoque</label>
+                    <select id="filtro-status">
+                        <option value="">Todos os status</option>
+                        <option value="positivo">✅ Positivo (> 0)</option>
+                        <option value="zero">📦 Zero (= 0)</option>
+                        <option value="negativo">🔻 Negativo (< 0)</option>
+                        <option value="baixo">⚠️ Baixo (<= 5)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filtro-codigo">Código</label>
+                    <input type="text" id="filtro-codigo" placeholder="Buscar código...">
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-primary" onclick="aplicarFiltros()">
+                        🔍 Filtrar
+                    </button>
+                    <button class="btn btn-secondary" onclick="limparFiltros()">
+                        🧹 Limpar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="table-section">
+            <div class="section-header">
+                <h2>📦 Estoque Consolidado - Visão Rápida</h2>
+                <div class="section-actions">
+                    <button class="btn btn-small" onclick="atualizarEstoque()">
+                        🔄 Atualizar
+                    </button>
+                    <button class="btn btn-small" onclick="exportarEstoque()">
+                        📊 Exportar
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div id="estoque-list" class="mobile-list">
+                    <!-- Conteúdo será carregado dinamicamente -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Carregando dados...</p>
+    </div>
+
+    <div id="alert-container" class="alert-container"></div>
+
+    <script src="js/dashboard-jefferson.js"></script>
+</body>
+</html>

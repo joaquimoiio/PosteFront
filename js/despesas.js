@@ -1,9 +1,21 @@
-// Despesas JavaScript - Versão Leve COM CORREÇÕES DE DATA
-// Utiliza AppUtils para funcionalidades compartilhadas
+// despesas.js - Caminhão Vermelho Multi-Tenant
+// Sistema de Postes com suporte específico para Caminhão Vermelho
 
-// Aguardar AppUtils estar disponível
+// Estado local específico para o Caminhão Vermelho
+let despesasData = {
+    despesas: [],
+    currentEditId: null,
+    filters: { tipo: '', dataInicio: '', dataFim: '', descricao: '' }
+};
+
+// Verificar autenticação específica do Caminhão Vermelho
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar se AppUtils está disponível
+    const userType = localStorage.getItem('poste-system-user-type');
+    if (userType !== 'vermelho') {
+        window.location.href = 'index.html';
+        return;
+    }
+
     if (!window.AppUtils) {
         console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
         return;
@@ -12,68 +24,41 @@ document.addEventListener('DOMContentLoaded', () => {
     initDespesas();
 });
 
-// Estado local
-let despesasData = {
-    despesas: [],
-    currentEditId: null,
-    filters: { tipo: '', dataInicio: '', dataFim: '', descricao: '' }
-};
-
-// ================================
-// INICIALIZAÇÃO
-// ================================
 async function initDespesas() {
-    console.log('🎯 Inicializando Despesas...');
+    console.log('🎯 Inicializando Despesas Caminhão Vermelho...');
     
     try {
         setupEventListeners();
         setDefaultDate();
         window.AppUtils.setDefaultDateFilters('filtro-data-inicio', 'filtro-data-fim');
         await loadData();
-        console.log('✅ Despesas carregado');
+        console.log('✅ Despesas Caminhão Vermelho carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
         window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
 }
 
-// ================================
-// EVENT LISTENERS
-// ================================
 function setupEventListeners() {
-    // Form principal
     const despesaForm = document.getElementById('despesa-form');
     if (despesaForm) {
         despesaForm.addEventListener('submit', handleDespesaSubmit);
         despesaForm.addEventListener('reset', resetForm);
     }
     
-    // Form de edição
     const editForm = document.getElementById('edit-form');
     if (editForm) {
         editForm.addEventListener('submit', handleEditSubmit);
     }
-    
-    // Filtros
-    window.AppUtils.setupFilters({
-        'filtro-tipo': 'tipo',
-        'filtro-data-inicio': 'dataInicio',
-        'filtro-data-fim': 'dataFim',
-        'filtro-descricao': 'descricao'
-    }, applyFilters);
 }
 
 function setDefaultDate() {
     const despesaData = document.getElementById('despesa-data');
     if (despesaData) {
-        // Usar a nova função para data atual
         despesaData.value = window.AppUtils.getCurrentDateInput();
     }
 }
 
-// ================================
-// CARREGAMENTO DE DADOS
-// ================================
 async function loadData() {
     try {
         window.AppUtils.showLoading(true);
@@ -101,9 +86,6 @@ async function fetchDespesas() {
     return await window.AppUtils.apiRequest(endpoint);
 }
 
-// ================================
-// MANIPULAÇÃO DO FORMULÁRIO
-// ================================
 async function handleDespesaSubmit(e) {
     e.preventDefault();
     
@@ -139,7 +121,6 @@ async function handleDespesaSubmit(e) {
 function buildFormData() {
     const dataInput = document.getElementById('despesa-data');
     return {
-        // Garantir que a data seja enviada no formato correto
         dataDespesa: window.AppUtils.dateInputToString(dataInput.value),
         descricao: document.getElementById('despesa-descricao').value.trim(),
         valor: parseFloat(document.getElementById('despesa-valor').value),
@@ -162,9 +143,6 @@ function validateFormData(data) {
     return window.AppUtils.validateNumber(data.valor, 'Valor', 0);
 }
 
-// ================================
-// DISPLAY DESPESAS
-// ================================
 function displayDespesas(despesas) {
     const container = document.getElementById('despesas-list');
     if (!container) return;
@@ -174,7 +152,7 @@ function displayDespesas(despesas) {
             <div class="empty-state">
                 <div class="empty-icon">💸</div>
                 <h3>Nenhuma despesa encontrada</h3>
-                <p>Comece cadastrando sua primeira despesa.</p>
+                <p>Comece cadastrando sua primeira despesa do Caminhão Vermelho.</p>
                 <button class="btn btn-primary" onclick="scrollToForm()">
                     Cadastrar Primeira Despesa
                 </button>
@@ -224,9 +202,6 @@ function createDespesaItem(despesa) {
     return item;
 }
 
-// ================================
-// CRUD OPERATIONS
-// ================================
 async function editDespesa(id) {
     try {
         const despesa = despesasData.despesas.find(d => d.id === id);
@@ -245,7 +220,6 @@ async function editDespesa(id) {
 }
 
 function populateEditForm(despesa) {
-    // Usar a função corrigida para converter data para input
     document.getElementById('edit-despesa-data').value = window.AppUtils.stringToDateInput(despesa.dataDespesa);
     document.getElementById('edit-despesa-descricao').value = despesa.descricao;
     document.getElementById('edit-despesa-valor').value = despesa.valor;
@@ -287,7 +261,6 @@ async function handleEditSubmit(e) {
 function buildEditFormData() {
     const dataInput = document.getElementById('edit-despesa-data');
     return {
-        // Garantir que a data seja enviada no formato correto
         dataDespesa: window.AppUtils.dateInputToString(dataInput.value),
         descricao: document.getElementById('edit-despesa-descricao').value.trim(),
         valor: parseFloat(document.getElementById('edit-despesa-valor').value),
@@ -321,10 +294,22 @@ async function deleteDespesa(id) {
     }
 }
 
-// ================================
-// FILTROS E RESUMO
-// ================================
+function updateFilters() {
+    const tipo = document.getElementById('filtro-tipo').value;
+    const dataInicio = document.getElementById('filtro-data-inicio').value;
+    const dataFim = document.getElementById('filtro-data-fim').value;
+    const descricao = document.getElementById('filtro-descricao').value.trim();
+    
+    despesasData.filters = {
+        tipo: tipo,
+        dataInicio: dataInicio,
+        dataFim: dataFim,
+        descricao: descricao
+    };
+}
+
 function applyFilters() {
+    updateFilters();
     const { tipo, dataInicio, dataFim, descricao } = despesasData.filters;
     
     let filtered = [...despesasData.despesas];
@@ -347,6 +332,41 @@ function applyFilters() {
     }
     
     displayDespesas(filtered);
+    updateFilterIndicator();
+}
+
+function updateFilterIndicator() {
+    const { tipo, dataInicio, dataFim, descricao } = despesasData.filters;
+    const indicator = document.getElementById('filtros-aplicados');
+    const text = document.getElementById('filtros-texto');
+    
+    let filtros = [];
+    
+    if (tipo) {
+        const tipoLabel = window.AppUtils.getStatusLabel(tipo);
+        filtros.push(`Tipo: ${tipoLabel}`);
+    }
+    
+    if (dataInicio && dataFim) {
+        const inicio = window.AppUtils.formatDateBR(dataInicio);
+        const fim = window.AppUtils.formatDateBR(dataFim);
+        filtros.push(`Período: ${inicio} a ${fim}`);
+    } else if (dataInicio) {
+        filtros.push(`A partir de: ${window.AppUtils.formatDateBR(dataInicio)}`);
+    } else if (dataFim) {
+        filtros.push(`Até: ${window.AppUtils.formatDateBR(dataFim)}`);
+    }
+    
+    if (descricao) {
+        filtros.push(`Busca: "${descricao}"`);
+    }
+    
+    if (filtros.length > 0) {
+        text.textContent = `Filtros: ${filtros.join(', ')}`;
+        indicator.style.display = 'flex';
+    } else {
+        indicator.style.display = 'none';
+    }
 }
 
 function updateResumo() {
@@ -367,9 +387,6 @@ function updateResumo() {
     window.AppUtils.updateElement('total-despesas-geral', window.AppUtils.formatCurrency(totalGeral));
 }
 
-// ================================
-// HELPER FUNCTIONS
-// ================================
 function resetForm() {
     document.getElementById('despesa-form').reset();
     setTimeout(setDefaultDate, 100);
@@ -384,9 +401,11 @@ function scrollToForm() {
     }
 }
 
-// ================================
-// FUNÇÕES GLOBAIS
-// ================================
+function aplicarFiltros() {
+    applyFilters();
+    window.AppUtils.showAlert('Filtros aplicados com sucesso!', 'success');
+}
+
 function limparFiltros() {
     document.getElementById('filtro-tipo').value = '';
     document.getElementById('filtro-data-inicio').value = '';
@@ -411,7 +430,7 @@ async function exportarDespesas() {
         'Tipo': despesa.tipo === 'FUNCIONARIO' ? 'Funcionário' : 'Outras'
     }));
     
-    window.AppUtils.exportToCSV(dadosExportar, `despesas_${new Date().toISOString().split('T')[0]}`);
+    window.AppUtils.exportToCSV(dadosExportar, `despesas_vermelho_${new Date().toISOString().split('T')[0]}`);
 }
 
 async function loadDespesas() {
@@ -428,10 +447,11 @@ async function loadDespesas() {
 // Disponibilizar funções globalmente
 window.editDespesa = editDespesa;
 window.deleteDespesa = deleteDespesa;
+window.aplicarFiltros = aplicarFiltros;
 window.limparFiltros = limparFiltros;
 window.exportarDespesas = exportarDespesas;
 window.loadDespesas = loadDespesas;
 window.scrollToForm = scrollToForm;
 window.closeModal = () => window.AppUtils.closeModal('edit-modal');
 
-console.log('✅ Despesas leve carregado com correções de data');
+console.log('✅ Despesas Caminhão Vermelho carregado');

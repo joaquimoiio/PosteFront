@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatórios - Caminhão Vermelho</title>
+    <title>Relatórios - Caminhão Branco</title>
     <link rel="stylesheet" href="css/universal.css">
     <script src="js/utils.js"></script>
 </head>
@@ -11,30 +11,30 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <h1>🚛 Relatórios - Caminhão Vermelho</h1>
+            <h1>🚚 Relatórios - Caminhão Branco</h1>
             <p>Análise de Vendas</p>
         </div>
     </header>
 
     <nav class="main-nav">
-        <div class="nav-container vermelho">
-            <a href="dashboard.html" class="nav-item">
+        <div class="nav-container branco">
+            <a href="dashboard-branco.html" class="nav-item">
                 <span class="nav-icon">📊</span>
                 <span>Dashboard</span>
             </a>
-            <a href="vendas.html" class="nav-item">
+            <a href="vendas-branco.html" class="nav-item">
                 <span class="nav-icon">📋</span>
                 <span>Vendas</span>
             </a>
-            <a href="despesas.html" class="nav-item">
+            <a href="despesas-branco.html" class="nav-item">
                 <span class="nav-icon">💸</span>
                 <span>Despesas</span>
             </a>
-            <a href="postes.html" class="nav-item">
+            <a href="postes-branco.html" class="nav-item">
                 <span class="nav-icon">⚡</span>
                 <span>Postes</span>
             </a>
-            <a href="relatorios.html" class="nav-item active">
+            <a href="relatorios-branco.html" class="nav-item active">
                 <span class="nav-icon">📈</span>
                 <span>Relatórios</span>
             </a>
@@ -82,7 +82,7 @@
 
         <!-- Resumo Vendas Normais -->
         <section class="summary-section" id="resumo-section" style="display: none;">
-            <h2>📊 Resumo das Vendas Normais (V) - Caminhão Vermelho</h2>
+            <h2>📊 Resumo das Vendas Normais (V) - Caminhão Branco</h2>
             <div class="stats-grid">
                 <div class="stat-item total">
                     <div class="stat-icon">⚡</div>
@@ -109,7 +109,7 @@
 
         <!-- Resumo Vendas Loja -->
         <section class="summary-section" id="resumo-loja-section" style="display: none;">
-            <h2>🏪 Resumo das Vendas Loja (L) - Caminhão Vermelho</h2>
+            <h2>🏪 Resumo das Vendas Loja (L) - Caminhão Branco</h2>
             <div class="stats-grid">
                 <div class="stat-item tipo-l">
                     <div class="stat-icon">🏪</div>
@@ -132,7 +132,7 @@
         <!-- Relatório Vendas Normais -->
         <section class="table-section" id="relatorio-section" style="display: none;">
             <div class="section-header">
-                <h2>📈 Postes Vendidos (Vendas Normais) - Caminhão Vermelho</h2>
+                <h2>📈 Postes Vendidos (Vendas Normais) - Caminhão Branco</h2>
                 <div class="section-actions">
                     <button class="btn btn-small" onclick="gerarRelatorio()">
                         🔄
@@ -153,7 +153,7 @@
         <!-- Relatório Vendas Loja -->
         <section class="table-section" id="vendas-loja-section" style="display: none;">
             <div class="section-header">
-                <h2>🏪 Vendas Loja por Data - Caminhão Vermelho</h2>
+                <h2>🏪 Vendas Loja por Data - Caminhão Branco</h2>
                 <div class="section-actions">
                     <button class="btn btn-small" onclick="gerarRelatorio()">
                         🔄
@@ -179,6 +179,6 @@
 
     <div id="alert-container" class="alert-container"></div>
 
-    <script src="js/relatorios.js"></script>
+    <script src="js/relatorios-branco.js"></script>
 </body>
 </html>

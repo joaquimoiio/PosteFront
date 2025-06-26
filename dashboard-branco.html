@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Caminhão Vermelho</title>
+    <title>Dashboard - Caminhão Branco</title>
     <link rel="stylesheet" href="css/universal.css">
     <script src="js/utils.js"></script>
 </head>
@@ -11,30 +11,30 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <h1>🚛 Caminhão Vermelho</h1>
+            <h1>🚚 Caminhão Branco</h1>
             <p>Dashboard - Visão Geral</p>
         </div>
     </header>
 
     <nav class="main-nav">
-        <div class="nav-container vermelho">
-            <a href="dashboard.html" class="nav-item active">
+        <div class="nav-container branco">
+            <a href="dashboard-branco.html" class="nav-item active">
                 <span class="nav-icon">📊</span>
                 <span>Dashboard</span>
             </a>
-            <a href="vendas.html" class="nav-item">
+            <a href="vendas-branco.html" class="nav-item">
                 <span class="nav-icon">📋</span>
                 <span>Vendas</span>
             </a>
-            <a href="despesas.html" class="nav-item">
+            <a href="despesas-branco.html" class="nav-item">
                 <span class="nav-icon">💸</span>
                 <span>Despesas</span>
             </a>
-            <a href="postes.html" class="nav-item">
+            <a href="postes-branco.html" class="nav-item">
                 <span class="nav-icon">⚡</span>
                 <span>Postes</span>
             </a>
-            <a href="relatorios.html" class="nav-item">
+            <a href="relatorios-branco.html" class="nav-item">
                 <span class="nav-icon">📈</span>
                 <span>Relatórios</span>
             </a>
@@ -138,7 +138,7 @@
         </section>
 
         <section class="summary-section">
-            <h2>💎 Distribuição de Lucros - Caminhão Vermelho</h2>
+            <h2>💎 Distribuição de Lucros - Caminhão Branco</h2>
             <div class="cards-grid">
                 <div class="metric-card total-profit">
                     <div class="card-icon">💰</div>
@@ -154,17 +154,10 @@
                         <div class="metric-value" id="parte-cicero">R$ 0,00</div>
                     </div>
                 </div>
-                <div class="metric-card partner-gilberto">
-                    <div class="card-icon">👨</div>
-                    <div class="card-content">
-                        <h3>Gilberto (25%)</h3>
-                        <div class="metric-value" id="parte-gilberto">R$ 0,00</div>
-                    </div>
-                </div>
                 <div class="metric-card partner-jefferson">
                     <div class="card-icon">👨</div>
                     <div class="card-content">
-                        <h3>Jefferson (25%)</h3>
+                        <h3>Jefferson (50%)</h3>
                         <div class="metric-value" id="parte-jefferson">R$ 0,00</div>
                     </div>
                 </div>
@@ -205,6 +198,6 @@
 
     <div id="alert-container" class="alert-container"></div>
 
-    <script src="js/dashboard.js"></script>
+     <script src="js/dashboard-branco.js"></script>
 </body>
 </html>

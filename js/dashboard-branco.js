@@ -1,4 +1,4 @@
-// Estado local específico para o Caminhão Vermelho
+// Estado local específico para o Caminhão Branco
 let dashboardData = {
     resumo: null,
     despesas: [],
@@ -7,10 +7,10 @@ let dashboardData = {
     filters: { dataInicio: null, dataFim: null }
 };
 
-// Verificar autenticação específica do Caminhão Vermelho
+// Verificar autenticação específica do Caminhão Branco
 document.addEventListener('DOMContentLoaded', () => {
     const userType = localStorage.getItem('poste-system-user-type');
-    if (userType !== 'vermelho') {
+    if (userType !== 'branco') {
         window.location.href = 'index.html';
         return;
     }
@@ -24,13 +24,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initDashboard() {
-    console.log('🎯 Inicializando Dashboard Caminhão Vermelho...');
+    console.log('🎯 Inicializando Dashboard Caminhão Branco...');
 
     try {
         setupFilters();
         setDefaultPeriod();
         await loadData();
-        console.log('✅ Dashboard Caminhão Vermelho carregado');
+        console.log('✅ Dashboard Caminhão Branco carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
         window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
@@ -63,7 +63,7 @@ async function loadData() {
     try {
         window.AppUtils.showLoading(true);
 
-        console.log('📊 Carregando dados do Caminhão Vermelho...');
+        console.log('📊 Carregando dados do Caminhão Branco...');
 
         const [resumoVendas, despesas, vendas, postes] = await Promise.all([
             fetchResumoVendas(),
@@ -77,10 +77,10 @@ async function loadData() {
         dashboardData.vendas = vendas || [];
         dashboardData.postes = postes || [];
 
-        const lucros = calcularLucrosCaminhaoVermelho(resumoVendas, despesas || []);
+        const lucros = calcularLucrosCaminhaoBranco(resumoVendas, despesas || []);
         updateInterface(lucros);
 
-        console.log('✅ Dados do Caminhão Vermelho carregados');
+        console.log('✅ Dados do Caminhão Branco carregados');
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -90,8 +90,8 @@ async function loadData() {
     }
 }
 
-// Função específica para calcular lucros do Caminhão Vermelho (50/25/25)
-function calcularLucrosCaminhaoVermelho(resumoVendas, despesas) {
+// Função específica para calcular lucros do Caminhão Branco (50/50)
+function calcularLucrosCaminhaoBranco(resumoVendas, despesas) {
     if (!resumoVendas || !despesas) {
         return {
             totalVendaPostes: 0,
@@ -101,7 +101,6 @@ function calcularLucrosCaminhaoVermelho(resumoVendas, despesas) {
             outrasDespesas: 0,
             lucroTotal: 0,
             parteCicero: 0,
-            parteGilberto: 0,
             parteJefferson: 0,
             valorTotalExtras: 0,
             totalFreteEletrons: 0,
@@ -128,15 +127,12 @@ function calcularLucrosCaminhaoVermelho(resumoVendas, despesas) {
 
     const lucroTotal = valorTotalVendas + valorTotalExtras + totalFreteEletrons - outrasDespesas - totalVendaPostes;
 
-    // Divisão específica do Caminhão Vermelho: 50% Cícero, 25% G&J
+    // Divisão específica do Caminhão Branco: 50/50 (sem Gilberto)
     const metadeCicero = lucroTotal / 2;
-    const metadeGilbertoJefferson = lucroTotal / 2;
+    const metadeJefferson = lucroTotal / 2;
 
-    // Despesas de funcionário afetam apenas G&J
-    const parteGilbertoJeffersonLiquida = metadeGilbertoJefferson - despesasFuncionario;
-
-    const parteGilberto = parteGilbertoJeffersonLiquida / 2;
-    const parteJefferson = parteGilbertoJeffersonLiquida / 2;
+    // Despesas de funcionário afetam apenas Jefferson
+    const parteJeffersonLiquida = metadeJefferson - despesasFuncionario;
 
     const custoEletronsL = totalVendaPostes - totalFreteEletrons;
 
@@ -148,8 +144,7 @@ function calcularLucrosCaminhaoVermelho(resumoVendas, despesas) {
         outrasDespesas,
         lucroTotal,
         parteCicero: metadeCicero,
-        parteGilberto,
-        parteJefferson,
+        parteJefferson: parteJeffersonLiquida,
         valorTotalExtras,
         totalFreteEletrons,
         totalVendasE: resumoVendas.totalVendasE || 0,
@@ -171,10 +166,9 @@ function updateInterface(lucros) {
     window.AppUtils.updateElement('custo-eletrons-l', window.AppUtils.formatCurrency(lucros.custoEletronsL));
     window.AppUtils.updateElement('total-despesas', window.AppUtils.formatCurrency(lucros.outrasDespesas));
 
-    // Cards de lucros (Cícero + Gilberto + Jefferson)
+    // Cards de lucros (só Cícero e Jefferson)
     window.AppUtils.updateElement('lucro-total', window.AppUtils.formatCurrency(lucros.lucroTotal));
     window.AppUtils.updateElement('parte-cicero', window.AppUtils.formatCurrency(lucros.parteCicero));
-    window.AppUtils.updateElement('parte-gilberto', window.AppUtils.formatCurrency(lucros.parteGilberto));
     window.AppUtils.updateElement('parte-jefferson', window.AppUtils.formatCurrency(lucros.parteJefferson));
 
     // Estatísticas
@@ -189,7 +183,7 @@ function updateInterface(lucros) {
     window.AppUtils.updateElement('ticket-medio', window.AppUtils.formatCurrency(ticketMedio));
     window.AppUtils.updateElement('margem-lucro', `${margemLucro.toFixed(1)}%`);
 
-    console.log('✅ Interface do Caminhão Vermelho atualizada');
+    console.log('✅ Interface do Caminhão Branco atualizada');
 }
 
 function updatePeriodIndicator() {
@@ -216,7 +210,7 @@ function updatePeriodIndicator() {
     }
 }
 
-// Funções de API (específicas para o Caminhão Vermelho)
+// Funções de API (automáticas com tenant ID)
 async function fetchResumoVendas() {
     const params = new URLSearchParams();
     if (dashboardData.filters.dataInicio) {
@@ -343,4 +337,4 @@ window.applyPeriodFilter = applyPeriodFilter;
 window.clearPeriodFilter = clearPeriodFilter;
 window.refreshDashboard = refreshDashboard;
 
-console.log('✅ Dashboard Caminhão Vermelho COMPLETO carregado');
+console.log('✅ Dashboard Caminhão Branco carregado');

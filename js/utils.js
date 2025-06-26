@@ -1,40 +1,79 @@
-// utils.js - Utilitários Compartilhados
-// Versão leve e otimizada para o Sistema de Postes - COM CORREÇÕES DE DATA
+// utils.js - Utilitários Multi-Tenant COMPLETO
+// Sistema de Postes com suporte a Caminhão Vermelho, Branco e Jefferson
 
 const API_BASE = 'https://posteback.onrender.com/api';
 
 // ================================
-// ESTADO GLOBAL SIMPLES
+// ESTADO GLOBAL MULTI-TENANT
 // ================================
 const AppState = {
     isFirstRequest: !sessionStorage.getItem('api-connected'),
-    cache: new Map()
+    cache: new Map(),
+    currentUser: null
 };
 
 // ================================
-// API SIMPLIFICADA
+// GERENCIAMENTO DE USUÁRIO
+// ================================
+function getCurrentUser() {
+    if (!AppState.currentUser) {
+        AppState.currentUser = {
+            type: localStorage.getItem('poste-system-user-type'),
+            username: localStorage.getItem('poste-system-username'),
+            displayName: localStorage.getItem('poste-system-display-name'),
+            isLoggedIn: localStorage.getItem('poste-system-logged-in') === 'true'
+        };
+    }
+    return AppState.currentUser;
+}
+
+function getTenantId() {
+    const user = getCurrentUser();
+    return user.type || 'vermelho'; // Default para vermelho
+}
+
+function canAccessCaminhao(caminhaoType) {
+    const user = getCurrentUser();
+    // Jefferson pode acessar ambos, outros só podem acessar o próprio
+    return user.type === 'jefferson' || user.type === caminhaoType;
+}
+
+// ================================
+// API MULTI-TENANT
 // ================================
 async function apiRequest(endpoint, options = {}) {
-    const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
+    const user = getCurrentUser();
+    const cacheKey = `${endpoint}_${JSON.stringify(options)}_${user.type}`;
     
-    // Cache simples
+    // Cache simples por usuário
     if (AppState.cache.has(cacheKey) && !options.skipCache) {
         return AppState.cache.get(cacheKey);
     }
     
     const controller = new AbortController();
-    const timeoutMs = AppState.isFirstRequest ? 60000 : 15000; // 1min vs 15s
+    const timeoutMs = AppState.isFirstRequest ? 60000 : 15000;
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     try {
-        const response = await fetch(`${API_BASE}${endpoint}`, {
+        // Adicionar header de tenant automaticamente
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Tenant-ID': getTenantId(),
+            ...options.headers
+        };
+        
+        // Adicionar parâmetro de caminhão na URL se necessário
+        let finalEndpoint = endpoint;
+        if (!endpoint.includes('caminhao=') && !endpoint.includes('X-Tenant-ID')) {
+            const separator = endpoint.includes('?') ? '&' : '?';
+            finalEndpoint = `${endpoint}${separator}caminhao=${getTenantId()}`;
+        }
+        
+        const response = await fetch(`${API_BASE}${finalEndpoint}`, {
             ...options,
             signal: controller.signal,
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                ...options.headers
-            }
+            headers
         });
         
         clearTimeout(timeoutId);
@@ -59,7 +98,7 @@ async function apiRequest(endpoint, options = {}) {
             }
         }
         
-        // Cache resultado
+        // Cache resultado por usuário
         if (data !== null) {
             AppState.cache.set(cacheKey, data);
         }
@@ -81,19 +120,25 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
-// Limpar cache
+// Limpar cache por usuário
 function clearCache() {
-    AppState.cache.clear();
+    const user = getCurrentUser();
+    const keysToDelete = [];
+    
+    for (let key of AppState.cache.keys()) {
+        if (key.includes(user.type)) {
+            keysToDelete.push(key);
+        }
+    }
+    
+    keysToDelete.forEach(key => AppState.cache.delete(key));
 }
 
 // ================================
 // FORMATADORES DE DATA CORRIGIDOS
 // ================================
-
-// Função para converter data input para string sem problemas de timezone
 function dateInputToString(dateInputValue) {
     if (!dateInputValue) return '';
-    // Se já está no formato YYYY-MM-DD, retorna diretamente
     if (typeof dateInputValue === 'string' && dateInputValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return dateInputValue;
     }
@@ -105,22 +150,17 @@ function dateInputToString(dateInputValue) {
     return `${year}-${month}-${day}`;
 }
 
-// Função para converter string de data para input sem problemas de timezone
 function stringToDateInput(dateString) {
     if (!dateString) return '';
     
-    // Se já está no formato correto, retorna
     if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return dateString;
     }
     
-    // Tratar diferentes formatos de data
     let date;
     if (dateString.includes('T')) {
-        // ISO string ou datetime-local
         date = new Date(dateString);
     } else if (dateString.includes('/')) {
-        // Formato brasileiro DD/MM/YYYY
         const parts = dateString.split('/');
         if (parts.length === 3) {
             date = new Date(parts[2], parts[1] - 1, parts[0]);
@@ -128,7 +168,6 @@ function stringToDateInput(dateString) {
             date = new Date(dateString);
         }
     } else {
-        // Formato YYYY-MM-DD ou outros
         date = new Date(dateString + 'T00:00:00');
     }
     
@@ -143,13 +182,11 @@ function stringToDateInput(dateString) {
     return `${year}-${month}-${day}`;
 }
 
-// Função para formatar data brasileira corrigida
 function formatDateBRFixed(dateString, includeTime = false) {
     if (!dateString) return '-';
     
     let date;
     
-    // Se é uma string no formato YYYY-MM-DD, criar data local
     if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
         const parts = dateString.split('-');
         date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -166,7 +203,7 @@ function formatDateBRFixed(dateString, includeTime = false) {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
-        timeZone: 'America/Sao_Paulo' // Forçar timezone brasileiro
+        timeZone: 'America/Sao_Paulo'
     };
     
     if (includeTime) {
@@ -177,7 +214,6 @@ function formatDateBRFixed(dateString, includeTime = false) {
     return date.toLocaleDateString('pt-BR', options);
 }
 
-// Função para obter data atual no formato input (YYYY-MM-DD)
 function getCurrentDateInput() {
     const now = new Date();
     const year = now.getFullYear();
@@ -186,11 +222,20 @@ function getCurrentDateInput() {
     return `${year}-${month}-${day}`;
 }
 
-// Função para filtrar por intervalo de datas
+function getCurrentDateTime() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 function isDateInRange(dateToCheck, startDate, endDate) {
     if (!dateToCheck) return false;
     
-    const checkDate = new Date(dateToCheck + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
+    const checkDate = new Date(dateToCheck + 'T12:00:00');
     
     if (startDate) {
         const start = new Date(startDate + 'T00:00:00');
@@ -206,7 +251,7 @@ function isDateInRange(dateToCheck, startDate, endDate) {
 }
 
 // ================================
-// FORMATADORES (MANTENDO COMPATIBILIDADE)
+// FORMATADORES
 // ================================
 function formatCurrency(value) {
     if (value == null || isNaN(value)) return 'R$ 0,00';
@@ -235,16 +280,6 @@ function dateToInputValue(date) {
     }
     
     return '';
-}
-
-function getCurrentDateTime() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 // ================================
@@ -397,7 +432,10 @@ function exportToCSV(data, filename) {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.download = `${filename}.csv`;
+    
+    const user = getCurrentUser();
+    const userSuffix = user.type ? `_${user.type}` : '';
+    link.download = `${filename}${userSuffix}.csv`;
     link.href = url;
     document.body.appendChild(link);
     link.click();
@@ -479,6 +517,101 @@ function removeStorageItem(key) {
 }
 
 // ================================
+// AUTH HELPERS MULTI-TENANT
+// ================================
+function checkAuth() {
+    const isLoggedIn = getStorageItem('poste-system-logged-in');
+    const loginTime = getStorageItem('poste-system-login-time');
+    const userType = getStorageItem('poste-system-user-type');
+    
+    if (isLoggedIn !== 'true' || !userType) {
+        window.location.href = 'index.html';
+        return false;
+    }
+    
+    // Verificar expiração (8 horas)
+    if (loginTime) {
+        const now = new Date().getTime();
+        const loginTimestamp = new Date(loginTime).getTime();
+        const sessionTimeout = 8 * 60 * 60 * 1000; // 8 horas
+        
+        if (now - loginTimestamp > sessionTimeout) {
+            logout('Sessão expirada');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function logout(message = null) {
+    removeStorageItem('poste-system-logged-in');
+    removeStorageItem('poste-system-login-time');
+    removeStorageItem('poste-system-user-type');
+    removeStorageItem('poste-system-username');
+    removeStorageItem('poste-system-display-name');
+    
+    // Limpar cache do usuário
+    AppState.currentUser = null;
+    clearCache();
+    
+    if (message) {
+        showAlert(message, 'warning', 2000);
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 2000);
+    } else {
+        window.location.href = 'index.html';
+    }
+}
+
+function createLogoutButton() {
+    if (document.getElementById('logout-button')) return;
+    
+    const user = getCurrentUser();
+    
+    const button = document.createElement('button');
+    button.id = 'logout-button';
+    button.className = 'logout-button';
+    button.textContent = '🚪';
+    button.title = `Sair do sistema (${user.displayName})`;
+    button.addEventListener('click', () => logout());
+    
+    document.body.appendChild(button);
+}
+
+function createUserBadge() {
+    if (document.getElementById('user-badge')) return;
+    
+    const user = getCurrentUser();
+    if (!user.type) return;
+    
+    const badge = document.createElement('div');
+    badge.id = 'user-badge';
+    badge.className = `caminhao-badge ${user.type}`;
+    badge.style.cssText = `
+        position: fixed;
+        top: var(--space-4);
+        left: var(--space-4);
+        z-index: 999;
+        font-size: var(--text-sm);
+        font-weight: 600;
+        pointer-events: none;
+    `;
+    
+    // Ícone baseado no tipo de usuário
+    let icon = '';
+    switch (user.type) {
+        case 'vermelho': icon = '🚛'; break;
+        case 'branco': icon = '🚚'; break;
+        case 'jefferson': icon = '👨‍💼'; break;
+    }
+    
+    badge.innerHTML = `${icon} ${user.displayName}`;
+    document.body.appendChild(badge);
+}
+
+// ================================
 // THEME HELPERS
 // ================================
 function initTheme() {
@@ -544,76 +677,39 @@ function updateThemeIcon(toggle) {
 }
 
 // ================================
-// AUTH HELPERS
+// NAVIGATION HELPERS MULTI-TENANT
 // ================================
-function checkAuth() {
-    const isLoggedIn = getStorageItem('poste-system-logged-in');
-    const loginTime = getStorageItem('poste-system-login-time');
+function updateNavigationForUser() {
+    const user = getCurrentUser();
+    if (!user.type) return;
     
-    if (isLoggedIn !== 'true') {
-        window.location.href = 'index.html';
-        return false;
-    }
+    const navContainer = document.querySelector('.nav-container');
+    if (!navContainer) return;
     
-    // Verificar expiração (8 horas)
-    if (loginTime) {
-        const now = new Date().getTime();
-        const loginTimestamp = new Date(loginTime).getTime();
-        const sessionTimeout = 8 * 60 * 60 * 1000; // 8 horas
-        
-        if (now - loginTimestamp > sessionTimeout) {
-            logout('Sessão expirada');
-            return false;
-        }
-    }
+    // Adicionar classe específica do usuário
+    navContainer.classList.add(user.type);
     
-    return true;
-}
-
-function logout(message = null) {
-    removeStorageItem('poste-system-logged-in');
-    removeStorageItem('poste-system-login-time');
-    
-    if (message) {
-        showAlert(message, 'warning', 2000);
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 2000);
-    } else {
-        window.location.href = 'index.html';
+    // Ajustar navegação para Jefferson (4 itens)
+    if (user.type === 'jefferson') {
+        navContainer.classList.add('jefferson');
     }
 }
 
-function createLogoutButton() {
-    if (document.getElementById('logout-button')) return;
+function getNavigationBasePath() {
+    const user = getCurrentUser();
     
-    const button = document.createElement('button');
-    button.id = 'logout-button';
-    button.style.cssText = `
-        position: fixed;
-        top: 16px;
-        right: 70px;
-        z-index: 1000;
-        background: #ef4444;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 44px;
-        height: 44px;
-        font-size: 1.2rem;
-        cursor: pointer;
-        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-        transition: all 0.2s ease;
-    `;
-    button.textContent = '🚪';
-    button.title = 'Sair do sistema';
-    button.addEventListener('click', () => logout());
-    
-    document.body.appendChild(button);
+    switch (user.type) {
+        case 'branco':
+            return '-branco';
+        case 'jefferson':
+            return '-jefferson';
+        default:
+            return '';
+    }
 }
 
 // ================================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO MULTI-TENANT
 // ================================
 function initApp() {
     // Verificar autenticação se não estiver na página de login
@@ -621,13 +717,16 @@ function initApp() {
         window.location.pathname !== '/') {
         if (checkAuth()) {
             createLogoutButton();
+            createUserBadge();
+            updateNavigationForUser();
         }
     }
     
     // Inicializar tema
     initTheme();
     
-    console.log('✅ App Utils inicializados');
+    const user = getCurrentUser();
+    console.log(`✅ App Utils Multi-Tenant inicializados para: ${user.displayName || 'Usuário não identificado'}`);
 }
 
 // Auto-inicializar quando DOM estiver pronto
@@ -637,10 +736,20 @@ if (document.readyState === 'loading') {
     initApp();
 }
 
-// Disponibilizar globalmente
+// ================================
+// DISPONIBILIZAR GLOBALMENTE
+// ================================
 window.AppUtils = {
+    // API
     apiRequest,
     clearCache,
+    
+    // Usuário
+    getCurrentUser,
+    getTenantId,
+    canAccessCaminhao,
+    
+    // Formatadores
     formatCurrency,
     formatDateBR,
     formatDateBRFixed,
@@ -650,22 +759,43 @@ window.AppUtils = {
     getCurrentDateTime,
     getCurrentDateInput,
     isDateInRange,
+    
+    // DOM
     updateElement,
     showLoading,
     showAlert,
+    
+    // Filtros
     setDefaultDateFilters,
     setupFilters,
     debounce,
+    
+    // Labels
     getTipoLabel,
     getStatusLabel,
+    
+    // Validações
     validateRequired,
     validateNumber,
     validateDate,
+    
+    // Export
     exportToCSV,
+    
+    // Modal
     showModal,
     closeModal,
+    
+    // Form
     resetForm,
     getFormData,
+    
+    // Auth
     checkAuth,
-    logout
+    logout,
+    
+    // Navigation
+    getNavigationBasePath
 };
+
+console.log('✅ Utils Multi-Tenant COMPLETO carregado');

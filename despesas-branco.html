@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Despesas - Caminhão Vermelho</title>
+    <title>Despesas - Caminhão Branco</title>
     <link rel="stylesheet" href="css/universal.css">
     <script src="js/utils.js"></script>
 </head>
@@ -11,30 +11,30 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <h1>🚛 Despesas - Caminhão Vermelho</h1>
+            <h1>🚚 Despesas - Caminhão Branco</h1>
             <p>Controle Financeiro</p>
         </div>
     </header>
 
     <nav class="main-nav">
-        <div class="nav-container vermelho">
-            <a href="dashboard.html" class="nav-item">
+        <div class="nav-container branco">
+            <a href="dashboard-branco.html" class="nav-item">
                 <span class="nav-icon">📊</span>
                 <span>Dashboard</span>
             </a>
-            <a href="vendas.html" class="nav-item">
+            <a href="vendas-branco.html" class="nav-item">
                 <span class="nav-icon">📋</span>
                 <span>Vendas</span>
             </a>
-            <a href="despesas.html" class="nav-item active">
+            <a href="despesas-branco.html" class="nav-item active">
                 <span class="nav-icon">💸</span>
                 <span>Despesas</span>
             </a>
-            <a href="postes.html" class="nav-item">
+            <a href="postes-branco.html" class="nav-item">
                 <span class="nav-icon">⚡</span>
                 <span>Postes</span>
             </a>
-            <a href="relatorios.html" class="nav-item">
+            <a href="relatorios-branco.html" class="nav-item">
                 <span class="nav-icon">📈</span>
                 <span>Relatórios</span>
             </a>
@@ -71,8 +71,8 @@
 
                 <div class="form-help">
                     <small>
-                        <strong>Funcionário:</strong> Afeta apenas G&J (25% cada)<br>
-                        <strong>Outras:</strong> Afetam todos os sócios (Cícero 50% + G&J 50%)
+                        <strong>Funcionário:</strong> Afeta apenas Jefferson (50%)<br>
+                        <strong>Outras:</strong> Afetam todos os sócios (Cícero 50% + Jefferson 50%)
                     </small>
                 </div>
 
@@ -88,7 +88,7 @@
         </section>
 
         <section class="summary-section">
-            <h2>📊 Resumo das Despesas - Caminhão Vermelho</h2>
+            <h2>📊 Resumo das Despesas - Caminhão Branco</h2>
             <div class="stats-grid">
                 <div class="stat-item funcionario">
                     <div class="stat-icon">👥</div>
@@ -148,7 +148,7 @@
 
         <section class="table-section">
             <div class="section-header">
-                <h2>📋 Despesas Cadastradas - Caminhão Vermelho</h2>
+                <h2>📋 Despesas Cadastradas - Caminhão Branco</h2>
                 <div class="section-actions">
                     <button class="btn btn-small" onclick="loadDespesas()">
                         🔄
@@ -218,6 +218,6 @@
 
     <div id="alert-container" class="alert-container"></div>
 
-    <script src="js/despesas.js"></script>
+ <script src="js/despesas-branco.js"></script>
 </body>
 </html>
