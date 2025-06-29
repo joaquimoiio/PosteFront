@@ -372,6 +372,23 @@ function createVendaItem(venda) {
     return item;
 }
 
+// ✅ FUNÇÃO PARA CONVERTER DATA PARA FORMATO DATETIME-LOCAL
+function dateToDateTimeLocalString(dateString) {
+    if (!dateString) return '';
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
+        
+        // Converter para hora local para datetime-local
+        const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return localDate.toISOString().slice(0, 16);
+    } catch (error) {
+        console.error('Erro ao converter data:', error);
+        return '';
+    }
+}
+
 async function editVenda(id) {
     try {
         const venda = vendasData.vendas.find(v => v.id === id);
@@ -393,6 +410,12 @@ function populateEditForm(venda) {
     const tipoElement = document.getElementById('edit-tipo-venda');
     if (tipoElement) {
         tipoElement.value = venda.tipoVenda;
+    }
+    
+    // ✅ POPULAR DATA NO FORMATO CORRETO
+    const dataElement = document.getElementById('edit-data-venda');
+    if (dataElement && venda.dataVenda) {
+        dataElement.value = dateToDateTimeLocalString(venda.dataVenda);
     }
     
     // Mostrar/esconder campos baseado no tipo
@@ -465,9 +488,16 @@ async function handleEditSubmit(e) {
 
 function buildEditFormData() {
     const observacoes = document.getElementById('edit-observacoes');
+    const dataVenda = document.getElementById('edit-data-venda'); // ✅ INCLUIR DATA
+    
     const baseData = {
         observacoes: observacoes ? observacoes.value.trim() || null : null
     };
+    
+    // ✅ INCLUIR DATA DA VENDA NA ATUALIZAÇÃO
+    if (dataVenda && dataVenda.value) {
+        baseData.dataVenda = dataVenda.value;
+    }
     
     const freteInput = document.getElementById('edit-frete-eletrons');
     const valorInput = document.getElementById('edit-valor-total');
@@ -489,6 +519,11 @@ function buildEditFormData() {
 }
 
 function validateEditFormData(data) {
+    // ✅ VALIDAR DATA SE FORNECIDA
+    if (data.dataVenda && !window.AppUtils.validateDate(data.dataVenda, 'Data da venda')) {
+        return false;
+    }
+    
     if (data.valorVenda !== undefined && !window.AppUtils.validateNumber(data.valorVenda, 'Valor de venda', 0)) {
         return false;
     }
@@ -696,4 +731,4 @@ window.loadVendas = loadVendas;
 window.scrollToForm = scrollToForm;
 window.closeModal = () => window.AppUtils.closeModal('edit-modal');
 
-console.log('✅ Vendas Caminhão Branco corrigido carregado');
+console.log('✅ Vendas Caminhão Branco com edição de data carregado');
