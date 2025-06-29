@@ -1,8 +1,5 @@
-// Estado local do Jefferson
 let jeffersonData = {
-    estoqueVermelho: [],
-    estoqueBranco: [],
-    estoqueConsolidado: [],
+    estoqueConsolidado: [], // Agora usa apenas estoque consolidado
     vendasVermelho: [],
     vendasBranco: [],
     filters: { caminhao: '', status: '', codigo: '' }
@@ -52,32 +49,24 @@ async function loadAllData() {
     try {
         window.AppUtils.showLoading(true);
 
-        console.log('📊 Carregando dados dos dois caminhões...');
+        console.log('📊 Carregando dados consolidados dos dois caminhões...');
 
-        // Carregar estoques dos dois caminhões
-        const [estoqueVermelho, estoqueBranco, vendasVermelho, vendasBranco] = await Promise.all([
-            fetchEstoqueCaminhao('vermelho'),
-            fetchEstoqueCaminhao('branco'),
+        // Carregar estoque consolidado e vendas
+        const [estoqueConsolidado, vendasVermelho, vendasBranco] = await Promise.all([
+            fetchEstoqueConsolidado(),
             fetchVendasCaminhao('vermelho'),
             fetchVendasCaminhao('branco')
         ]);
 
-        jeffersonData.estoqueVermelho = estoqueVermelho || [];
-        jeffersonData.estoqueBranco = estoqueBranco || [];
+        jeffersonData.estoqueConsolidado = estoqueConsolidado || [];
         jeffersonData.vendasVermelho = vendasVermelho || [];
         jeffersonData.vendasBranco = vendasBranco || [];
-
-        // Consolidar estoques
-        jeffersonData.estoqueConsolidado = consolidarEstoques(
-            jeffersonData.estoqueVermelho,
-            jeffersonData.estoqueBranco
-        );
 
         updateResumo();
         updateVendasConsolidadas();
         aplicarFiltros();
 
-        console.log('✅ Dados do Jefferson carregados');
+        console.log('✅ Dados consolidados do Jefferson carregados');
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -87,13 +76,15 @@ async function loadAllData() {
     }
 }
 
-async function fetchEstoqueCaminhao(caminhao) {
+// Nova função para buscar estoque consolidado
+async function fetchEstoqueConsolidado() {
     try {
-        // Temporariamente fazer requisição manual com header específico
-        const response = await fetch(`https://posteback.onrender.com/api/estoque?caminhao=${caminhao}`, {
+        console.log('📦 Buscando estoque consolidado...');
+        
+        const response = await fetch(`https://posteback.onrender.com/api/estoque`, {
             headers: {
                 'Content-Type': 'application/json',
-                'X-Tenant-ID': caminhao
+                'X-Tenant-ID': 'jefferson' // Jefferson pode ver tudo consolidado
             }
         });
 
@@ -101,9 +92,12 @@ async function fetchEstoqueCaminhao(caminhao) {
             throw new Error(`HTTP ${response.status}`);
         }
 
-        return await response.json();
+        const estoque = await response.json();
+        console.log(`✅ Estoque consolidado carregado: ${estoque.length} itens`);
+        
+        return estoque;
     } catch (error) {
-        console.error(`Erro ao buscar estoque do ${caminhao}:`, error);
+        console.error('❌ Erro ao buscar estoque consolidado:', error);
         return [];
     }
 }
@@ -133,70 +127,26 @@ async function fetchVendasCaminhao(caminhao) {
     }
 }
 
-function consolidarEstoques(estoqueVermelho, estoqueBranco) {
-    const consolidado = [];
-    const processados = new Set();
-
-    // Processar estoque vermelho
-    estoqueVermelho.forEach(item => {
-        const chave = item.codigoPoste;
-        consolidado.push({
-            ...item,
-            caminhao: 'vermelho',
-            quantidadeVermelho: item.quantidadeAtual || 0,
-            quantidadeBranco: 0,
-            quantidadeTotal: item.quantidadeAtual || 0
-        });
-        processados.add(chave);
-    });
-
-    // Processar estoque branco
-    estoqueBranco.forEach(item => {
-        const chave = item.codigoPoste;
-        const existente = consolidado.find(c => c.codigoPoste === chave);
-
-        if (existente) {
-            // Item já existe, somar quantidades
-            existente.quantidadeBranco = item.quantidadeAtual || 0;
-            existente.quantidadeTotal = existente.quantidadeVermelho + existente.quantidadeBranco;
-            existente.caminhao = 'ambos';
-        } else {
-            // Item novo apenas no branco
-            consolidado.push({
-                ...item,
-                caminhao: 'branco',
-                quantidadeVermelho: 0,
-                quantidadeBranco: item.quantidadeAtual || 0,
-                quantidadeTotal: item.quantidadeAtual || 0
-            });
-        }
-    });
-
-    return consolidado.sort((a, b) => a.codigoPoste.localeCompare(b.codigoPoste));
-}
-
 function updateResumo() {
-    const vermelho = jeffersonData.estoqueVermelho.length;
-    const branco = jeffersonData.estoqueBranco.length;
-    const total = jeffersonData.estoqueConsolidado.length;
+    const totalItens = jeffersonData.estoqueConsolidado.length;
 
-    // Calcular estatísticas
-    const positivo = jeffersonData.estoqueConsolidado.filter(item => item.quantidadeTotal > 0).length;
-    const zero = jeffersonData.estoqueConsolidado.filter(item => item.quantidadeTotal === 0).length;
-    const negativo = jeffersonData.estoqueConsolidado.filter(item => item.quantidadeTotal < 0).length;
-    const baixo = jeffersonData.estoqueConsolidado.filter(item => item.quantidadeTotal > 0 && item.quantidadeTotal <= 5).length;
+    // Calcular estatísticas baseadas no estoque consolidado
+    const positivo = jeffersonData.estoqueConsolidado.filter(item => item.quantidadeAtual > 0).length;
+    const zero = jeffersonData.estoqueConsolidado.filter(item => item.quantidadeAtual === 0).length;
+    const negativo = jeffersonData.estoqueConsolidado.filter(item => item.quantidadeAtual < 0).length;
+    const baixo = jeffersonData.estoqueConsolidado.filter(item => item.quantidadeAtual > 0 && item.quantidadeAtual <= 5).length;
 
     // Calcular valor total do estoque
     const valorTotal = jeffersonData.estoqueConsolidado.reduce((sum, item) => {
-        const quantidade = Math.max(0, item.quantidadeTotal); // Só contar positivos
+        const quantidade = Math.max(0, item.quantidadeAtual); // Só contar positivos
         const preco = item.precoPoste || 0;
         return sum + (quantidade * preco);
     }, 0);
 
-    // Atualizar interface
-    window.AppUtils.updateElement('postes-vermelho', vermelho);
-    window.AppUtils.updateElement('postes-branco', branco);
-    window.AppUtils.updateElement('postes-total', total);
+    // Para Jefferson, mostramos totais gerais
+    window.AppUtils.updateElement('postes-vermelho', 'N/A'); // Não aplicável no consolidado
+    window.AppUtils.updateElement('postes-branco', 'N/A');   // Não aplicável no consolidado
+    window.AppUtils.updateElement('postes-total', totalItens);
     window.AppUtils.updateElement('estoque-positivo', positivo);
     window.AppUtils.updateElement('estoque-baixo', baixo);
     window.AppUtils.updateElement('estoque-zero', zero);
@@ -219,22 +169,17 @@ function aplicarFiltros() {
 
     let filtrados = [...jeffersonData.estoqueConsolidado];
 
-    // Filtrar por caminhão
+    // Para o filtro de caminhão, não podemos mais separar por vermelho/branco
+    // pois o estoque agora é consolidado. Remover este filtro ou adaptá-lo
     if (caminhao) {
-        filtrados = filtrados.filter(item => {
-            if (caminhao === 'vermelho') {
-                return item.quantidadeVermelho > 0;
-            } else if (caminhao === 'branco') {
-                return item.quantidadeBranco > 0;
-            }
-            return true;
-        });
+        // Mantemos o filtro mas sem efeito, já que agora é tudo consolidado
+        console.log('ℹ️ Filtro por caminhão não aplicável no estoque consolidado');
     }
 
     // Filtrar por status
     if (status) {
         filtrados = filtrados.filter(item => {
-            const qtd = item.quantidadeTotal;
+            const qtd = item.quantidadeAtual;
             switch (status) {
                 case 'positivo': return qtd > 0;
                 case 'zero': return qtd === 0;
@@ -262,12 +207,12 @@ function displayEstoque(estoque) {
 
     if (!estoque || estoque.length === 0) {
         container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">📦</div>
-                        <h3>Nenhum item encontrado</h3>
-                        <p>Ajuste os filtros para ver mais itens.</p>
-                    </div>
-                `;
+            <div class="empty-state">
+                <div class="empty-icon">📦</div>
+                <h3>Nenhum item encontrado</h3>
+                <p>Ajuste os filtros para ver mais itens.</p>
+            </div>
+        `;
         return;
     }
 
@@ -288,50 +233,41 @@ function displayEstoque(estoque) {
         moreIndicator.style.textAlign = 'center';
         moreIndicator.style.background = 'var(--bg-primary)';
         moreIndicator.innerHTML = `
-                    <div class="item-content">
-                        <p>E mais ${estoque.length - 20} itens...</p>
-                        <a href="estoque-consolidado.html" class="btn btn-primary">Ver Todos</a>
-                    </div>
-                `;
+            <div class="item-content">
+                <p>E mais ${estoque.length - 20} itens...</p>
+                <a href="estoque-consolidado.html" class="btn btn-primary">Ver Todos</a>
+            </div>
+        `;
         container.appendChild(moreIndicator);
     }
 }
 
 function createEstoqueItem(item) {
     const element = document.createElement('div');
-    const statusClass = getStatusClass(item.quantidadeTotal);
+    const statusClass = getStatusClass(item.quantidadeAtual);
 
     element.className = `mobile-list-item ${statusClass}`;
 
-    // Ícones dos caminhões
-    let caminhaoInfo = '';
-    if (item.quantidadeVermelho > 0 && item.quantidadeBranco > 0) {
-        caminhaoInfo = `🚛 ${item.quantidadeVermelho} | 🚚 ${item.quantidadeBranco}`;
-    } else if (item.quantidadeVermelho > 0) {
-        caminhaoInfo = `🚛 ${item.quantidadeVermelho}`;
-    } else if (item.quantidadeBranco > 0) {
-        caminhaoInfo = `🚚 ${item.quantidadeBranco}`;
-    } else {
-        caminhaoInfo = '📦 Esgotado';
-    }
-
+    // Para estoque consolidado, não temos mais separação por caminhão
+    // Mostrar apenas a quantidade total
     element.innerHTML = `
-                <div class="item-header">
-                    <span class="item-status ${statusClass}">
-                        ${getStatusText(item.quantidadeTotal)}
-                    </span>
-                    <span class="item-code">${item.codigoPoste}</span>
-                </div>
-                
-                <div class="item-content">
-                    <div class="item-quantidade ${statusClass}">${item.quantidadeTotal}</div>
-                    <div class="item-title">${item.descricaoPoste}</div>
-                    <div class="item-details">
-                        <small style="color: var(--text-secondary);">${caminhaoInfo}</small>
-                    </div>
-                    <div class="item-details">Preço: ${window.AppUtils.formatCurrency(item.precoPoste || 0)}</div>
-                </div>
-            `;
+        <div class="item-header">
+            <span class="item-status ${statusClass}">
+                ${getStatusText(item.quantidadeAtual)}
+            </span>
+            <span class="item-code">${item.codigoPoste}</span>
+        </div>
+        
+        <div class="item-content">
+            <div class="item-quantidade ${statusClass}">${item.quantidadeAtual}</div>
+            <div class="item-title">${item.descricaoPoste}</div>
+            <div class="item-details">
+                <small style="color: var(--text-secondary);">📦 Estoque Consolidado</small>
+            </div>
+            <div class="item-details">Preço: ${window.AppUtils.formatCurrency(item.precoPoste || 0)}</div>
+            ${item.dataAtualizacao ? `<div class="item-details"><small>Atualizado: ${window.AppUtils.formatDateBR(item.dataAtualizacao, true)}</small></div>` : ''}
+        </div>
+    `;
 
     return element;
 }
@@ -379,11 +315,10 @@ function exportarEstoque() {
         'Código': item.codigoPoste,
         'Descrição': item.descricaoPoste,
         'Preço': item.precoPoste || 0,
-        'Qtd. Vermelho': item.quantidadeVermelho,
-        'Qtd. Branco': item.quantidadeBranco,
-        'Qtd. Total': item.quantidadeTotal,
-        'Status': getStatusText(item.quantidadeTotal),
-        'Valor Total': (item.quantidadeTotal * (item.precoPoste || 0)).toFixed(2)
+        'Quantidade': item.quantidadeAtual,
+        'Status': getStatusText(item.quantidadeAtual),
+        'Valor Total': (item.quantidadeAtual * (item.precoPoste || 0)).toFixed(2),
+        'Última Atualização': item.dataAtualizacao ? window.AppUtils.formatDateBR(item.dataAtualizacao, true) : '-'
     }));
 
     window.AppUtils.exportToCSV(dadosExportar, `estoque_consolidado_${new Date().toISOString().split('T')[0]}`);
@@ -395,4 +330,4 @@ window.limparFiltros = limparFiltros;
 window.atualizarEstoque = atualizarEstoque;
 window.exportarEstoque = exportarEstoque;
 
-console.log('✅ Dashboard Jefferson carregado');
+console.log('✅ Dashboard Jefferson CONSOLIDADO carregado');

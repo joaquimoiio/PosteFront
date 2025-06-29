@@ -257,26 +257,8 @@ function gerarRelatorioVendasLoja() {
         return;
     }
 
-    // Agrupar vendas por data
-    const vendasPorData = {};
-    vendasL.forEach(venda => {
-        const data = venda.dataVenda.split('T')[0];
-        if (!vendasPorData[data]) {
-            vendasPorData[data] = {
-                data: data,
-                vendas: [],
-                totalPostes: 0,
-                totalFrete: 0
-            };
-        }
-
-        vendasPorData[data].vendas.push(venda);
-        vendasPorData[data].totalPostes += venda.quantidade || 0;
-        vendasPorData[data].totalFrete += venda.freteEletrons || 0;
-    });
-
-    const relatorioLojaArray = Object.values(vendasPorData)
-        .sort((a, b) => new Date(b.data) - new Date(a.data));
+    // Ordenar vendas por data (mais recentes primeiro)
+    const vendasOrdenadas = vendasL.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
 
     // Atualizar resumo loja
     const totalVendasLoja = vendasL.length;
@@ -291,15 +273,15 @@ function gerarRelatorioVendasLoja() {
     document.getElementById('resumo-loja-section').style.display = 'block';
 
     // Gerar lista
-    displayRelatorioVendasLoja(relatorioLojaArray);
+    displayRelatorioVendasLoja(vendasOrdenadas);
     document.getElementById('vendas-loja-section').style.display = 'block';
 }
 
-function displayRelatorioVendasLoja(relatorio) {
+function displayRelatorioVendasLoja(vendas) {
     const container = document.getElementById('vendas-loja-list');
     if (!container) return;
 
-    if (!relatorio || relatorio.length === 0) {
+    if (!vendas || vendas.length === 0) {
         container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">🏪</div>
@@ -312,30 +294,33 @@ function displayRelatorioVendasLoja(relatorio) {
 
     container.innerHTML = '';
 
-    relatorio.forEach(item => {
-        const element = createRelatorioLojaItem(item);
+    vendas.forEach(venda => {
+        const element = createRelatorioLojaItem(venda);
         container.appendChild(element);
     });
 }
 
-function createRelatorioLojaItem(item) {
+function createRelatorioLojaItem(venda) {
     const element = document.createElement('div');
-    element.className = 'mobile-list-item relatorio-loja-item';
+    element.className = 'mobile-list-item relatorio-loja-item tipo-l';
 
     element.innerHTML = `
                 <div class="item-header">
-                    <span class="item-date">${window.AppUtils.formatDateBR(item.data)}</span>
-                    <span class="item-count">${item.vendas.length} venda(s)</span>
+                    <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
+                    <span class="item-code">${venda.codigoPoste || 'N/A'}</span>
                 </div>
                 
                 <div class="item-content">
-                    <div class="item-value">${window.AppUtils.formatCurrency(item.totalFrete)}</div>
+                    <div class="item-value">${window.AppUtils.formatCurrency(venda.freteEletrons || 0)}</div>
+                    <div class="item-title">${venda.descricaoPoste || 'Produto não especificado'}</div>
                     <div class="item-details">
-                        <small>Total de postes: ${item.totalPostes}</small>
+                        <small>Quantidade: ${venda.quantidade || 1}</small>
                     </div>
-                    <div class="item-details">
-                        <small>Frete médio: ${window.AppUtils.formatCurrency(item.totalFrete / item.vendas.length)}</small>
-                    </div>
+                    ${venda.observacoes ? `
+                        <div class="item-details">
+                            <small>Obs: ${venda.observacoes}</small>
+                        </div>
+                    ` : ''}
                 </div>
             `;
 
@@ -447,10 +432,10 @@ function exportarRelatorioVendasLoja() {
     if (vendasL.length === 0) return;
 
     const dadosExportar = vendasL.map(venda => ({
-        'Data': window.AppUtils.formatDateBR(venda.dataVenda.split('T')[0]),
-        'Código Poste': venda.codigoPoste,
-        'Descrição': venda.descricaoPoste,
-        'Quantidade': venda.quantidade || 0,
+        'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
+        'Código Poste': venda.codigoPoste || 'N/A',
+        'Descrição': venda.descricaoPoste || 'Produto não especificado',
+        'Quantidade': venda.quantidade || 1,
         'Frete Eletrons': venda.freteEletrons || 0,
         'Observações': venda.observacoes || '-'
     }));

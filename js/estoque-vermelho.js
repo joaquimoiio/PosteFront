@@ -1,14 +1,19 @@
-// Estado local do Jefferson para estoque vermelho
+// Estado local para estoque individual (vermelho ou branco) - ATUALIZADO
 let estoqueData = {
     estoque: [],
     postes: [],
     filters: { status: '', codigo: '' }
 };
 
-// Verificar autenticação específica do Jefferson
+// Determinar qual caminhão com base no arquivo atual
+const CAMINHAO_ATUAL = window.location.pathname.includes('vermelho') ? 'vermelho' : 'branco';
+
+// Verificar autenticação (vermelho, branco ou jefferson)
 document.addEventListener('DOMContentLoaded', () => {
     const userType = localStorage.getItem('poste-system-user-type');
-    if (userType !== 'jefferson') {
+    
+    // Verificar se o usuário pode acessar este caminhão
+    if (userType !== 'jefferson' && userType !== CAMINHAO_ATUAL) {
         window.location.href = 'index.html';
         return;
     }
@@ -18,16 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    initEstoqueVermelho();
+    initEstoqueIndividual();
 });
 
-async function initEstoqueVermelho() {
-    console.log('🎯 Inicializando Estoque Caminhão Vermelho...');
+async function initEstoqueIndividual() {
+    console.log(`🎯 Inicializando Estoque Caminhão ${CAMINHAO_ATUAL.toUpperCase()}...`);
 
     try {
         setupEventListeners();
         await loadAllData();
-        console.log('✅ Estoque Caminhão Vermelho carregado');
+        console.log(`✅ Estoque Caminhão ${CAMINHAO_ATUAL.toUpperCase()} carregado`);
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
         window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
@@ -57,12 +62,12 @@ async function loadAllData() {
     try {
         window.AppUtils.showLoading(true);
 
-        console.log('📊 Carregando dados do Caminhão Vermelho...');
+        console.log(`📊 Carregando dados do Caminhão ${CAMINHAO_ATUAL.toUpperCase()}...`);
 
-        // Carregar dados do caminhão vermelho
+        // Para estoque individual, carregamos tanto o estoque específico quanto os postes
         const [estoque, postes] = await Promise.all([
-            fetchEstoqueCaminhao('vermelho'),
-            fetchPostesCaminhao('vermelho')
+            fetchEstoqueIndividual(),
+            fetchPostesCaminhao(CAMINHAO_ATUAL)
         ]);
 
         estoqueData.estoque = estoque || [];
@@ -72,7 +77,7 @@ async function loadAllData() {
         updateResumo();
         aplicarFiltros();
 
-        console.log('✅ Dados do Caminhão Vermelho carregados');
+        console.log(`✅ Dados do Caminhão ${CAMINHAO_ATUAL.toUpperCase()} carregados`);
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -82,12 +87,15 @@ async function loadAllData() {
     }
 }
 
-async function fetchEstoqueCaminhao(caminhao) {
+// Função para buscar estoque individual (mostra apenas postes deste caminhão mas com quantidade consolidada)
+async function fetchEstoqueIndividual() {
     try {
-        const response = await fetch(`https://posteback.onrender.com/api/estoque?caminhao=${caminhao}`, {
+        console.log(`📦 Buscando estoque para caminhão ${CAMINHAO_ATUAL}...`);
+        
+        const response = await fetch(`https://posteback.onrender.com/api/estoque`, {
             headers: {
                 'Content-Type': 'application/json',
-                'X-Tenant-ID': caminhao
+                'X-Tenant-ID': CAMINHAO_ATUAL // Usar tenant específico
             }
         });
 
@@ -95,9 +103,12 @@ async function fetchEstoqueCaminhao(caminhao) {
             throw new Error(`HTTP ${response.status}`);
         }
 
-        return await response.json();
+        const estoque = await response.json();
+        console.log(`✅ Estoque carregado: ${estoque.length} itens para ${CAMINHAO_ATUAL}`);
+        
+        return estoque;
     } catch (error) {
-        console.error(`Erro ao buscar estoque do ${caminhao}:`, error);
+        console.error(`❌ Erro ao buscar estoque do ${CAMINHAO_ATUAL}:`, error);
         return [];
     }
 }
@@ -152,12 +163,12 @@ async function handleEstoqueSubmit(e) {
 
         window.AppUtils.showLoading(true);
 
-        // Fazer requisição para o caminhão vermelho
+        // Fazer requisição para o caminhão atual
         const response = await fetch('https://posteback.onrender.com/api/estoque/adicionar', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Tenant-ID': 'vermelho'
+                'X-Tenant-ID': CAMINHAO_ATUAL
             },
             body: JSON.stringify({
                 posteId: formData.posteId,
@@ -247,12 +258,12 @@ function displayEstoque(estoque) {
 
     if (!estoque || estoque.length === 0) {
         container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">📦</div>
-                        <h3>Nenhum item encontrado</h3>
-                        <p>Ajuste os filtros para ver mais itens ou adicione estoque.</p>
-                    </div>
-                `;
+            <div class="empty-state">
+                <div class="empty-icon">📦</div>
+                <h3>Nenhum item encontrado</h3>
+                <p>Ajuste os filtros para ver mais itens ou adicione estoque.</p>
+            </div>
+        `;
         return;
     }
 
@@ -271,21 +282,28 @@ function createEstoqueItem(item) {
 
     element.className = `mobile-list-item ${statusClass}`;
 
+    // Para estoque individual, mostrar que é quantidade consolidada
+    const caminhaoIcon = CAMINHAO_ATUAL === 'vermelho' ? '🚛' : '🚚';
+    const caminhaoNome = CAMINHAO_ATUAL === 'vermelho' ? 'Vermelho' : 'Branco';
+
     element.innerHTML = `
-                <div class="item-header">
-                    <span class="item-status ${statusClass}">
-                        ${getStatusText(quantidade)}
-                    </span>
-                    <span class="item-code">${item.codigoPoste}</span>
-                </div>
-                
-                <div class="item-content">
-                    <div class="item-quantidade ${statusClass}">${quantidade}</div>
-                    <div class="item-title">${item.descricaoPoste}</div>
-                    <div class="item-details">Preço: ${window.AppUtils.formatCurrency(item.precoPoste || 0)}</div>
-                    ${item.dataAtualizacao ? `<div class="item-details"><small>Atualizado: ${window.AppUtils.formatDateBR(item.dataAtualizacao, true)}</small></div>` : ''}
-                </div>
-            `;
+        <div class="item-header">
+            <span class="item-status ${statusClass}">
+                ${getStatusText(quantidade)}
+            </span>
+            <span class="item-code">${item.codigoPoste}</span>
+        </div>
+        
+        <div class="item-content">
+            <div class="item-quantidade ${statusClass}">${quantidade}</div>
+            <div class="item-title">${item.descricaoPoste}</div>
+            <div class="item-details">
+                <small style="color: var(--text-secondary);">${caminhaoIcon} Caminhão ${caminhaoNome} - Estoque Consolidado</small>
+            </div>
+            <div class="item-details">Preço: ${window.AppUtils.formatCurrency(item.precoPoste || 0)}</div>
+            ${item.dataAtualizacao ? `<div class="item-details"><small>Atualizado: ${window.AppUtils.formatDateBR(item.dataAtualizacao, true)}</small></div>` : ''}
+        </div>
+    `;
 
     return element;
 }
@@ -331,16 +349,20 @@ function exportarEstoque() {
         return;
     }
 
+    const caminhaoNome = CAMINHAO_ATUAL === 'vermelho' ? 'Vermelho' : 'Branco';
+
     const dadosExportar = estoqueData.estoque.map(item => ({
         'Código': item.codigoPoste,
         'Descrição': item.descricaoPoste,
         'Preço': item.precoPoste || 0,
         'Quantidade': item.quantidadeAtual || 0,
         'Status': getStatusText(item.quantidadeAtual || 0),
-        'Valor Total': ((item.quantidadeAtual || 0) * (item.precoPoste || 0)).toFixed(2)
+        'Valor Total': ((item.quantidadeAtual || 0) * (item.precoPoste || 0)).toFixed(2),
+        'Caminhão': caminhaoNome,
+        'Observação': 'Estoque Consolidado'
     }));
 
-    window.AppUtils.exportToCSV(dadosExportar, `estoque_vermelho_${new Date().toISOString().split('T')[0]}`);
+    window.AppUtils.exportToCSV(dadosExportar, `estoque_${CAMINHAO_ATUAL}_${new Date().toISOString().split('T')[0]}`);
 }
 
 // Disponibilizar funções globalmente
@@ -349,4 +371,4 @@ window.limparFiltros = limparFiltros;
 window.atualizarEstoque = atualizarEstoque;
 window.exportarEstoque = exportarEstoque;
 
-console.log('✅ Estoque Caminhão Vermelho carregado');
+console.log(`✅ Estoque Caminhão ${CAMINHAO_ATUAL.toUpperCase()} ATUALIZADO carregado`);
