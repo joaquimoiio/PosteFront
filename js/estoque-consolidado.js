@@ -1,11 +1,28 @@
-// Estado local do Jefferson para estoque consolidado - UNIFICADO
+// ================================
+// ESTOQUE CONSOLIDADO COMPLETO - JEFFERSON
+// Sistema Unificado com Histórico de Movimentos
+// ================================
+
+// Estado global da aplicação
 let estoqueData = {
-    estoqueConsolidado: [], // Estoque consolidado
-    todosPostes: [], // Todos os postes de ambos os caminhões
-    filters: { status: '', codigo: '' }
+    estoqueConsolidado: [],
+    todosPostes: [],
+    historicoMovimentos: [],
+    estatisticasMovimento: {},
+    filters: { 
+        status: '', 
+        codigo: '',
+        historicoDataInicio: '',
+        historicoDataFim: '',
+        historicoTipo: '',
+        historicoPoste: ''
+    }
 };
 
-// Verificar autenticação específica do Jefferson
+// ================================
+// INICIALIZAÇÃO
+// ================================
+
 document.addEventListener('DOMContentLoaded', () => {
     const userType = localStorage.getItem('poste-system-user-type');
     if (userType !== 'jefferson') {
@@ -27,12 +44,17 @@ async function initEstoqueConsolidado() {
     try {
         setupEventListeners();
         await loadAllData();
+        await carregarEstatisticasMovimento();
         console.log('✅ Estoque Consolidado Unificado carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
         window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
     }
 }
+
+// ================================
+// EVENT LISTENERS
+// ================================
 
 function setupEventListeners() {
     // Form principal
@@ -42,16 +64,50 @@ function setupEventListeners() {
         estoqueForm.addEventListener('reset', resetForm);
     }
 
-    // Filtros
-    const filtros = ['filtro-status', 'filtro-codigo'];
-    filtros.forEach(filtroId => {
+    // Definir data padrão como hoje
+    const dataInput = document.getElementById('estoque-data');
+    if (dataInput) {
+        dataInput.value = window.AppUtils.getCurrentDateInput();
+    }
+
+    // Filtros de estoque
+    const filtrosEstoque = ['filtro-status', 'filtro-codigo'];
+    filtrosEstoque.forEach(filtroId => {
         const elemento = document.getElementById(filtroId);
         if (elemento) {
             elemento.addEventListener('change', aplicarFiltros);
-            elemento.addEventListener('input', aplicarFiltros);
+            elemento.addEventListener('input', window.AppUtils.debounce(aplicarFiltros, 300));
         }
     });
+
+    // Filtros de histórico
+    const filtrosHistorico = ['historico-data-inicio', 'historico-data-fim', 'historico-tipo', 'historico-poste'];
+    filtrosHistorico.forEach(filtroId => {
+        const elemento = document.getElementById(filtroId);
+        if (elemento) {
+            elemento.addEventListener('change', aplicarFiltrosHistorico);
+        }
+    });
+
+    // Definir datas padrão para histórico (últimos 30 dias)
+    const hoje = new Date();
+    const trintaDiasAtras = new Date(hoje);
+    trintaDiasAtras.setDate(hoje.getDate() - 30);
+    
+    const historicoInicio = document.getElementById('historico-data-inicio');
+    const historicoFim = document.getElementById('historico-data-fim');
+    
+    if (historicoInicio) {
+        historicoInicio.value = window.AppUtils.dateToInputValue(trintaDiasAtras);
+    }
+    if (historicoFim) {
+        historicoFim.value = window.AppUtils.dateToInputValue(hoje);
+    }
 }
+
+// ================================
+// CARREGAMENTO DE DADOS
+// ================================
 
 async function loadAllData() {
     try {
@@ -72,6 +128,7 @@ async function loadAllData() {
         estoqueData.todosPostes = unificarPostes(postesVermelho || [], postesBranco || []);
         
         populatePosteSelect();
+        populateHistoricoPosteSelect();
         updateResumo();
         aplicarFiltros();
         
@@ -85,67 +142,6 @@ async function loadAllData() {
     }
 }
 
-// Nova função para unificar postes de ambos os caminhões
-function unificarPostes(postesVermelho, postesBranco) {
-    console.log('🔄 Unificando postes de ambos os caminhões...');
-    
-    const postesUnificados = new Map();
-    
-    // Adicionar postes vermelho
-    postesVermelho.forEach(poste => {
-        const codigoBase = extrairCodigoBase(poste.codigo);
-        if (!postesUnificados.has(codigoBase)) {
-            postesUnificados.set(codigoBase, {
-                ...poste,
-                codigoOriginal: poste.codigo,
-                origemCaminhao: 'vermelho',
-                postesRelacionados: [poste]
-            });
-        } else {
-            // Se já existe, adicionar à lista de relacionados
-            postesUnificados.get(codigoBase).postesRelacionados.push(poste);
-        }
-    });
-    
-    // Adicionar postes branco
-    postesBranco.forEach(poste => {
-        const codigoBase = extrairCodigoBase(poste.codigo);
-        if (!postesUnificados.has(codigoBase)) {
-            postesUnificados.set(codigoBase, {
-                ...poste,
-                codigoOriginal: poste.codigo,
-                origemCaminhao: 'branco',
-                postesRelacionados: [poste]
-            });
-        } else {
-            // Se já existe, adicionar à lista de relacionados
-            const existente = postesUnificados.get(codigoBase);
-            existente.postesRelacionados.push(poste);
-            
-            // Se não tem origem definida ou é branco, atualizar info principal
-            if (existente.origemCaminhao === 'branco' || !existente.origemCaminhao) {
-                existente.codigo = poste.codigo;
-                existente.descricao = poste.descricao;
-                existente.preco = poste.preco;
-                existente.id = poste.id;
-                existente.origemCaminhao = 'ambos';
-            }
-        }
-    });
-    
-    const resultado = Array.from(postesUnificados.values());
-    console.log(`✅ Unificados ${resultado.length} tipos de postes únicos`);
-    
-    return resultado;
-}
-
-// Função para extrair código base (remove sufixos como -B, -C)
-function extrairCodigoBase(codigo) {
-    if (!codigo) return '';
-    return codigo.replace(/-[BC]$/, '').trim();
-}
-
-// Nova função para buscar estoque consolidado
 async function fetchEstoqueConsolidado() {
     try {
         console.log('📦 Buscando estoque consolidado completo...');
@@ -153,7 +149,7 @@ async function fetchEstoqueConsolidado() {
         const response = await fetch(`https://posteback.onrender.com/api/estoque`, {
             headers: {
                 'Content-Type': 'application/json',
-                'X-Tenant-ID': 'jefferson' // Jefferson pode ver tudo consolidado
+                'X-Tenant-ID': 'jefferson'
             }
         });
         
@@ -192,17 +188,66 @@ async function fetchPostesCaminhao(caminhao) {
     }
 }
 
-// Função atualizada para popular select sem necessidade de selecionar caminhão
+// ================================
+// UNIFICAÇÃO DE POSTES
+// ================================
+
+function unificarPostes(postesVermelho, postesBranco) {
+    console.log('🔄 Unificando postes de ambos os caminhões...');
+    
+    const postesUnificados = new Map();
+    
+    // Adicionar postes vermelho
+    postesVermelho.forEach(poste => {
+        const codigoBase = extrairCodigoBase(poste.codigo);
+        if (!postesUnificados.has(codigoBase)) {
+            postesUnificados.set(codigoBase, {
+                ...poste,
+                codigoOriginal: poste.codigo,
+                origemCaminhao: 'vermelho',
+                postesRelacionados: [poste]
+            });
+        } else {
+            postesUnificados.get(codigoBase).postesRelacionados.push(poste);
+        }
+    });
+    
+    // Adicionar postes branco
+    postesBranco.forEach(poste => {
+        const codigoBase = extrairCodigoBase(poste.codigo);
+        if (!postesUnificados.has(codigoBase)) {
+            postesUnificados.set(codigoBase, {
+                ...poste,
+                codigoOriginal: poste.codigo,
+                origemCaminhao: 'branco',
+                postesRelacionados: [poste]
+            });
+        } else {
+            const existente = postesUnificados.get(codigoBase);
+            existente.postesRelacionados.push(poste);
+            existente.origemCaminhao = 'ambos';
+        }
+    });
+    
+    const resultado = Array.from(postesUnificados.values());
+    console.log(`✅ Unificados ${resultado.length} tipos de postes únicos`);
+    
+    return resultado;
+}
+
+function extrairCodigoBase(codigo) {
+    if (!codigo) return '';
+    return codigo.replace(/-[BC]$/, '').trim();
+}
+
+// ================================
+// POPULAÇÃO DE SELECTS
+// ================================
+
 function populatePosteSelect() {
     const posteSelect = document.getElementById('estoque-poste');
     if (!posteSelect) return;
     
-    // Limpar opções existentes exceto a primeira
-    while (posteSelect.children.length > 1) {
-        posteSelect.removeChild(posteSelect.lastChild);
-    }
-    
-    // Adicionar todos os postes unificados
     posteSelect.innerHTML = '<option value="">Selecione um poste</option>';
     
     estoqueData.todosPostes
@@ -211,14 +256,13 @@ function populatePosteSelect() {
             const option = document.createElement('option');
             option.value = poste.id;
             
-            // Mostrar informação sobre origem se for de ambos os caminhões
             let origemInfo = '';
             if (poste.postesRelacionados && poste.postesRelacionados.length > 1) {
-                origemInfo = ' [Ambos]';
+                origemInfo = ' [🚛🚚 Ambos]';
             } else if (poste.origemCaminhao === 'vermelho') {
-                origemInfo = ' [🚛]';
+                origemInfo = ' [🚛 Vermelho]';
             } else if (poste.origemCaminhao === 'branco') {
-                origemInfo = ' [🚚]';
+                origemInfo = ' [🚚 Branco]';
             }
             
             option.textContent = `${poste.codigo} - ${poste.descricao} (${window.AppUtils.formatCurrency(poste.preco)})${origemInfo}`;
@@ -228,7 +272,26 @@ function populatePosteSelect() {
     console.log(`📋 Select populado com ${estoqueData.todosPostes.length} postes unificados`);
 }
 
-// Função de submit atualizada - escolhe automaticamente o melhor caminhão
+function populateHistoricoPosteSelect() {
+    const posteSelect = document.getElementById('historico-poste');
+    if (!posteSelect) return;
+    
+    posteSelect.innerHTML = '<option value="">Todos os postes</option>';
+    
+    estoqueData.todosPostes
+        .sort((a, b) => a.codigo.localeCompare(b.codigo))
+        .forEach(poste => {
+            const option = document.createElement('option');
+            option.value = poste.id;
+            option.textContent = `${poste.codigo} - ${poste.descricao}`;
+            posteSelect.appendChild(option);
+        });
+}
+
+// ================================
+// FORMULÁRIO DE ADIÇÃO
+// ================================
+
 async function handleEstoqueSubmit(e) {
     e.preventDefault();
     
@@ -241,18 +304,15 @@ async function handleEstoqueSubmit(e) {
         
         window.AppUtils.showLoading(true);
         
-        // Encontrar o poste selecionado para determinar qual caminhão usar
         const posteSelecionado = encontrarPostePorId(formData.posteId);
         if (!posteSelecionado) {
             throw new Error('Poste não encontrado');
         }
         
-        // Escolher o melhor caminhão para adicionar estoque
         const caminhaoEscolhido = escolherCaminhaoParaEstoque(posteSelecionado);
         
         console.log(`📦 Adicionando estoque via caminhão ${caminhaoEscolhido} para poste ${posteSelecionado.codigo}`);
         
-        // Fazer requisição para o caminhão escolhido
         const response = await fetch('https://posteback.onrender.com/api/estoque/adicionar', {
             method: 'POST',
             headers: {
@@ -261,7 +321,9 @@ async function handleEstoqueSubmit(e) {
             },
             body: JSON.stringify({
                 posteId: formData.posteId,
-                quantidade: formData.quantidade
+                quantidade: formData.quantidade,
+                dataEstoque: formData.dataEstoque,
+                observacao: formData.observacao
             })
         });
         
@@ -269,10 +331,20 @@ async function handleEstoqueSubmit(e) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        window.AppUtils.showAlert(`Estoque adicionado com sucesso via caminhão ${caminhaoEscolhido}!`, 'success');
-        resetForm();
+        const dataFormatada = window.AppUtils.formatDateBRFixed(formData.dataEstoque);
+        window.AppUtils.showAlert(
+            `Estoque de ${formData.quantidade} unidades adicionado com sucesso em ${dataFormatada}!`, 
+            'success'
+        );
         
+        resetForm();
         await loadAllData();
+        await carregarEstatisticasMovimento();
+        
+        // Se o histórico estiver visível, atualizar também
+        if (document.getElementById('historico-section').style.display !== 'none') {
+            await carregarHistoricoMovimentos();
+        }
         
     } catch (error) {
         console.error('Erro ao adicionar estoque:', error);
@@ -282,13 +354,32 @@ async function handleEstoqueSubmit(e) {
     }
 }
 
-// Nova função para encontrar poste por ID
+function buildFormData() {
+    return {
+        dataEstoque: document.getElementById('estoque-data').value,
+        posteId: parseInt(document.getElementById('estoque-poste').value),
+        quantidade: parseInt(document.getElementById('estoque-quantidade').value),
+        observacao: document.getElementById('estoque-observacao').value.trim() || null
+    };
+}
+
+function validateFormData(data) {
+    if (!window.AppUtils.validateDate(data.dataEstoque, 'Data do estoque')) {
+        return false;
+    }
+    
+    if (!window.AppUtils.validateRequired(data.posteId, 'Poste')) {
+        return false;
+    }
+    
+    return window.AppUtils.validateNumber(data.quantidade, 'Quantidade', 0);
+}
+
 function encontrarPostePorId(posteId) {
     for (const poste of estoqueData.todosPostes) {
         if (poste.id === posteId) {
             return poste;
         }
-        // Verificar também nos postes relacionados
         if (poste.postesRelacionados) {
             for (const relacionado of poste.postesRelacionados) {
                 if (relacionado.id === posteId) {
@@ -300,50 +391,73 @@ function encontrarPostePorId(posteId) {
     return null;
 }
 
-// Nova função para escolher qual caminhão usar para adicionar estoque
 function escolherCaminhaoParaEstoque(poste) {
-    // Se o poste tem origem específica, usar essa origem
     if (poste.origemCaminhao === 'vermelho' || poste.origemCaminhao === 'branco') {
         return poste.origemCaminhao;
     }
     
-    // Se é de ambos os caminhões, verificar qual tem menor estoque atual
-    if (poste.postesRelacionados && poste.postesRelacionados.length > 1) {
-        // Por padrão, usar vermelho (ou implementar lógica mais sofisticada)
-        return 'vermelho';
-    }
-    
-    // Padrão: vermelho
-    return 'vermelho';
+    return 'vermelho'; // Padrão
 }
 
-function buildFormData() {
-    return {
-        posteId: parseInt(document.getElementById('estoque-poste').value),
-        quantidade: parseInt(document.getElementById('estoque-quantidade').value),
-        observacao: document.getElementById('estoque-observacao').value.trim() || null
-    };
+function resetForm() {
+    document.getElementById('estoque-form').reset();
+    
+    const dataInput = document.getElementById('estoque-data');
+    if (dataInput) {
+        dataInput.value = window.AppUtils.getCurrentDateInput();
+    }
 }
 
-function validateFormData(data) {
-    if (!window.AppUtils.validateRequired(data.posteId, 'Poste')) {
-        return false;
-    }
-    
-    return window.AppUtils.validateNumber(data.quantidade, 'Quantidade', 0);
-}
+// ================================
+// RESUMO E ESTATÍSTICAS
+// ================================
 
 function updateResumo() {
     const total = estoqueData.estoqueConsolidado.length;
-    const positivo = estoqueData.estoqueConsolidado.filter(item => item.quantidadeAtual > 0).length;
+    const positivo = estoqueData.estoqueConsolidado.filter(item => item.quantidadeAtual > 5).length;
+    const baixo = estoqueData.estoqueConsolidado.filter(item => item.quantidadeAtual > 0 && item.quantidadeAtual <= 5).length;
     const zero = estoqueData.estoqueConsolidado.filter(item => item.quantidadeAtual === 0).length;
     const negativo = estoqueData.estoqueConsolidado.filter(item => item.quantidadeAtual < 0).length;
     
     window.AppUtils.updateElement('total-tipos', total);
     window.AppUtils.updateElement('estoque-positivo', positivo);
+    window.AppUtils.updateElement('estoque-baixo', baixo);
     window.AppUtils.updateElement('estoque-negativo', negativo);
     window.AppUtils.updateElement('estoque-zero', zero);
 }
+
+async function carregarEstatisticasMovimento() {
+    try {
+        const response = await fetch('https://posteback.onrender.com/api/movimento-estoque/estatisticas', {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-ID': 'jefferson'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const stats = await response.json();
+        estoqueData.estatisticasMovimento = stats;
+        
+        // Atualizar elementos da interface
+        window.AppUtils.updateElement('total-entradas', stats.totalEntradas || 0);
+        window.AppUtils.updateElement('total-saidas', stats.totalSaidas || 0);
+        window.AppUtils.updateElement('total-vendas', stats.totalVendas || 0);
+        window.AppUtils.updateElement('total-ajustes', stats.totalAjustes || 0);
+        
+        console.log('📊 Estatísticas de movimento carregadas');
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar estatísticas:', error);
+    }
+}
+
+// ================================
+// FILTROS DE ESTOQUE
+// ================================
 
 function aplicarFiltros() {
     const status = document.getElementById('filtro-status').value;
@@ -356,10 +470,10 @@ function aplicarFiltros() {
         filtrados = filtrados.filter(item => {
             const qtd = item.quantidadeAtual;
             switch (status) {
-                case 'positivo': return qtd > 0;
+                case 'positivo': return qtd > 5;
+                case 'baixo': return qtd > 0 && qtd <= 5;
                 case 'zero': return qtd === 0;
                 case 'negativo': return qtd < 0;
-                case 'baixo': return qtd > 0 && qtd <= 5;
                 default: return true;
             }
         });
@@ -375,6 +489,17 @@ function aplicarFiltros() {
 
     displayEstoque(filtrados);
 }
+
+function limparFiltros() {
+    document.getElementById('filtro-status').value = '';
+    document.getElementById('filtro-codigo').value = '';
+    aplicarFiltros();
+    window.AppUtils.showAlert('Filtros de estoque limpos', 'success');
+}
+
+// ================================
+// DISPLAY DE ESTOQUE
+// ================================
 
 function displayEstoque(estoque) {
     const container = document.getElementById('estoque-list');
@@ -405,7 +530,6 @@ function createEstoqueItem(item) {
     
     element.className = `mobile-list-item ${statusClass}`;
     
-    // Para estoque consolidado unificado
     element.innerHTML = `
         <div class="item-header">
             <span class="item-status ${statusClass}">
@@ -422,6 +546,15 @@ function createEstoqueItem(item) {
             </div>
             <div class="item-details">Preço: ${window.AppUtils.formatCurrency(item.precoPoste || 0)}</div>
             ${item.dataAtualizacao ? `<div class="item-details"><small>Atualizado: ${window.AppUtils.formatDateBR(item.dataAtualizacao, true)}</small></div>` : ''}
+        </div>
+        
+        <div class="item-actions">
+            <button class="btn btn-small" onclick="verHistoricoPoste(${item.posteId}, '${item.codigoPoste}')">
+                📋 Ver Histórico
+            </button>
+            <button class="btn btn-small" onclick="adicionarEstoqueRapido(${item.posteId}, '${item.codigoPoste}')">
+                ➕ Add Rápido
+            </button>
         </div>
     `;
     
@@ -442,16 +575,362 @@ function getStatusText(quantidade) {
     return '🔻 Negativo';
 }
 
-function resetForm() {
-    document.getElementById('estoque-form').reset();
+// ================================
+// HISTÓRICO DE MOVIMENTOS
+// ================================
+
+async function carregarHistoricoMovimentos() {
+    try {
+        window.AppUtils.showLoading(true);
+        
+        const dataInicio = document.getElementById('historico-data-inicio').value;
+        const dataFim = document.getElementById('historico-data-fim').value;
+        const tipo = document.getElementById('historico-tipo').value;
+        const posteId = document.getElementById('historico-poste').value;
+        
+        let url = 'https://posteback.onrender.com/api/movimento-estoque/consolidado?limite=200';
+        
+        if (dataInicio) url += `&dataInicio=${dataInicio}`;
+        if (dataFim) url += `&dataFim=${dataFim}`;
+        
+        const response = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-ID': 'jefferson'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        let movimentos = await response.json();
+        
+        // Filtrar por tipo se especificado
+        if (tipo) {
+            movimentos = movimentos.filter(m => m.tipoMovimento === tipo);
+        }
+        
+        // Filtrar por poste se especificado
+        if (posteId) {
+            movimentos = movimentos.filter(m => m.posteId == posteId);
+        }
+        
+        estoqueData.historicoMovimentos = movimentos;
+        displayHistorico(movimentos);
+        
+        console.log(`📋 Histórico carregado: ${movimentos.length} movimentos`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar histórico:', error);
+        window.AppUtils.showAlert('Erro ao carregar histórico de movimentos', 'error');
+    } finally {
+        window.AppUtils.showLoading(false);
+    }
 }
 
-function limparFiltros() {
-    document.getElementById('filtro-status').value = '';
-    document.getElementById('filtro-codigo').value = '';
-    aplicarFiltros();
-    window.AppUtils.showAlert('Filtros limpos', 'success');
+function displayHistorico(movimentos) {
+    const container = document.getElementById('historico-list');
+    if (!container) return;
+    
+    if (!movimentos || movimentos.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <h3>Nenhum movimento encontrado</h3>
+                <p>Ajuste os filtros para ver mais movimentos.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    movimentos.forEach(movimento => {
+        const element = createMovimentoItem(movimento);
+        container.appendChild(element);
+    });
 }
+
+function createMovimentoItem(movimento) {
+    const element = document.createElement('div');
+    const tipoClass = getTipoMovimentoClass(movimento.tipoMovimento);
+    
+    element.className = `mobile-list-item ${tipoClass}`;
+    
+    const iconeMovimento = getTipoMovimentoIcon(movimento.tipoMovimento);
+    const dataFormatada = window.AppUtils.formatDateBRFixed(movimento.dataMovimento);
+    const dataRegistroFormatada = window.AppUtils.formatDateBR(movimento.dataRegistro, true);
+    
+    element.innerHTML = `
+        <div class="item-header">
+            <span class="item-type ${tipoClass}">
+                ${iconeMovimento} ${movimento.tipoMovimentoDescricao}
+            </span>
+            <span class="item-date">${dataFormatada}</span>
+        </div>
+        
+        <div class="item-content">
+            <div class="item-title">
+                <strong>${movimento.codigoPoste}</strong> - ${movimento.descricaoPoste}
+            </div>
+            
+            <div class="item-details">
+                <div class="item-detail">
+                    <span class="item-detail-label">Quantidade</span>
+                    <span class="item-detail-value">${movimento.quantidade} unidades</span>
+                </div>
+                <div class="item-detail">
+                    <span class="item-detail-label">Valor Unit.</span>
+                    <span class="item-detail-value currency">${window.AppUtils.formatCurrency(movimento.precoPoste || 0)}</span>
+                </div>
+                <div class="item-detail">
+                    <span class="item-detail-label">Valor Total</span>
+                    <span class="item-detail-value currency">${window.AppUtils.formatCurrency(movimento.valorMovimento || 0)}</span>
+                </div>
+                <div class="item-detail">
+                    <span class="item-detail-label">Caminhão</span>
+                    <span class="item-detail-value">${getTenantLabel(movimento.tenantId)}</span>
+                </div>
+            </div>
+            
+            ${movimento.quantidadeAnterior !== null && movimento.quantidadeAtual !== null ? `
+                <div class="item-details" style="margin-top: 10px;">
+                    <small style="color: var(--text-secondary);">
+                        Estoque: ${movimento.quantidadeAnterior} → ${movimento.quantidadeAtual}
+                        (${movimento.quantidadeAtual - movimento.quantidadeAnterior > 0 ? '+' : ''}${movimento.quantidadeAtual - movimento.quantidadeAnterior})
+                    </small>
+                </div>
+            ` : ''}
+            
+            ${movimento.observacao ? `
+                <div class="item-details" style="margin-top: 10px; padding: 8px; background: var(--bg-primary); border-radius: 4px;">
+                    <strong>📝 Observação:</strong><br>
+                    <span style="color: var(--text-secondary);">${movimento.observacao}</span>
+                </div>
+            ` : ''}
+            
+            <div class="item-details" style="margin-top: 8px;">
+                <small style="color: var(--text-muted);">
+                    Registrado em: ${dataRegistroFormatada}
+                </small>
+            </div>
+        </div>
+        
+        <div class="item-actions">
+            <button class="btn btn-small" onclick="verDetalhesMovimento(${movimento.id})">
+                🔍 Detalhes
+            </button>
+        </div>
+    `;
+    
+    return element;
+}
+
+function getTipoMovimentoClass(tipo) {
+    const classes = {
+        'ENTRADA': 'entrada',
+        'SAIDA': 'saida',
+        'VENDA': 'venda',
+        'AJUSTE': 'ajuste',
+        'TRANSFERENCIA': 'transferencia'
+    };
+    return classes[tipo] || '';
+}
+
+function getTipoMovimentoIcon(tipo) {
+    const icons = {
+        'ENTRADA': '📥',
+        'SAIDA': '📤',
+        'VENDA': '🛒',
+        'AJUSTE': '⚙️',
+        'TRANSFERENCIA': '🔄'
+    };
+    return icons[tipo] || '📋';
+}
+
+function getTenantLabel(tenantId) {
+    const labels = {
+        'vermelho': '🚛 Vermelho',
+        'branco': '🚚 Branco',
+        'jefferson': '👨‍💼 Jefferson'
+    };
+    return labels[tenantId] || tenantId;
+}
+
+// ================================
+// FILTROS DE HISTÓRICO
+// ================================
+
+function aplicarFiltrosHistorico() {
+    carregarHistoricoMovimentos();
+}
+
+function limparFiltrosHistorico() {
+    const hoje = new Date();
+    const trintaDiasAtras = new Date(hoje);
+    trintaDiasAtras.setDate(hoje.getDate() - 30);
+    
+    document.getElementById('historico-data-inicio').value = window.AppUtils.dateToInputValue(trintaDiasAtras);
+    document.getElementById('historico-data-fim').value = window.AppUtils.dateToInputValue(hoje);
+    document.getElementById('historico-tipo').value = '';
+    document.getElementById('historico-poste').value = '';
+    
+    carregarHistoricoMovimentos();
+    window.AppUtils.showAlert('Filtros de histórico limpos', 'success');
+}
+
+// ================================
+// AÇÕES RÁPIDAS
+// ================================
+
+function adicionarEstoqueRapido(posteId, codigoPoste) {
+    const quantidade = prompt(`Quantidade a adicionar ao poste ${codigoPoste}:`, '1');
+    
+    if (quantidade === null || quantidade.trim() === '') {
+        return;
+    }
+    
+    const qtd = parseInt(quantidade);
+    if (isNaN(qtd) || qtd <= 0) {
+        window.AppUtils.showAlert('Quantidade deve ser um número positivo', 'warning');
+        return;
+    }
+    
+    // Preencher formulário
+    document.getElementById('estoque-poste').value = posteId;
+    document.getElementById('estoque-quantidade').value = qtd;
+    document.getElementById('estoque-observacao').value = `Adição rápida via histórico`;
+    
+    // Scroll para o formulário
+    window.AppUtils.scrollToElement('estoque-form', 80);
+    
+    window.AppUtils.showAlert(`Formulário preenchido para ${codigoPoste}. Clique em "Adicionar" para confirmar.`, 'info');
+}
+
+async function verHistoricoPoste(posteId, codigoPoste) {
+    try {
+        // Mostrar seção de histórico
+        const historicoSection = document.getElementById('historico-section');
+        historicoSection.style.display = 'block';
+        
+        // Configurar filtro para o poste específico
+        document.getElementById('historico-poste').value = posteId;
+        
+        // Carregar histórico
+        await carregarHistoricoMovimentos();
+        
+        // Scroll para a seção
+        window.AppUtils.scrollToElement('historico-section', 80);
+        
+        window.AppUtils.showAlert(`Histórico do poste ${codigoPoste} carregado`, 'success');
+        
+    } catch (error) {
+        console.error('Erro ao carregar histórico do poste:', error);
+        window.AppUtils.showAlert('Erro ao carregar histórico do poste', 'error');
+    }
+}
+
+async function verDetalhesMovimento(movimentoId) {
+    try {
+        const movimento = estoqueData.historicoMovimentos.find(m => m.id === movimentoId);
+        if (!movimento) {
+            window.AppUtils.showAlert('Movimento não encontrado', 'warning');
+            return;
+        }
+        
+        const detalhes = document.getElementById('movimento-detalhes');
+        detalhes.innerHTML = `
+            <div style="display: grid; gap: 15px;">
+                <div>
+                    <strong>📋 Movimento ID:</strong> ${movimento.id}
+                </div>
+                
+                <div>
+                    <strong>📦 Poste:</strong> ${movimento.codigoPoste} - ${movimento.descricaoPoste}
+                </div>
+                
+                <div>
+                    <strong>🔄 Tipo:</strong> ${getTipoMovimentoIcon(movimento.tipoMovimento)} ${movimento.tipoMovimentoDescricao}
+                </div>
+                
+                <div>
+                    <strong>📊 Quantidade:</strong> ${movimento.quantidade} unidades
+                </div>
+                
+                <div>
+                    <strong>📅 Data do Movimento:</strong> ${window.AppUtils.formatDateBRFixed(movimento.dataMovimento)}
+                </div>
+                
+                <div>
+                    <strong>🕒 Data de Registro:</strong> ${window.AppUtils.formatDateBR(movimento.dataRegistro, true)}
+                </div>
+                
+                <div>
+                    <strong>🚛 Caminhão:</strong> ${getTenantLabel(movimento.tenantId)}
+                </div>
+                
+                ${movimento.quantidadeAnterior !== null ? `
+                    <div>
+                        <strong>📈 Estoque Anterior:</strong> ${movimento.quantidadeAnterior} unidades
+                    </div>
+                ` : ''}
+                
+                ${movimento.quantidadeAtual !== null ? `
+                    <div>
+                        <strong>📊 Estoque Atual:</strong> ${movimento.quantidadeAtual} unidades
+                    </div>
+                ` : ''}
+                
+                <div>
+                    <strong>💰 Valor Unitário:</strong> ${window.AppUtils.formatCurrency(movimento.precoPoste || 0)}
+                </div>
+                
+                <div>
+                    <strong>💰 Valor Total:</strong> ${window.AppUtils.formatCurrency(movimento.valorMovimento || 0)}
+                </div>
+                
+                ${movimento.observacao ? `
+                    <div>
+                        <strong>📝 Observação:</strong><br>
+                        <div style="background: var(--bg-primary); padding: 10px; border-radius: 4px; margin-top: 5px;">
+                            ${movimento.observacao}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        window.AppUtils.showModal('movimento-modal');
+        
+    } catch (error) {
+        console.error('Erro ao exibir detalhes do movimento:', error);
+        window.AppUtils.showAlert('Erro ao carregar detalhes do movimento', 'error');
+    }
+}
+
+// ================================
+// TOGGLE E NAVEGAÇÃO
+// ================================
+
+function toggleHistoricoGeral() {
+    const historicoSection = document.getElementById('historico-section');
+    const isVisible = historicoSection.style.display !== 'none';
+    
+    if (isVisible) {
+        historicoSection.style.display = 'none';
+        window.AppUtils.showAlert('Histórico ocultado', 'info');
+    } else {
+        historicoSection.style.display = 'block';
+        carregarHistoricoMovimentos();
+        window.AppUtils.scrollToElement('historico-section', 80);
+        window.AppUtils.showAlert('Histórico exibido', 'success');
+    }
+}
+
+// ================================
+// ATUALIZAÇÕES E EXPORTS
+// ================================
 
 async function atualizarEstoque() {
     try {
@@ -460,6 +939,16 @@ async function atualizarEstoque() {
     } catch (error) {
         console.error('Erro ao atualizar estoque:', error);
         window.AppUtils.showAlert('Erro ao atualizar. Verifique sua conexão.', 'error');
+    }
+}
+
+async function atualizarHistorico() {
+    try {
+        await carregarHistoricoMovimentos();
+        window.AppUtils.showAlert('Histórico atualizado com sucesso!', 'success');
+    } catch (error) {
+        console.error('Erro ao atualizar histórico:', error);
+        window.AppUtils.showAlert('Erro ao atualizar histórico.', 'error');
     }
 }
 
@@ -483,10 +972,47 @@ function exportarEstoque() {
     window.AppUtils.exportToCSV(dadosExportar, `estoque_unificado_${new Date().toISOString().split('T')[0]}`);
 }
 
-// Disponibilizar funções globalmente
+function exportarHistorico() {
+    if (!estoqueData.historicoMovimentos || estoqueData.historicoMovimentos.length === 0) {
+        window.AppUtils.showAlert('Nenhum histórico para exportar', 'warning');
+        return;
+    }
+    
+    const dadosExportar = estoqueData.historicoMovimentos.map(movimento => ({
+        'ID': movimento.id,
+        'Data Movimento': window.AppUtils.formatDateBRFixed(movimento.dataMovimento),
+        'Data Registro': window.AppUtils.formatDateBR(movimento.dataRegistro, true),
+        'Código Poste': movimento.codigoPoste,
+        'Descrição': movimento.descricaoPoste,
+        'Tipo': movimento.tipoMovimentoDescricao,
+        'Quantidade': movimento.quantidade,
+        'Valor Unitário': movimento.precoPoste || 0,
+        'Valor Total': movimento.valorMovimento || 0,
+        'Quantidade Anterior': movimento.quantidadeAnterior || '-',
+        'Quantidade Atual': movimento.quantidadeAtual || '-',
+        'Caminhão': getTenantLabel(movimento.tenantId),
+        'Observação': movimento.observacao || '-'
+    }));
+    
+    window.AppUtils.exportToCSV(dadosExportar, `historico_movimentos_${new Date().toISOString().split('T')[0]}`);
+}
+
+// ================================
+// DISPONIBILIZAR FUNÇÕES GLOBALMENTE
+// ================================
+
 window.aplicarFiltros = aplicarFiltros;
 window.limparFiltros = limparFiltros;
+window.aplicarFiltrosHistorico = aplicarFiltrosHistorico;
+window.limparFiltrosHistorico = limparFiltrosHistorico;
 window.atualizarEstoque = atualizarEstoque;
+window.atualizarHistorico = atualizarHistorico;
 window.exportarEstoque = exportarEstoque;
+window.exportarHistorico = exportarHistorico;
+window.toggleHistoricoGeral = toggleHistoricoGeral;
+window.verHistoricoPoste = verHistoricoPoste;
+window.adicionarEstoqueRapido = adicionarEstoqueRapido;
+window.verDetalhesMovimento = verDetalhesMovimento;
+window.scrollToElement = window.AppUtils.scrollToElement;
 
-console.log('✅ Estoque Consolidado UNIFICADO carregado');
+console.log('✅ Estoque Consolidado UNIFICADO COM HISTÓRICO carregado');

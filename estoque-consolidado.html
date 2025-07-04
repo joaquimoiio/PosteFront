@@ -26,22 +26,24 @@
                 <span class="nav-icon">📦</span>
                 <span>Estoque Geral</span>
             </a>
-            <!-- <a href="estoque-vermelho.html" class="nav-item">
-                <span class="nav-icon">🚛</span>
-                <span>Est. Vermelho</span>
-            </a>
-            <a href="estoque-branco.html" class="nav-item">
-                <span class="nav-icon">🚚</span>
-                <span>Est. Branco</span>
-            </a> -->
+            
         </div>
     </nav>
 
     <main class="main-content">
+        <!-- SEÇÃO: FORMULÁRIO DE ADIÇÃO -->
         <section class="form-section">
             <h2>➕ Adicionar Estoque - Sistema Unificado</h2>
             
             <form id="estoque-form">
+                <div class="form-group">
+                    <label for="estoque-data">Data do Estoque *</label>
+                    <input type="date" id="estoque-data" required>
+                    <small style="color: var(--text-secondary); margin-top: 5px; display: block;">
+                        Data em que o estoque foi adicionado (pode ser retroativa)
+                    </small>
+                </div>
+
                 <div class="form-group">
                     <label for="estoque-poste">Poste *</label>
                     <select id="estoque-poste" required>
@@ -51,12 +53,15 @@
 
                 <div class="form-group">
                     <label for="estoque-quantidade">Quantidade *</label>
-                    <input type="number" id="estoque-quantidade" required placeholder="Ex: 10" min="1">
+                    <input type="number" id="estoque-quantidade" required placeholder="Ex: 10" min="1" max="9999">
                 </div>
 
                 <div class="form-group">
                     <label for="estoque-observacao">Observação</label>
                     <input type="text" id="estoque-observacao" placeholder="Ex: Compra, devolução, transferência..." maxlength="255">
+                    <small style="color: var(--text-secondary); margin-top: 5px; display: block;">
+                        Opcional: Descreva o motivo da adição do estoque
+                    </small>
                 </div>
 
                 <div class="form-actions">
@@ -64,12 +69,13 @@
                         📦 Adicionar ao Estoque Unificado
                     </button>
                     <button type="reset" class="btn btn-secondary">
-                        🔄 Limpar
+                        🔄 Limpar Formulário
                     </button>
                 </div>
             </form>
         </section>
 
+        <!-- SEÇÃO: RESUMO DO ESTOQUE -->
         <section class="summary-section">
             <h2>📊 Resumo do Estoque Consolidado</h2>
             <div class="stats-grid">
@@ -93,25 +99,31 @@
                     <div class="stat-number" id="estoque-zero">0</div>
                     <div class="stat-label">Estoque Zero</div>
                 </div>
+                <div class="stat-item baixo">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-number" id="estoque-baixo">0</div>
+                    <div class="stat-label">Estoque Baixo (≤5)</div>
+                </div>
             </div>
         </section>
 
+        <!-- SEÇÃO: FILTROS -->
         <section class="filter-section">
-            <h2>🔍 Filtros</h2>
+            <h2>🔍 Filtros do Estoque</h2>
             <div class="filter-grid">
                 <div class="filter-group">
                     <label for="filtro-status">Status do Estoque</label>
                     <select id="filtro-status">
                         <option value="">Todos os status</option>
-                        <option value="positivo">✅ Positivo (> 0)</option>
+                        <option value="positivo">✅ Positivo (> 5)</option>
+                        <option value="baixo">⚠️ Baixo (1-5)</option>
                         <option value="zero">📦 Zero (= 0)</option>
                         <option value="negativo">🔻 Negativo (< 0)</option>
-                        <option value="baixo">⚠️ Baixo (<= 5)</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filtro-codigo">Código</label>
-                    <input type="text" id="filtro-codigo" placeholder="Buscar código...">
+                    <label for="filtro-codigo">Código do Poste</label>
+                    <input type="text" id="filtro-codigo" placeholder="Buscar código ou descrição...">
                 </div>
                 <div class="filter-actions">
                     <button class="btn btn-primary" onclick="aplicarFiltros()">
@@ -124,6 +136,7 @@
             </div>
         </section>
 
+        <!-- SEÇÃO: LISTA DE ESTOQUE -->
         <section class="table-section">
             <div class="section-header">
                 <h2>📦 Estoque Consolidado Completo</h2>
@@ -132,7 +145,10 @@
                         🔄 Atualizar
                     </button>
                     <button class="btn btn-small" onclick="exportarEstoque()">
-                        📊 Exportar
+                        📊 Exportar CSV
+                    </button>
+                    <button class="btn btn-small" onclick="toggleHistoricoGeral()">
+                        📋 Ver Histórico
                     </button>
                 </div>
             </div>
@@ -143,14 +159,138 @@
                 </div>
             </div>
         </section>
+
+        <!-- SEÇÃO: HISTÓRICO DE MOVIMENTOS -->
+        <section id="historico-section" class="table-section" style="display: none;">
+            <div class="section-header">
+                <h2>📋 Histórico de Movimentos de Estoque</h2>
+                <div class="section-actions">
+                    <button class="btn btn-small" onclick="atualizarHistorico()">
+                        🔄 Atualizar
+                    </button>
+                    <button class="btn btn-small" onclick="exportarHistorico()">
+                        📊 Exportar
+                    </button>
+                    <button class="btn btn-small" onclick="toggleHistoricoGeral()">
+                        ✖️ Fechar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtros do Histórico -->
+            <div class="filter-section" style="margin-bottom: 20px;">
+                <h3>🔍 Filtros do Histórico</h3>
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label for="historico-data-inicio">Data Início</label>
+                        <input type="date" id="historico-data-inicio">
+                    </div>
+                    <div class="filter-group">
+                        <label for="historico-data-fim">Data Fim</label>
+                        <input type="date" id="historico-data-fim">
+                    </div>
+                    <div class="filter-group">
+                        <label for="historico-tipo">Tipo de Movimento</label>
+                        <select id="historico-tipo">
+                            <option value="">Todos os tipos</option>
+                            <option value="ENTRADA">📥 Entrada</option>
+                            <option value="SAIDA">📤 Saída</option>
+                            <option value="VENDA">🛒 Venda</option>
+                            <option value="AJUSTE">⚙️ Ajuste</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="historico-poste">Poste Específico</label>
+                        <select id="historico-poste">
+                            <option value="">Todos os postes</option>
+                            <!-- Será populado dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" onclick="aplicarFiltrosHistorico()">
+                            🔍 Filtrar Histórico
+                        </button>
+                        <button class="btn btn-secondary" onclick="limparFiltrosHistorico()">
+                            🧹 Limpar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div id="historico-list" class="mobile-list">
+                    <!-- Histórico será carregado dinamicamente -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: RELATÓRIOS E ESTATÍSTICAS -->
+        <section id="relatorios-section" class="stats-section">
+            <h2>📊 Relatórios e Estatísticas</h2>
+            
+            <!-- Estatísticas de Movimento -->
+            <div class="charts-section">
+                <h3>📈 Estatísticas de Movimento (Últimos 30 dias)</h3>
+                <div class="stats-grid">
+                    <div class="stat-item entrada">
+                        <div class="stat-icon">📥</div>
+                        <div class="stat-number" id="total-entradas">0</div>
+                        <div class="stat-label">Total Entradas</div>
+                    </div>
+                    <div class="stat-item saida">
+                        <div class="stat-icon">📤</div>
+                        <div class="stat-number" id="total-saidas">0</div>
+                        <div class="stat-label">Total Saídas</div>
+                    </div>
+                    <div class="stat-item venda">
+                        <div class="stat-icon">🛒</div>
+                        <div class="stat-number" id="total-vendas">0</div>
+                        <div class="stat-label">Vendas</div>
+                    </div>
+                    <div class="stat-item ajuste">
+                        <div class="stat-icon">⚙️</div>
+                        <div class="stat-number" id="total-ajustes">0</div>
+                        <div class="stat-label">Ajustes</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Postes -->
+            <div class="charts-section">
+                <h3>🏆 Top 5 Postes com Mais Movimentos</h3>
+                <div id="top-postes" class="mobile-list">
+                    <!-- Será carregado dinamicamente -->
+                </div>
+            </div>
+        </section>
     </main>
 
+    <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
         <p>Carregando estoque unificado...</p>
     </div>
 
+    <!-- Alert Container -->
     <div id="alert-container" class="alert-container"></div>
+
+    <!-- Modal para Detalhes do Movimento -->
+    <div id="movimento-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 Detalhes do Movimento</h3>
+                <button class="close-btn" onclick="closeModal('movimento-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="movimento-detalhes">
+                <!-- Conteúdo será carregado dinamicamente -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('movimento-modal')">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="js/estoque-consolidado.js"></script>
 </body>
