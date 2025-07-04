@@ -26,12 +26,19 @@
                 <span class="nav-icon">📦</span>
                 <span>Estoque Geral</span>
             </a>
-            
+            <a href="#" class="nav-item" onclick="scrollToElement('historico-section')">
+                <span class="nav-icon">📋</span>
+                <span>Histórico</span>
+            </a>
+            <a href="#" class="nav-item" onclick="scrollToElement('relatorios-section')">
+                <span class="nav-icon">📊</span>
+                <span>Relatórios</span>
+            </a>
         </div>
     </nav>
 
     <main class="main-content">
-        <!-- SEÇÃO: FORMULÁRIO DE ADIÇÃO -->
+        <!-- SEÇÃO: FORMULÁRIO DE ADIÇÃO/REMOÇÃO -->
         <section class="form-section">
             <h2>➕ Adicionar Estoque - Sistema Unificado</h2>
             
@@ -73,6 +80,14 @@
                     </button>
                 </div>
             </form>
+            
+            <div style="margin-top: 20px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; border-left: 4px solid var(--info);">
+                <h4 style="margin-bottom: 10px; color: var(--info);">💡 Dica:</h4>
+                <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">
+                    Use os botões <strong>"➕ Add Rápido"</strong> e <strong>"➖ Remover Rápido"</strong> nos itens de estoque para ações rápidas.
+                    Para remoções, você pode criar estoque negativo se necessário.
+                </p>
+            </div>
         </section>
 
         <!-- SEÇÃO: RESUMO DO ESTOQUE -->
