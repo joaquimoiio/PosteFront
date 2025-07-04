@@ -549,8 +549,8 @@ function createEstoqueItem(item) {
         </div>
         
         <div class="item-actions">
-            <button class="btn btn-small" onclick="verHistoricoPoste(${item.posteId}, '${item.codigoPoste}')">
-                📋 Ver Histórico
+            <button class="btn btn-small btn-danger" onclick="removerEstoqueRapido(${item.posteId}, '${item.codigoPoste}', ${item.quantidadeAtual})" ${item.quantidadeAtual <= 0 ? 'disabled' : ''}>
+                ➖ Remover Rápido
             </button>
             <button class="btn btn-small" onclick="adicionarEstoqueRapido(${item.posteId}, '${item.codigoPoste}')">
                 ➕ Add Rápido
@@ -800,12 +800,116 @@ function adicionarEstoqueRapido(posteId, codigoPoste) {
     // Preencher formulário
     document.getElementById('estoque-poste').value = posteId;
     document.getElementById('estoque-quantidade').value = qtd;
-    document.getElementById('estoque-observacao').value = `Adição rápida via histórico`;
+    document.getElementById('estoque-observacao').value = `Adição rápida via interface`;
     
     // Scroll para o formulário
     window.AppUtils.scrollToElement('estoque-form', 80);
     
     window.AppUtils.showAlert(`Formulário preenchido para ${codigoPoste}. Clique em "Adicionar" para confirmar.`, 'info');
+}
+
+async function removerEstoqueRapido(posteId, codigoPoste, quantidadeAtual) {
+    // Verificar se há estoque para remover
+    if (quantidadeAtual <= 0) {
+        window.AppUtils.showAlert(`Poste ${codigoPoste} não possui estoque para remover`, 'warning');
+        return;
+    }
+    
+    const quantidadeMaxima = Math.min(quantidadeAtual, 50); // Limite de segurança
+    const quantidade = prompt(
+        `Quantidade a remover do poste ${codigoPoste}:\n(Estoque atual: ${quantidadeAtual} unidades)`, 
+        '1'
+    );
+    
+    if (quantidade === null || quantidade.trim() === '') {
+        return;
+    }
+    
+    const qtd = parseInt(quantidade);
+    if (isNaN(qtd) || qtd <= 0) {
+        window.AppUtils.showAlert('Quantidade deve ser um número positivo', 'warning');
+        return;
+    }
+    
+    if (qtd > quantidadeAtual) {
+        const confirmar = confirm(
+            `⚠️ ATENÇÃO: Você está tentando remover ${qtd} unidades, mas o estoque atual é de apenas ${quantidadeAtual} unidades.\n\n` +
+            `Isso criará um estoque NEGATIVO de ${qtd - quantidadeAtual} unidades.\n\n` +
+            `Deseja continuar mesmo assim?`
+        );
+        
+        if (!confirmar) {
+            return;
+        }
+    }
+    
+    // Confirmar remoção
+    const motivo = prompt(
+        `Motivo da remoção de ${qtd} unidades do poste ${codigoPoste}:`,
+        'Remoção rápida via interface'
+    );
+    
+    if (motivo === null) {
+        return;
+    }
+    
+    try {
+        window.AppUtils.showLoading(true);
+        
+        // Encontrar o poste para determinar o caminhão
+        const posteSelecionado = encontrarPostePorId(posteId);
+        if (!posteSelecionado) {
+            throw new Error('Poste não encontrado');
+        }
+        
+        const caminhaoEscolhido = escolherCaminhaoParaEstoque(posteSelecionado);
+        
+        console.log(`📤 Removendo ${qtd} unidades via caminhão ${caminhaoEscolhido} do poste ${codigoPoste}`);
+        
+        const response = await fetch('https://posteback.onrender.com/api/estoque/remover', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-ID': caminhaoEscolhido
+            },
+            body: JSON.stringify({
+                posteId: posteId,
+                quantidade: qtd,
+                dataEstoque: new Date().toISOString().split('T')[0], // Data de hoje
+                observacao: motivo.trim() || 'Remoção rápida via interface'
+            })
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const novaQuantidade = quantidadeAtual - qtd;
+        const statusMsg = novaQuantidade < 0 ? 
+            `(estoque ficou negativo: ${novaQuantidade})` : 
+            `(estoque atual: ${novaQuantidade})`;
+        
+        window.AppUtils.showAlert(
+            `${qtd} unidades removidas do poste ${codigoPoste} ${statusMsg}`, 
+            novaQuantidade < 0 ? 'warning' : 'success'
+        );
+        
+        // Recarregar dados
+        await loadAllData();
+        await carregarEstatisticasMovimento();
+        
+        // Se o histórico estiver visível, atualizar também
+        if (document.getElementById('historico-section').style.display !== 'none') {
+            await carregarHistoricoMovimentos();
+        }
+        
+    } catch (error) {
+        console.error('Erro ao remover estoque:', error);
+        window.AppUtils.showAlert('Erro ao remover estoque: ' + error.message, 'error');
+    } finally {
+        window.AppUtils.showLoading(false);
+    }
 }
 
 async function verHistoricoPoste(posteId, codigoPoste) {
@@ -1013,6 +1117,7 @@ window.toggleHistoricoGeral = toggleHistoricoGeral;
 window.verHistoricoPoste = verHistoricoPoste;
 window.adicionarEstoqueRapido = adicionarEstoqueRapido;
 window.verDetalhesMovimento = verDetalhesMovimento;
+window.removerEstoqueRapido = removerEstoqueRapido;
 window.scrollToElement = window.AppUtils.scrollToElement;
 
 console.log('✅ Estoque Consolidado UNIFICADO COM HISTÓRICO carregado');
