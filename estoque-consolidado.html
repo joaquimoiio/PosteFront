@@ -30,7 +30,6 @@
     </nav>
 
     <main class="main-content">
-        <!-- SEÇÃO: FORMULÁRIO DE ADIÇÃO/REMOÇÃO -->
         <section class="form-section">
             <h2>➕ Adicionar Estoque - Sistema Unificado</h2>
             
@@ -68,7 +67,6 @@
             </form>
         </section>
 
-        <!-- SEÇÃO: RESUMO DO ESTOQUE -->
         <section class="summary-section">
             <h2>📊 Resumo do Estoque Consolidado</h2>
             <div class="stats-grid">
@@ -100,7 +98,6 @@
             </div>
         </section>
 
-        <!-- SEÇÃO: FILTROS -->
         <section class="filter-section">
             <h2>🔍 Filtros do Estoque</h2>
             <div class="filter-grid">
@@ -129,7 +126,6 @@
             </div>
         </section>
 
-        <!-- SEÇÃO: LISTA DE ESTOQUE -->
         <section class="table-section">
             <div class="section-header">
                 <h2>📦 Estoque Consolidado Completo</h2>
@@ -148,12 +144,10 @@
 
             <div class="table-container">
                 <div id="estoque-list" class="mobile-list">
-                    <!-- Conteúdo será carregado dinamicamente -->
                 </div>
             </div>
         </section>
 
-        <!-- SEÇÃO: HISTÓRICO DE MOVIMENTOS -->
         <section id="historico-section" class="table-section" style="display: none;">
             <div class="section-header">
                 <h2>📋 Histórico de Movimentos de Estoque</h2>
@@ -170,7 +164,6 @@
                 </div>
             </div>
 
-            <!-- Filtros do Histórico -->
             <div class="filter-section" style="margin-bottom: 20px;">
                 <h3>🔍 Filtros do Histórico</h3>
                 <div class="filter-grid">
@@ -196,7 +189,6 @@
                         <label for="historico-poste">Poste Específico</label>
                         <select id="historico-poste">
                             <option value="">Todos os postes</option>
-                            <!-- Será populado dinamicamente -->
                         </select>
                     </div>
                     <div class="filter-actions">
@@ -212,22 +204,18 @@
 
             <div class="table-container">
                 <div id="historico-list" class="mobile-list">
-                    <!-- Histórico será carregado dinamicamente -->
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
         <p>Carregando estoque unificado...</p>
     </div>
 
-    <!-- Alert Container -->
     <div id="alert-container" class="alert-container"></div>
 
-    <!-- Modal para Detalhes do Movimento -->
     <div id="movimento-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
