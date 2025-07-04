@@ -44,7 +44,6 @@ async function initEstoqueConsolidado() {
     try {
         setupEventListeners();
         await loadAllData();
-        await carregarEstatisticasMovimento();
         console.log('✅ Estoque Consolidado Unificado carregado');
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
@@ -339,7 +338,6 @@ async function handleEstoqueSubmit(e) {
         
         resetForm();
         await loadAllData();
-        await carregarEstatisticasMovimento();
         
         // Se o histórico estiver visível, atualizar também
         if (document.getElementById('historico-section').style.display !== 'none') {
@@ -424,35 +422,6 @@ function updateResumo() {
     window.AppUtils.updateElement('estoque-baixo', baixo);
     window.AppUtils.updateElement('estoque-negativo', negativo);
     window.AppUtils.updateElement('estoque-zero', zero);
-}
-
-async function carregarEstatisticasMovimento() {
-    try {
-        const response = await fetch('https://posteback.onrender.com/api/movimento-estoque/estatisticas', {
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Tenant-ID': 'jefferson'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const stats = await response.json();
-        estoqueData.estatisticasMovimento = stats;
-        
-        // Atualizar elementos da interface
-        window.AppUtils.updateElement('total-entradas', stats.totalEntradas || 0);
-        window.AppUtils.updateElement('total-saidas', stats.totalSaidas || 0);
-        window.AppUtils.updateElement('total-vendas', stats.totalVendas || 0);
-        window.AppUtils.updateElement('total-ajustes', stats.totalAjustes || 0);
-        
-        console.log('📊 Estatísticas de movimento carregadas');
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar estatísticas:', error);
-    }
 }
 
 // ================================
@@ -897,7 +866,6 @@ async function removerEstoqueRapido(posteId, codigoPoste, quantidadeAtual) {
         
         // Recarregar dados
         await loadAllData();
-        await carregarEstatisticasMovimento();
         
         // Se o histórico estiver visível, atualizar também
         if (document.getElementById('historico-section').style.display !== 'none') {
