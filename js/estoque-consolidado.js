@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     initEstoqueConsolidado();
+    setupFormValidation();
 });
 
 async function initEstoqueConsolidado() {
@@ -48,6 +49,138 @@ async function initEstoqueConsolidado() {
     } catch (error) {
         console.error('❌ Erro ao carregar:', error);
         window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
+    }
+}
+
+// ================================
+// VALIDAÇÃO DO FORMULÁRIO - MOVIDO DO HTML
+// ================================
+
+function setupFormValidation() {
+    const form = document.getElementById('estoque-form');
+    if (!form) return;
+    
+    const inputs = form.querySelectorAll('input[required], select[required]');
+    
+    // Adicionar validação em tempo real
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            validateFieldInternal(this);
+        });
+        
+        input.addEventListener('input', function() {
+            clearFieldError(this);
+        });
+    });
+    
+    // Validação de quantidade específica
+    const quantidadeInput = document.getElementById('estoque-quantidade');
+    if (quantidadeInput) {
+        quantidadeInput.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            if (value > 9999) {
+                showFieldError(this, 'Quantidade não pode ser maior que 9999');
+            } else if (value <= 0) {
+                showFieldError(this, 'Quantidade deve ser maior que zero');
+            } else {
+                clearFieldError(this);
+            }
+        });
+    }
+    
+    // Interceptar submissão do formulário para melhor UX
+    form.addEventListener('submit', function(e) {
+        // Limpar erros anteriores
+        const errorElements = form.querySelectorAll('.error-message');
+        errorElements.forEach(el => el.style.display = 'none');
+        
+        // Validar todos os campos
+        const inputs = form.querySelectorAll('input[required], select[required]');
+        let isValid = true;
+        
+        inputs.forEach(input => {
+            if (!validateFieldInternal(input)) {
+                isValid = false;
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            setFormLoading(false);
+            return false;
+        }
+        
+        // Ativar loading
+        setFormLoading(true);
+    });
+}
+
+// Função interna de validação de campo
+function validateFieldInternal(field) {
+    if (!field.value || field.value.trim() === '') {
+        if (field.hasAttribute('required')) {
+            const label = field.previousElementSibling ? 
+                field.previousElementSibling.textContent.replace(' *', '') : 
+                'Campo';
+            showFieldError(field, `${label} é obrigatório`);
+            return false;
+        }
+    } else {
+        clearFieldError(field);
+    }
+    
+    return true;
+}
+
+// Função para mostrar erro em campo específico
+function showFieldError(field, message) {
+    const fieldId = field.id || field;
+    const errorElementId = `erro-${fieldId.replace('estoque-', '')}`;
+    const errorElement = document.getElementById(errorElementId);
+    const fieldElement = typeof field === 'string' ? document.getElementById(field) : field;
+    
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+    
+    if (fieldElement) {
+        fieldElement.style.borderColor = 'var(--danger-color)';
+        fieldElement.focus();
+    }
+    
+    console.log(`❌ Erro no campo ${fieldId}:`, message);
+}
+
+// Função para limpar erro em campo específico
+function clearFieldError(field) {
+    const fieldId = field.id || field;
+    const errorElementId = `erro-${fieldId.replace('estoque-', '')}`;
+    const errorElement = document.getElementById(errorElementId);
+    const fieldElement = typeof field === 'string' ? document.getElementById(field) : field;
+    
+    if (errorElement) {
+        errorElement.style.display = 'none';
+    }
+    
+    if (fieldElement) {
+        fieldElement.style.borderColor = '';
+    }
+}
+
+// Função para controle de loading do formulário
+function setFormLoading(loading) {
+    const form = document.getElementById('estoque-form');
+    const button = document.getElementById('btn-adicionar');
+    
+    if (loading) {
+        form.classList.add('loading-form');
+        button.disabled = true;
+        button.innerHTML = '⏳ Adicionando...';
+    } else {
+        form.classList.remove('loading-form');
+        button.disabled = false;
+        button.innerHTML = '📦 Adicionar ao Estoque Unificado';
     }
 }
 
@@ -288,7 +421,7 @@ function populateHistoricoPosteSelect() {
 }
 
 // ================================
-// FORMULÁRIO DE ADIÇÃO
+// FORMULÁRIO DE ADIÇÃO - CORRIGIDO
 // ================================
 
 async function handleEstoqueSubmit(e) {
@@ -296,8 +429,10 @@ async function handleEstoqueSubmit(e) {
     
     try {
         const formData = buildFormData();
+        console.log('📋 Dados do formulário coletados:', formData);
         
         if (!validateFormData(formData)) {
+            setFormLoading(false);
             return;
         }
         
@@ -312,29 +447,75 @@ async function handleEstoqueSubmit(e) {
         
         console.log(`📦 Adicionando estoque via caminhão ${caminhaoEscolhido} para poste ${posteSelecionado.codigo}`);
         
+        // Dados corrigidos para envio
+        const dadosEnvio = {
+            posteId: formData.posteId,
+            quantidade: formData.quantidade,
+            dataEstoque: formData.dataEstoque,
+            observacao: formData.observacao || `Adição via interface Jefferson - ${new Date().toLocaleString('pt-BR')}`
+        };
+        
+        console.log('📤 Enviando dados para API:', dadosEnvio);
+        
         const response = await fetch('https://posteback.onrender.com/api/estoque/adicionar', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Tenant-ID': caminhaoEscolhido
             },
-            body: JSON.stringify({
-                posteId: formData.posteId,
-                quantidade: formData.quantidade,
-                dataEstoque: formData.dataEstoque,
-                observacao: formData.observacao
-            })
+            body: JSON.stringify(dadosEnvio)
         });
         
+        console.log('📥 Resposta da API:', response.status, response.statusText);
+        
+        // Melhor tratamento de erros do servidor
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            let errorMessage = `Erro HTTP ${response.status}`;
+            
+            try {
+                const errorData = await response.json();
+                console.error('❌ Erro detalhado da API:', errorData);
+                
+                if (errorData.message) {
+                    errorMessage = errorData.message;
+                } else if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+                
+                // Mostrar erro específico do campo se disponível
+                if (errorData.field) {
+                    const fieldElement = document.getElementById(`estoque-${errorData.field.replace('Id', '')}`);
+                    if (fieldElement) {
+                        showFieldError(fieldElement, errorMessage);
+                    }
+                }
+                
+            } catch (parseError) {
+                console.warn('❌ Não foi possível fazer parse do erro:', parseError);
+                const responseText = await response.text();
+                if (responseText) {
+                    errorMessage = responseText;
+                }
+            }
+            
+            throw new Error(errorMessage);
+        }
+        
+        // Processar resposta de sucesso
+        let resultado;
+        try {
+            resultado = await response.json();
+            console.log('✅ Resultado da API:', resultado);
+        } catch (parseError) {
+            console.warn('⚠️ Não foi possível fazer parse da resposta, mas operação foi bem-sucedida');
+            resultado = { success: true };
         }
         
         const dataFormatada = window.AppUtils.formatDateBRFixed(formData.dataEstoque);
-        window.AppUtils.showAlert(
-            `Estoque de ${formData.quantidade} unidades adicionado com sucesso em ${dataFormatada}!`, 
-            'success'
-        );
+        const mensagemSucesso = resultado.message || 
+            `Estoque de ${formData.quantidade} unidades adicionado com sucesso em ${dataFormatada}!`;
+        
+        window.AppUtils.showAlert(mensagemSucesso, 'success');
         
         resetForm();
         await loadAllData();
@@ -345,32 +526,84 @@ async function handleEstoqueSubmit(e) {
         }
         
     } catch (error) {
-        console.error('Erro ao adicionar estoque:', error);
-        window.AppUtils.showAlert('Erro ao adicionar estoque: ' + error.message, 'error');
+        console.error('❌ Erro completo ao adicionar estoque:', error);
+        
+        // Melhor tratamento de diferentes tipos de erro
+        let errorMessage = error.message;
+        
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else if (error.message.includes('timeout')) {
+            errorMessage = 'Tempo limite excedido. Tente novamente.';
+        } else if (error.message.includes('500')) {
+            errorMessage = 'Erro interno do servidor. Tente novamente em alguns instantes.';
+        } else if (error.message.includes('403')) {
+            errorMessage = 'Acesso negado. Verifique suas permissões.';
+        }
+        
+        window.AppUtils.showAlert('Erro ao adicionar estoque: ' + errorMessage, 'error');
     } finally {
         window.AppUtils.showLoading(false);
+        setFormLoading(false);
     }
 }
 
 function buildFormData() {
+    const dataEstoque = document.getElementById('estoque-data').value;
+    const posteId = document.getElementById('estoque-poste').value;
+    const quantidade = document.getElementById('estoque-quantidade').value;
+    const observacao = document.getElementById('estoque-observacao').value;
+    
+    console.log('🔍 Dados coletados do form:', {
+        dataEstoque,
+        posteId,
+        quantidade,
+        observacao
+    });
+    
     return {
-        dataEstoque: document.getElementById('estoque-data').value,
-        posteId: parseInt(document.getElementById('estoque-poste').value),
-        quantidade: parseInt(document.getElementById('estoque-quantidade').value),
-        observacao: document.getElementById('estoque-observacao').value.trim() || null
+        dataEstoque: dataEstoque,
+        posteId: posteId ? parseInt(posteId) : null,
+        quantidade: quantidade ? parseInt(quantidade) : null,
+        observacao: observacao ? observacao.trim() : null
     };
 }
 
 function validateFormData(data) {
-    if (!window.AppUtils.validateDate(data.dataEstoque, 'Data do estoque')) {
+    console.log('✅ Validando dados:', data);
+    
+    // Validar data
+    if (!data.dataEstoque || data.dataEstoque.trim() === '') {
+        showFieldError(document.getElementById('estoque-data'), 'Data do estoque é obrigatória');
         return false;
     }
     
-    if (!window.AppUtils.validateRequired(data.posteId, 'Poste')) {
+    // Validar se a data é válida
+    const dataObj = new Date(data.dataEstoque);
+    if (isNaN(dataObj.getTime())) {
+        showFieldError(document.getElementById('estoque-data'), 'Data do estoque deve ser uma data válida');
         return false;
     }
     
-    return window.AppUtils.validateNumber(data.quantidade, 'Quantidade', 0);
+    // Validar poste
+    if (!data.posteId || data.posteId <= 0) {
+        showFieldError(document.getElementById('estoque-poste'), 'Selecione um poste válido');
+        return false;
+    }
+    
+    // Validar quantidade
+    if (!data.quantidade || data.quantidade <= 0) {
+        showFieldError(document.getElementById('estoque-quantidade'), 'Quantidade deve ser um número maior que zero');
+        return false;
+    }
+    
+    if (data.quantidade > 9999) {
+        showFieldError(document.getElementById('estoque-quantidade'), 'Quantidade não pode ser maior que 9999');
+        return false;
+    }
+    
+    console.log('✅ Dados válidos');
+    return true;
 }
 
 function encontrarPostePorId(posteId) {
@@ -398,12 +631,29 @@ function escolherCaminhaoParaEstoque(poste) {
 }
 
 function resetForm() {
-    document.getElementById('estoque-form').reset();
+    const form = document.getElementById('estoque-form');
+    if (form) {
+        form.reset();
+        
+        // Limpar todos os erros
+        const errorElements = form.querySelectorAll('.error-message');
+        errorElements.forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        // Resetar bordas dos campos
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.style.borderColor = '';
+        });
+    }
     
     const dataInput = document.getElementById('estoque-data');
     if (dataInput) {
         dataInput.value = window.AppUtils.getCurrentDateInput();
     }
+    
+    console.log('🔄 Formulário resetado');
 }
 
 // ================================
@@ -784,7 +1034,6 @@ async function removerEstoqueRapido(posteId, codigoPoste, quantidadeAtual) {
         return;
     }
     
-    const quantidadeMaxima = Math.min(quantidadeAtual, 50); // Limite de segurança
     const quantidade = prompt(
         `Quantidade a remover do poste ${codigoPoste}:\n(Estoque atual: ${quantidadeAtual} unidades)`, 
         '1'
@@ -835,18 +1084,20 @@ async function removerEstoqueRapido(posteId, codigoPoste, quantidadeAtual) {
         
         console.log(`📤 Removendo ${qtd} unidades via caminhão ${caminhaoEscolhido} do poste ${codigoPoste}`);
         
+        const dadosEnvio = {
+            posteId: posteId,
+            quantidade: qtd,
+            dataEstoque: new Date().toISOString().split('T')[0], // Data de hoje
+            observacao: motivo.trim() || 'Remoção rápida via interface'
+        };
+        
         const response = await fetch('https://posteback.onrender.com/api/estoque/remover', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Tenant-ID': caminhaoEscolhido
             },
-            body: JSON.stringify({
-                posteId: posteId,
-                quantidade: qtd,
-                dataEstoque: new Date().toISOString().split('T')[0], // Data de hoje
-                observacao: motivo.trim() || 'Remoção rápida via interface'
-            })
+            body: JSON.stringify(dadosEnvio)
         });
         
         if (!response.ok) {
@@ -1073,6 +1324,7 @@ function exportarHistorico() {
 // DISPONIBILIZAR FUNÇÕES GLOBALMENTE
 // ================================
 
+// Funções principais
 window.aplicarFiltros = aplicarFiltros;
 window.limparFiltros = limparFiltros;
 window.aplicarFiltrosHistorico = aplicarFiltrosHistorico;
@@ -1086,6 +1338,14 @@ window.verHistoricoPoste = verHistoricoPoste;
 window.adicionarEstoqueRapido = adicionarEstoqueRapido;
 window.verDetalhesMovimento = verDetalhesMovimento;
 window.removerEstoqueRapido = removerEstoqueRapido;
+
+// Funções de utilidade do modal (compatibilidade com HTML)
+window.closeModal = window.AppUtils.closeModal;
 window.scrollToElement = window.AppUtils.scrollToElement;
 
-console.log('✅ Estoque Consolidado UNIFICADO COM HISTÓRICO carregado');
+// Funções de validação (disponíveis globalmente para uso no HTML se necessário)
+window.showFieldError = showFieldError;
+window.clearFieldError = clearFieldError;
+window.setFormLoading = setFormLoading;
+
+console.log('✅ Estoque Consolidado UNIFICADO COM HISTÓRICO carregado - JavaScript movido do HTML completo');
