@@ -1,7 +1,7 @@
-// vendas.js - Caminhão Vermelho Multi-Tenant
-// Sistema de Postes com suporte específico para Caminhão Vermelho
+// ================================
+// VENDAS.JS OTIMIZADO - Caminhão Vermelho
+// ================================
 
-// Estado local específico para o Caminhão Vermelho
 let vendasData = {
     vendas: [],
     postes: [],
@@ -9,7 +9,9 @@ let vendasData = {
     filters: { tipo: '', dataInicio: '', dataFim: '' }
 };
 
-// Verificar autenticação específica do Caminhão Vermelho
+// ================================
+// INICIALIZAÇÃO
+// ================================
 document.addEventListener('DOMContentLoaded', () => {
     const userType = localStorage.getItem('poste-system-user-type');
     if (userType !== 'vermelho') {
@@ -18,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!window.AppUtils) {
-        console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
+        console.error('AppUtils não carregado!');
         return;
     }
     
@@ -40,6 +42,9 @@ async function initVendas() {
     }
 }
 
+// ================================
+// EVENT LISTENERS
+// ================================
 function setupEventListeners() {
     const vendaForm = document.getElementById('venda-form');
     if (vendaForm) {
@@ -52,7 +57,6 @@ function setupEventListeners() {
         editForm.addEventListener('submit', handleEditSubmit);
     }
     
-    // Listener para mudança de tipo de venda
     const tipoSelect = document.getElementById('venda-tipo');
     if (tipoSelect) {
         tipoSelect.addEventListener('change', handleTipoChange);
@@ -66,15 +70,16 @@ function setDefaultDateTime() {
     }
 }
 
+// ================================
+// FORM HANDLERS
+// ================================
 function handleTipoChange() {
     const tipo = document.getElementById('venda-tipo').value;
     
-    // Esconder todos os campos condicionais
     document.querySelectorAll('.conditional-fields').forEach(field => {
         field.style.display = 'none';
     });
     
-    // Mostrar campos específicos do tipo
     if (tipo) {
         const camposTipo = document.getElementById(`campos-tipo-${tipo.toLowerCase()}`);
         if (camposTipo) {
@@ -82,84 +87,18 @@ function handleTipoChange() {
         }
     }
     
-    // Limpar campos dos outros tipos
     clearOtherTypeFields(tipo);
 }
 
 function clearOtherTypeFields(currentType) {
-    const allTypes = ['E', 'V', 'L'];
-    
-    allTypes.forEach(type => {
+    ['E', 'V', 'L'].forEach(type => {
         if (type !== currentType) {
             const typeFields = document.getElementById(`campos-tipo-${type.toLowerCase()}`);
             if (typeFields) {
-                const inputs = typeFields.querySelectorAll('input, select');
-                inputs.forEach(input => {
-                    if (input.type === 'number') {
-                        input.value = type === 'L' && input.id.includes('frete') ? '0' : '';
-                    } else {
-                        input.value = '';
-                    }
+                typeFields.querySelectorAll('input, select').forEach(input => {
+                    input.value = (input.type === 'number' && type === 'L' && input.id.includes('frete')) ? '0' : '';
                 });
             }
-        }
-    });
-}
-
-async function loadData() {
-    try {
-        window.AppUtils.showLoading(true);
-        
-        const [vendas, postes] = await Promise.all([
-            fetchVendas(),
-            fetchPostes()
-        ]);
-        
-        vendasData.vendas = vendas || [];
-        vendasData.postes = postes || [];
-        
-        populatePosteSelects();
-        updateResumo();
-        applyFilters();
-        
-    } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        throw error;
-    } finally {
-        window.AppUtils.showLoading(false);
-    }
-}
-
-async function fetchVendas() {
-    const params = new URLSearchParams();
-    if (vendasData.filters.dataInicio) params.append('dataInicio', vendasData.filters.dataInicio);
-    if (vendasData.filters.dataFim) params.append('dataFim', vendasData.filters.dataFim);
-    
-    const endpoint = params.toString() ? `/vendas?${params}` : '/vendas';
-    return await window.AppUtils.apiRequest(endpoint);
-}
-
-async function fetchPostes() {
-    return await window.AppUtils.apiRequest('/postes');
-}
-
-function populatePosteSelects() {
-    const postesAtivos = vendasData.postes.filter(p => p.ativo);
-    
-    ['venda-poste-v', 'venda-poste-l'].forEach(selectId => {
-        const select = document.getElementById(selectId);
-        if (select) {
-            // Limpar opções existentes exceto a primeira
-            while (select.children.length > 1) {
-                select.removeChild(select.lastChild);
-            }
-            
-            postesAtivos.forEach(poste => {
-                const option = document.createElement('option');
-                option.value = poste.id;
-                option.textContent = `${poste.codigo} - ${poste.descricao} (${window.AppUtils.formatCurrency(poste.preco)})`;
-                select.appendChild(option);
-            });
         }
     });
 }
@@ -170,9 +109,7 @@ async function handleVendaSubmit(e) {
     try {
         const formData = buildFormData();
         
-        if (!validateFormData(formData)) {
-            return;
-        }
+        if (!validateFormData(formData)) return;
         
         window.AppUtils.showLoading(true);
         
@@ -209,11 +146,7 @@ function buildFormData() {
     
     switch (tipo) {
         case 'E':
-            return {
-                ...baseData,
-                valorExtra: parseFloat(document.getElementById('venda-valor-extra').value)
-            };
-            
+            return { ...baseData, valorExtra: parseFloat(document.getElementById('venda-valor-extra').value) };
         case 'V':
             return {
                 ...baseData,
@@ -221,7 +154,6 @@ function buildFormData() {
                 quantidade: parseInt(document.getElementById('venda-quantidade-v').value) || 1,
                 valorVenda: parseFloat(document.getElementById('venda-valor-total-v').value)
             };
-            
         case 'L':
             return {
                 ...baseData,
@@ -229,7 +161,6 @@ function buildFormData() {
                 quantidade: parseInt(document.getElementById('venda-quantidade-l').value) || 1,
                 freteEletrons: parseFloat(document.getElementById('venda-frete-l').value) || 0
             };
-            
         default:
             throw new Error('Tipo de venda inválido');
     }
@@ -244,31 +175,83 @@ function validateFormData(data) {
     switch (data.tipoVenda) {
         case 'E':
             return window.AppUtils.validateNumber(data.valorExtra, 'Valor extra', 0);
-            
         case 'V':
-            if (!window.AppUtils.validateRequired(data.posteId, 'Poste') ||
-                !window.AppUtils.validateNumber(data.quantidade, 'Quantidade', 0) ||
-                !window.AppUtils.validateNumber(data.valorVenda, 'Valor de venda', 0)) {
-                return false;
-            }
-            break;
-            
+            return window.AppUtils.validateRequired(data.posteId, 'Poste') &&
+                   window.AppUtils.validateNumber(data.quantidade, 'Quantidade', 0) &&
+                   window.AppUtils.validateNumber(data.valorVenda, 'Valor de venda', 0);
         case 'L':
             if (!window.AppUtils.validateRequired(data.posteId, 'Poste') ||
                 !window.AppUtils.validateNumber(data.quantidade, 'Quantidade', 0)) {
                 return false;
             }
-            
             if (data.freteEletrons < 0) {
                 window.AppUtils.showAlert('Frete não pode ser negativo', 'warning');
                 return false;
             }
-            break;
+            return true;
     }
-    
     return true;
 }
 
+// ================================
+// DATA LOADING
+// ================================
+async function loadData() {
+    try {
+        window.AppUtils.showLoading(true);
+        
+        const [vendas, postes] = await Promise.all([fetchVendas(), fetchPostes()]);
+        
+        vendasData.vendas = vendas || [];
+        vendasData.postes = postes || [];
+        
+        populatePosteSelects();
+        updateResumo();
+        applyFilters();
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        throw error;
+    } finally {
+        window.AppUtils.showLoading(false);
+    }
+}
+
+async function fetchVendas() {
+    const params = new URLSearchParams();
+    if (vendasData.filters.dataInicio) params.append('dataInicio', vendasData.filters.dataInicio);
+    if (vendasData.filters.dataFim) params.append('dataFim', vendasData.filters.dataFim);
+    
+    return await window.AppUtils.apiRequest(params.toString() ? `/vendas?${params}` : '/vendas');
+}
+
+async function fetchPostes() {
+    return await window.AppUtils.apiRequest('/postes');
+}
+
+function populatePosteSelects() {
+    const postesAtivos = vendasData.postes.filter(p => p.ativo);
+    
+    ['venda-poste-v', 'venda-poste-l'].forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            postesAtivos.forEach(poste => {
+                const option = document.createElement('option');
+                option.value = poste.id;
+                option.textContent = `${poste.codigo} - ${poste.descricao} (${window.AppUtils.formatCurrency(poste.preco)})`;
+                select.appendChild(option);
+            });
+        }
+    });
+}
+
+// ================================
+// DISPLAY
+// ================================
 function displayVendas(vendas) {
     const container = document.getElementById('vendas-list');
     if (!container) return;
@@ -288,10 +271,8 @@ function displayVendas(vendas) {
     }
     
     container.innerHTML = '';
-    
     vendas.forEach(venda => {
-        const item = createVendaItem(venda);
-        container.appendChild(item);
+        container.appendChild(createVendaItem(venda));
     });
 }
 
@@ -302,7 +283,6 @@ function createVendaItem(venda) {
     const tipoLabel = window.AppUtils.getTipoLabel(venda.tipoVenda);
     const tipoClass = venda.tipoVenda.toLowerCase();
     
-    // Determinar valor principal a exibir
     let valorPrincipal = 'R$ 0,00';
     if (venda.tipoVenda === 'E' && venda.valorExtra) {
         valorPrincipal = window.AppUtils.formatCurrency(venda.valorExtra);
@@ -312,14 +292,9 @@ function createVendaItem(venda) {
         valorPrincipal = window.AppUtils.formatCurrency(venda.freteEletrons);
     }
     
-    // Informações do poste (se houver)
     let posteInfo = '';
     if (venda.codigoPoste) {
-        posteInfo = `
-            <div class="item-details">
-                <small>${venda.codigoPoste} - ${venda.descricaoPoste}</small>
-            </div>
-        `;
+        posteInfo = `<div class="item-details"><small>${venda.codigoPoste} - ${venda.descricaoPoste}</small></div>`;
         if (venda.quantidade > 1) {
             posteInfo += `<div class="item-details"><small>Quantidade: ${venda.quantidade}</small></div>`;
         }
@@ -327,54 +302,40 @@ function createVendaItem(venda) {
     
     item.innerHTML = `
         <div class="item-header">
-            <span class="item-type ${tipoClass}">
-                ${tipoLabel}
-            </span>
+            <span class="item-type ${tipoClass}">${tipoLabel}</span>
             <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
         </div>
-        
         <div class="item-content">
             <div class="item-value ${tipoClass}">${valorPrincipal}</div>
             ${posteInfo}
             ${venda.observacoes ? `<div class="item-details"><small>${venda.observacoes}</small></div>` : ''}
         </div>
-        
         <div class="item-actions">
-            <button class="btn btn-small btn-primary" onclick="editVenda(${venda.id})">
-                ✏️ Editar
-            </button>
-            <button class="btn btn-small btn-danger" onclick="deleteVenda(${venda.id})">
-                🗑️ Excluir
-            </button>
+            <button class="btn btn-small btn-primary" onclick="editVenda(${venda.id})">✏️ Editar</button>
+            <button class="btn btn-small btn-danger" onclick="deleteVenda(${venda.id})">🗑️ Excluir</button>
         </div>
     `;
     
     return item;
 }
 
-// ✅ FUNÇÃO PARA CONVERTER DATA PARA FORMATO DATETIME-LOCAL
+// ================================
+// EDIT FUNCTIONS
+// ================================
 function dateToDateTimeLocalString(dateString) {
     if (!dateString) return '';
-    
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return '';
-        
-        // Converter para hora local para datetime-local
         const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
         return localDate.toISOString().slice(0, 16);
-    } catch (error) {
-        console.error('Erro ao converter data:', error);
-        return '';
-    }
+    } catch { return ''; }
 }
 
 async function editVenda(id) {
     try {
         const venda = vendasData.vendas.find(v => v.id === id);
-        if (!venda) {
-            throw new Error('Venda não encontrada');
-        }
+        if (!venda) throw new Error('Venda não encontrada');
         
         populateEditForm(venda);
         vendasData.currentEditId = id;
@@ -389,13 +350,11 @@ async function editVenda(id) {
 function populateEditForm(venda) {
     document.getElementById('edit-tipo-venda').value = venda.tipoVenda;
     
-    // ✅ POPULAR DATA NO FORMATO CORRETO
     const dataElement = document.getElementById('edit-data-venda');
     if (dataElement && venda.dataVenda) {
         dataElement.value = dateToDateTimeLocalString(venda.dataVenda);
     }
     
-    // Mostrar/esconder campos baseado no tipo
     const freteGroup = document.getElementById('edit-frete-group');
     const valorGroup = document.getElementById('edit-valor-group');
     const extraGroup = document.getElementById('edit-extra-group');
@@ -404,16 +363,9 @@ function populateEditForm(venda) {
     if (valorGroup) valorGroup.style.display = venda.tipoVenda === 'V' ? 'block' : 'none';
     if (extraGroup) extraGroup.style.display = venda.tipoVenda === 'E' ? 'block' : 'none';
     
-    // Preencher valores
-    if (venda.freteEletrons !== null) {
-        document.getElementById('edit-frete-eletrons').value = venda.freteEletrons;
-    }
-    if (venda.valorVenda !== null) {
-        document.getElementById('edit-valor-total').value = venda.valorVenda;
-    }
-    if (venda.valorExtra !== null) {
-        document.getElementById('edit-valor-extra').value = venda.valorExtra;
-    }
+    if (venda.freteEletrons !== null) document.getElementById('edit-frete-eletrons').value = venda.freteEletrons;
+    if (venda.valorVenda !== null) document.getElementById('edit-valor-total').value = venda.valorVenda;
+    if (venda.valorExtra !== null) document.getElementById('edit-valor-extra').value = venda.valorExtra;
     
     document.getElementById('edit-observacoes').value = venda.observacoes || '';
 }
@@ -423,19 +375,12 @@ async function handleEditSubmit(e) {
     
     try {
         const formData = buildEditFormData();
-        
-        if (!validateEditFormData(formData)) {
-            return;
-        }
+        if (!validateEditFormData(formData)) return;
         
         window.AppUtils.showLoading(true);
         
         const vendaAtual = vendasData.vendas.find(v => v.id === vendasData.currentEditId);
-        
-        const updateData = {
-            ...vendaAtual,
-            ...formData
-        };
+        const updateData = { ...vendaAtual, ...formData };
         
         await window.AppUtils.apiRequest(`/vendas/${vendasData.currentEditId}`, {
             method: 'PUT',
@@ -458,14 +403,11 @@ async function handleEditSubmit(e) {
 }
 
 function buildEditFormData() {
-    const observacoes = document.getElementById('edit-observacoes').value.trim();
-    const dataVenda = document.getElementById('edit-data-venda'); // ✅ INCLUIR DATA
-    
     const baseData = {
-        observacoes: observacoes || null
+        observacoes: document.getElementById('edit-observacoes').value.trim() || null
     };
     
-    // ✅ INCLUIR DATA DA VENDA NA ATUALIZAÇÃO
+    const dataVenda = document.getElementById('edit-data-venda');
     if (dataVenda && dataVenda.value) {
         baseData.dataVenda = dataVenda.value;
     }
@@ -490,7 +432,6 @@ function buildEditFormData() {
 }
 
 function validateEditFormData(data) {
-    // ✅ VALIDAR DATA SE FORNECIDA
     if (data.dataVenda && !window.AppUtils.validateDate(data.dataVenda, 'Data da venda')) {
         return false;
     }
@@ -512,9 +453,7 @@ function validateEditFormData(data) {
 }
 
 async function deleteVenda(id) {
-    if (!confirm('Tem certeza que deseja excluir esta venda?')) {
-        return;
-    }
+    if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
     
     try {
         window.AppUtils.showLoading(true);
@@ -537,15 +476,14 @@ async function deleteVenda(id) {
     }
 }
 
+// ================================
+// FILTERS
+// ================================
 function updateFilters() {
-    const tipo = document.getElementById('filtro-tipo-venda').value;
-    const dataInicio = document.getElementById('filtro-data-inicio').value;
-    const dataFim = document.getElementById('filtro-data-fim').value;
-    
     vendasData.filters = {
-        tipo: tipo,
-        dataInicio: dataInicio,
-        dataFim: dataFim
+        tipo: document.getElementById('filtro-tipo-venda').value,
+        dataInicio: document.getElementById('filtro-data-inicio').value,
+        dataFim: document.getElementById('filtro-data-fim').value
     };
 }
 
@@ -561,7 +499,7 @@ function applyFilters() {
     
     if (dataInicio || dataFim) {
         filtered = filtered.filter(v => {
-            const dataVenda = v.dataVenda.split('T')[0]; // Pegar apenas a data
+            const dataVenda = v.dataVenda.split('T')[0];
             return window.AppUtils.isDateInRange(dataVenda, dataInicio, dataFim);
         });
     }
@@ -578,14 +516,11 @@ function updateFilterIndicator() {
     let filtros = [];
     
     if (tipo) {
-        const tipoLabel = window.AppUtils.getTipoLabel(tipo);
-        filtros.push(`Tipo: ${tipoLabel}`);
+        filtros.push(`Tipo: ${window.AppUtils.getTipoLabel(tipo)}`);
     }
     
     if (dataInicio && dataFim) {
-        const inicio = window.AppUtils.formatDateBR(dataInicio);
-        const fim = window.AppUtils.formatDateBR(dataFim);
-        filtros.push(`Período: ${inicio} a ${fim}`);
+        filtros.push(`Período: ${window.AppUtils.formatDateBR(dataInicio)} a ${window.AppUtils.formatDateBR(dataFim)}`);
     } else if (dataInicio) {
         filtros.push(`A partir de: ${window.AppUtils.formatDateBR(dataInicio)}`);
     } else if (dataFim) {
@@ -606,22 +541,21 @@ function updateResumo() {
     const vendasE = vendas.filter(v => v.tipoVenda === 'E').length;
     const vendasV = vendas.filter(v => v.tipoVenda === 'V').length;
     const vendasL = vendas.filter(v => v.tipoVenda === 'L').length;
-    const totalGeral = vendas.length;
     
     window.AppUtils.updateElement('total-vendas-e', vendasE);
     window.AppUtils.updateElement('total-vendas-v', vendasV);
     window.AppUtils.updateElement('total-vendas-l', vendasL);
-    window.AppUtils.updateElement('total-vendas-geral', totalGeral);
+    window.AppUtils.updateElement('total-vendas-geral', vendas.length);
 }
 
+// ================================
+// UTILITY FUNCTIONS
+// ================================
 function resetForm() {
     document.getElementById('venda-form').reset();
-    
-    // Esconder todos os campos condicionais
     document.querySelectorAll('.conditional-fields').forEach(field => {
         field.style.display = 'none';
     });
-    
     setTimeout(setDefaultDateTime, 100);
 }
 
@@ -680,7 +614,9 @@ async function loadVendas() {
     }
 }
 
-// Disponibilizar funções globalmente
+// ================================
+// GLOBAL FUNCTIONS
+// ================================
 window.editVenda = editVenda;
 window.deleteVenda = deleteVenda;
 window.aplicarFiltros = aplicarFiltros;
@@ -690,4 +626,4 @@ window.loadVendas = loadVendas;
 window.scrollToForm = scrollToForm;
 window.closeModal = () => window.AppUtils.closeModal('edit-modal');
 
-console.log('✅ Vendas Caminhão Vermelho com edição de data carregado');
+console.log('✅ Vendas Caminhão Vermelho otimizado carregado');

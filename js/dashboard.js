@@ -1,4 +1,7 @@
-// Estado local específico para o Caminhão Vermelho
+// ================================
+// DASHBOARD.JS OTIMIZADO - Caminhão Vermelho
+// ================================
+
 let dashboardData = {
     resumo: null,
     despesas: [],
@@ -7,7 +10,9 @@ let dashboardData = {
     filters: { dataInicio: null, dataFim: null }
 };
 
-// Verificar autenticação específica do Caminhão Vermelho
+// ================================
+// INICIALIZAÇÃO
+// ================================
 document.addEventListener('DOMContentLoaded', () => {
     const userType = localStorage.getItem('poste-system-user-type');
     if (userType !== 'vermelho') {
@@ -16,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!window.AppUtils) {
-        console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
+        console.error('AppUtils não carregado!');
         return;
     }
 
@@ -59,6 +64,9 @@ function setDefaultPeriod() {
     }
 }
 
+// ================================
+// DATA LOADING
+// ================================
 async function loadData() {
     try {
         window.AppUtils.showLoading(true);
@@ -90,24 +98,70 @@ async function loadData() {
     }
 }
 
-// Função específica para calcular lucros do Caminhão Vermelho (50/25/25)
+async function fetchResumoVendas() {
+    const params = new URLSearchParams();
+    if (dashboardData.filters.dataInicio) params.append('dataInicio', dashboardData.filters.dataInicio);
+    if (dashboardData.filters.dataFim) params.append('dataFim', dashboardData.filters.dataFim);
+    
+    const endpoint = params.toString() ? `/vendas/resumo?${params}` : '/vendas/resumo';
+    
+    try {
+        return await window.AppUtils.apiRequest(endpoint);
+    } catch (error) {
+        console.error('Erro ao buscar resumo:', error);
+        return {
+            totalVendaPostes: 0, valorTotalVendas: 0, totalFreteEletrons: 0,
+            valorTotalExtras: 0, totalVendasE: 0, totalVendasV: 0, totalVendasL: 0
+        };
+    }
+}
+
+async function fetchDespesas() {
+    const params = new URLSearchParams();
+    if (dashboardData.filters.dataInicio) params.append('dataInicio', dashboardData.filters.dataInicio);
+    if (dashboardData.filters.dataFim) params.append('dataFim', dashboardData.filters.dataFim);
+    
+    try {
+        return await window.AppUtils.apiRequest(params.toString() ? `/despesas?${params}` : '/despesas');
+    } catch (error) {
+        console.error('Erro ao buscar despesas:', error);
+        return [];
+    }
+}
+
+async function fetchVendas() {
+    const params = new URLSearchParams();
+    if (dashboardData.filters.dataInicio) params.append('dataInicio', dashboardData.filters.dataInicio);
+    if (dashboardData.filters.dataFim) params.append('dataFim', dashboardData.filters.dataFim);
+    
+    try {
+        return await window.AppUtils.apiRequest(params.toString() ? `/vendas?${params}` : '/vendas');
+    } catch (error) {
+        console.error('Erro ao buscar vendas:', error);
+        return [];
+    }
+}
+
+async function fetchPostes() {
+    try {
+        return await window.AppUtils.apiRequest('/postes');
+    } catch (error) {
+        console.error('Erro ao buscar postes:', error);
+        return [];
+    }
+}
+
+// ================================
+// CÁLCULOS ESPECÍFICOS VERMELHO
+// ================================
 function calcularLucrosCaminhaoVermelho(resumoVendas, despesas) {
     if (!resumoVendas || !despesas) {
         return {
-            totalVendaPostes: 0,
-            valorTotalVendas: 0,
-            custoEletronsL: 0,
-            despesasFuncionario: 0,
-            outrasDespesas: 0,
-            lucroTotal: 0,
-            parteCicero: 0,
-            parteGilberto: 0,
-            parteJefferson: 0,
-            valorTotalExtras: 0,
-            totalFreteEletrons: 0,
-            totalVendasE: 0,
-            totalVendasV: 0,
-            totalVendasL: 0
+            totalVendaPostes: 0, valorTotalVendas: 0, custoEletronsL: 0,
+            despesasFuncionario: 0, outrasDespesas: 0, lucroTotal: 0,
+            parteCicero: 0, parteGilberto: 0, parteJefferson: 0,
+            valorTotalExtras: 0, totalFreteEletrons: 0,
+            totalVendasE: 0, totalVendasV: 0, totalVendasL: 0
         };
     }
 
@@ -141,23 +195,19 @@ function calcularLucrosCaminhaoVermelho(resumoVendas, despesas) {
     const custoEletronsL = totalVendaPostes - totalFreteEletrons;
 
     return {
-        totalVendaPostes,
-        valorTotalVendas,
-        custoEletronsL,
-        despesasFuncionario,
-        outrasDespesas,
-        lucroTotal,
-        parteCicero: metadeCicero,
-        parteGilberto,
-        parteJefferson,
-        valorTotalExtras,
-        totalFreteEletrons,
+        totalVendaPostes, valorTotalVendas, custoEletronsL,
+        despesasFuncionario, outrasDespesas, lucroTotal,
+        parteCicero: metadeCicero, parteGilberto, parteJefferson,
+        valorTotalExtras, totalFreteEletrons,
         totalVendasE: resumoVendas.totalVendasE || 0,
         totalVendasV: resumoVendas.totalVendasV || 0,
         totalVendasL: resumoVendas.totalVendasL || 0
     };
 }
 
+// ================================
+// INTERFACE UPDATE
+// ================================
 function updateInterface(lucros) {
     // Cards de vendas por tipo
     window.AppUtils.updateElement('vendas-tipo-e', lucros.totalVendasE);
@@ -216,82 +266,9 @@ function updatePeriodIndicator() {
     }
 }
 
-// Funções de API (específicas para o Caminhão Vermelho)
-async function fetchResumoVendas() {
-    const params = new URLSearchParams();
-    if (dashboardData.filters.dataInicio) {
-        params.append('dataInicio', dashboardData.filters.dataInicio);
-    }
-    if (dashboardData.filters.dataFim) {
-        params.append('dataFim', dashboardData.filters.dataFim);
-    }
-
-    const endpoint = params.toString() ? `/vendas/resumo?${params}` : '/vendas/resumo';
-
-    try {
-        return await window.AppUtils.apiRequest(endpoint);
-    } catch (error) {
-        console.error('Erro ao buscar resumo:', error);
-        return {
-            totalVendaPostes: 0,
-            valorTotalVendas: 0,
-            totalFreteEletrons: 0,
-            valorTotalExtras: 0,
-            totalVendasE: 0,
-            totalVendasV: 0,
-            totalVendasL: 0
-        };
-    }
-}
-
-async function fetchDespesas() {
-    const params = new URLSearchParams();
-    if (dashboardData.filters.dataInicio) {
-        params.append('dataInicio', dashboardData.filters.dataInicio);
-    }
-    if (dashboardData.filters.dataFim) {
-        params.append('dataFim', dashboardData.filters.dataFim);
-    }
-
-    const endpoint = params.toString() ? `/despesas?${params}` : '/despesas';
-
-    try {
-        return await window.AppUtils.apiRequest(endpoint);
-    } catch (error) {
-        console.error('Erro ao buscar despesas:', error);
-        return [];
-    }
-}
-
-async function fetchVendas() {
-    const params = new URLSearchParams();
-    if (dashboardData.filters.dataInicio) {
-        params.append('dataInicio', dashboardData.filters.dataInicio);
-    }
-    if (dashboardData.filters.dataFim) {
-        params.append('dataFim', dashboardData.filters.dataFim);
-    }
-
-    const endpoint = params.toString() ? `/vendas?${params}` : '/vendas';
-
-    try {
-        return await window.AppUtils.apiRequest(endpoint);
-    } catch (error) {
-        console.error('Erro ao buscar vendas:', error);
-        return [];
-    }
-}
-
-async function fetchPostes() {
-    try {
-        return await window.AppUtils.apiRequest('/postes');
-    } catch (error) {
-        console.error('Erro ao buscar postes:', error);
-        return [];
-    }
-}
-
-// Funções globais
+// ================================
+// GLOBAL FUNCTIONS
+// ================================
 async function applyPeriodFilter() {
     try {
         const filtroInicio = document.getElementById('data-inicio');
@@ -338,9 +315,9 @@ async function refreshDashboard() {
     }
 }
 
-// Disponibilizar funções globalmente
+// Export global functions
 window.applyPeriodFilter = applyPeriodFilter;
 window.clearPeriodFilter = clearPeriodFilter;
 window.refreshDashboard = refreshDashboard;
 
-console.log('✅ Dashboard Caminhão Vermelho COMPLETO carregado');
+console.log('✅ Dashboard Caminhão Vermelho otimizado carregado');

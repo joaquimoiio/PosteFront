@@ -1,14 +1,16 @@
-// postes.js - Caminhão Vermelho Multi-Tenant
-// Sistema de Postes com suporte específico para Caminhão Vermelho
+// ================================
+// POSTES.JS OTIMIZADO - Caminhão Vermelho
+// ================================
 
-// Estado local específico para o Caminhão Vermelho
 let postesData = {
     postes: [],
     currentEditId: null,
     filters: { status: '', codigo: '', descricao: '' }
 };
 
-// Verificar autenticação específica do Caminhão Vermelho
+// ================================
+// INICIALIZAÇÃO
+// ================================
 document.addEventListener('DOMContentLoaded', () => {
     const userType = localStorage.getItem('poste-system-user-type');
     if (userType !== 'vermelho') {
@@ -17,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!window.AppUtils) {
-        console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
+        console.error('AppUtils não carregado!');
         return;
     }
     
@@ -37,6 +39,9 @@ async function initPostes() {
     }
 }
 
+// ================================
+// EVENT LISTENERS
+// ================================
 function setupEventListeners() {
     const posteForm = document.getElementById('poste-form');
     if (posteForm) {
@@ -57,11 +62,14 @@ function setupEventListeners() {
     }, applyFilters);
 }
 
+// ================================
+// DATA LOADING
+// ================================
 async function loadData() {
     try {
         window.AppUtils.showLoading(true);
         
-        const postes = await fetchPostes();
+        const postes = await window.AppUtils.apiRequest('/postes');
         postesData.postes = postes || [];
         
         updateResumo();
@@ -75,19 +83,16 @@ async function loadData() {
     }
 }
 
-async function fetchPostes() {
-    return await window.AppUtils.apiRequest('/postes');
-}
-
+// ================================
+// FORM HANDLERS
+// ================================
 async function handlePosteSubmit(e) {
     e.preventDefault();
     
     try {
         const formData = buildFormData();
         
-        if (!validateFormData(formData)) {
-            return;
-        }
+        if (!validateFormData(formData)) return;
         
         window.AppUtils.showLoading(true);
         
@@ -135,7 +140,7 @@ function validateFormData(data) {
         return false;
     }
     
-    // Verificar se código já existe (exceto na edição)
+    // Verificar se código já existe
     const codigoExistente = postesData.postes.find(p => 
         p.codigo.toLowerCase() === data.codigo.toLowerCase() && 
         (!postesData.currentEditId || p.id !== postesData.currentEditId)
@@ -149,6 +154,9 @@ function validateFormData(data) {
     return true;
 }
 
+// ================================
+// DISPLAY
+// ================================
 function displayPostes(postes) {
     const container = document.getElementById('postes-list');
     if (!container) return;
@@ -168,10 +176,8 @@ function displayPostes(postes) {
     }
     
     container.innerHTML = '';
-    
     postes.forEach(poste => {
-        const item = createPosteItem(poste);
-        container.appendChild(item);
+        container.appendChild(createPosteItem(poste));
     });
 }
 
@@ -184,21 +190,15 @@ function createPosteItem(poste) {
     
     item.innerHTML = `
         <div class="item-header">
-            <span class="item-status ${statusClass}">
-                ${statusLabel}
-            </span>
+            <span class="item-status ${statusClass}">${statusLabel}</span>
             <span class="item-code">${poste.codigo}</span>
         </div>
-        
         <div class="item-content">
             <div class="item-price">${window.AppUtils.formatCurrency(poste.preco)}</div>
             <div class="item-title">${poste.descricao}</div>
         </div>
-        
         <div class="item-actions">
-            <button class="btn btn-small btn-primary" onclick="editPoste(${poste.id})">
-                ✏️ Editar
-            </button>
+            <button class="btn btn-small btn-primary" onclick="editPoste(${poste.id})">✏️ Editar</button>
             <button class="btn btn-small ${poste.ativo ? 'btn-secondary' : 'btn-success'}" 
                     onclick="togglePosteStatus(${poste.id})">
                 ${poste.ativo ? '❌ Inativar' : '✅ Ativar'}
@@ -209,12 +209,13 @@ function createPosteItem(poste) {
     return item;
 }
 
+// ================================
+// EDIT FUNCTIONS
+// ================================
 async function editPoste(id) {
     try {
         const poste = postesData.postes.find(p => p.id === id);
-        if (!poste) {
-            throw new Error('Poste não encontrado');
-        }
+        if (!poste) throw new Error('Poste não encontrado');
         
         populateEditForm(poste);
         postesData.currentEditId = id;
@@ -239,9 +240,7 @@ async function handleEditSubmit(e) {
     try {
         const formData = buildEditFormData();
         
-        if (!validateFormData(formData)) {
-            return;
-        }
+        if (!validateFormData(formData)) return;
         
         window.AppUtils.showLoading(true);
         
@@ -277,16 +276,12 @@ function buildEditFormData() {
 async function togglePosteStatus(id) {
     try {
         const poste = postesData.postes.find(p => p.id === id);
-        if (!poste) {
-            throw new Error('Poste não encontrado');
-        }
+        if (!poste) throw new Error('Poste não encontrado');
         
         const novoStatus = !poste.ativo;
         const acao = novoStatus ? 'ativar' : 'inativar';
         
-        if (!confirm(`Tem certeza que deseja ${acao} este poste?`)) {
-            return;
-        }
+        if (!confirm(`Tem certeza que deseja ${acao} este poste?`)) return;
         
         window.AppUtils.showLoading(true);
         
@@ -309,15 +304,14 @@ async function togglePosteStatus(id) {
     }
 }
 
+// ================================
+// FILTERS
+// ================================
 function updateFilters() {
-    const status = document.getElementById('filtro-status').value;
-    const codigo = document.getElementById('filtro-codigo').value.trim();
-    const descricao = document.getElementById('filtro-descricao').value.trim();
-    
     postesData.filters = {
-        status: status,
-        codigo: codigo,
-        descricao: descricao
+        status: document.getElementById('filtro-status').value,
+        codigo: document.getElementById('filtro-codigo').value.trim(),
+        descricao: document.getElementById('filtro-descricao').value.trim()
     };
 }
 
@@ -364,6 +358,9 @@ function updateResumo() {
     window.AppUtils.updateElement('preco-medio', window.AppUtils.formatCurrency(precoMedio));
 }
 
+// ================================
+// UTILITY FUNCTIONS
+// ================================
 function resetForm() {
     document.getElementById('poste-form').reset();
 }
@@ -414,7 +411,9 @@ async function loadPostes() {
     }
 }
 
-// Disponibilizar funções globalmente
+// ================================
+// GLOBAL FUNCTIONS
+// ================================
 window.editPoste = editPoste;
 window.togglePosteStatus = togglePosteStatus;
 window.limparFiltros = limparFiltros;
@@ -423,4 +422,4 @@ window.loadPostes = loadPostes;
 window.scrollToForm = scrollToForm;
 window.closeModal = () => window.AppUtils.closeModal('edit-modal');
 
-console.log('✅ Postes Caminhão Vermelho carregado');
+console.log('✅ Postes Caminhão Vermelho otimizado carregado');
