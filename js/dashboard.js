@@ -227,16 +227,18 @@ function updateInterface(lucros) {
     window.AppUtils.updateElement('parte-gilberto', window.AppUtils.formatCurrency(lucros.parteGilberto));
     window.AppUtils.updateElement('parte-jefferson', window.AppUtils.formatCurrency(lucros.parteJefferson));
 
-    // Estatísticas
-    const vendasV = dashboardData.vendas.filter(v => v.tipoVenda === 'V');
-    const ticketMedio = vendasV.length > 0 ?
-        vendasV.reduce((sum, v) => sum + (v.valorVenda || 0), 0) / vendasV.length : 0;
+    // Estatísticas - MODIFICAÇÃO AQUI: trocar ticket médio por valor total de vendas E (extras)
+    const valorTotalExtras = lucros.valorTotalExtras || 0;
+    
     const margemLucro = lucros.valorTotalVendas > 0 ?
         (lucros.lucroTotal / lucros.valorTotalVendas * 100) : 0;
 
     window.AppUtils.updateElement('total-postes', dashboardData.postes.filter(p => p.ativo).length);
     window.AppUtils.updateElement('total-despesas-count', dashboardData.despesas.length);
-    window.AppUtils.updateElement('ticket-medio', window.AppUtils.formatCurrency(ticketMedio));
+    
+    // MUDANÇA: trocar ticket-medio por valor total de vendas E (extras)
+    window.AppUtils.updateElement('ticket-medio', window.AppUtils.formatCurrency(valorTotalExtras));
+    
     window.AppUtils.updateElement('margem-lucro', `${margemLucro.toFixed(1)}%`);
 
     console.log('✅ Interface do Caminhão Vermelho atualizada');
