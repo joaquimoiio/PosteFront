@@ -60,6 +60,7 @@
                     <select id="tipo-venda">
                         <option value="">Todos os tipos</option>
                         <option value="V">🛒 Vendas Normais (V)</option>
+                        <option value="E">📈 Vendas Extras (E)</option>
                         <option value="L">🏪 Vendas Loja (L)</option>
                     </select>
                 </div>
@@ -107,6 +108,28 @@
             </div>
         </section>
 
+        <!-- Resumo Vendas Extras -->
+        <section class="summary-section" id="resumo-extras-section" style="display: none;">
+            <h2>📈 Resumo das Vendas Extras (E) - Caminhão Vermelho</h2>
+            <div class="stats-grid">
+                <div class="stat-item tipo-e">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-number" id="total-vendas-extras">0</div>
+                    <div class="stat-label">Total de Vendas Extras</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-number" id="total-postes-extras">0</div>
+                    <div class="stat-label">Postes Vendidos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-number" id="total-valor-extras">R$ 0,00</div>
+                    <div class="stat-label">Valor Total</div>
+                </div>
+            </div>
+        </section>
+
         <!-- Resumo Vendas Loja -->
         <section class="summary-section" id="resumo-loja-section" style="display: none;">
             <h2>🏪 Resumo das Vendas Loja (L) - Caminhão Vermelho</h2>
@@ -145,6 +168,27 @@
 
             <div class="table-container">
                 <div id="relatorio-list" class="mobile-list">
+                    <!-- Conteúdo será carregado dinamicamente -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Relatório Vendas Extras -->
+        <section class="table-section" id="vendas-extras-section" style="display: none;">
+            <div class="section-header">
+                <h2>📈 Vendas Extras por Data - Caminhão Vermelho</h2>
+                <div class="section-actions">
+                    <button class="btn btn-small" onclick="gerarRelatorio()">
+                        🔄
+                    </button>
+                    <button class="btn btn-small" onclick="exportarRelatorio()">
+                        📊
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div id="vendas-extras-list" class="mobile-list">
                     <!-- Conteúdo será carregado dinamicamente -->
                 </div>
             </div>

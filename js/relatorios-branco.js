@@ -118,6 +118,10 @@ async function gerarRelatorio() {
             gerarRelatorioVendasNormais();
         }
 
+        if (!tipoVenda || tipoVenda === 'E') {
+            gerarRelatorioVendasExtras();
+        }
+
         if (!tipoVenda || tipoVenda === 'L') {
             gerarRelatorioVendasLoja();
         }
@@ -195,6 +199,85 @@ function gerarRelatorioVendasNormais() {
     // Gerar lista
     displayRelatorioVendasNormais(relatorioArray);
     document.getElementById('relatorio-section').style.display = 'block';
+}
+
+function gerarRelatorioVendasExtras() {
+    const vendasE = relatoriosData.vendas.filter(v => v.tipoVenda === 'E');
+
+    if (vendasE.length === 0) {
+        document.getElementById('resumo-extras-section').style.display = 'none';
+        document.getElementById('vendas-extras-section').style.display = 'none';
+        return;
+    }
+
+    // Ordenar vendas por data (mais recentes primeiro)
+    const vendasOrdenadas = vendasE.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
+
+    // Atualizar resumo extras
+    const totalVendasExtras = vendasE.length;
+    const totalPostesExtras = vendasE.reduce((sum, v) => sum + (v.quantidade || 0), 0);
+    const totalValorExtras = vendasE.reduce((sum, v) => sum + (v.valorVenda || 0), 0);
+
+    window.AppUtils.updateElement('total-vendas-extras', totalVendasExtras);
+    window.AppUtils.updateElement('total-postes-extras', totalPostesExtras);
+    window.AppUtils.updateElement('total-valor-extras', window.AppUtils.formatCurrency(totalValorExtras));
+
+    // Mostrar seção
+    document.getElementById('resumo-extras-section').style.display = 'block';
+
+    // Gerar lista
+    displayRelatorioVendasExtras(vendasOrdenadas);
+    document.getElementById('vendas-extras-section').style.display = 'block';
+}
+
+function displayRelatorioVendasExtras(vendas) {
+    const container = document.getElementById('vendas-extras-list');
+    if (!container) return;
+
+    if (!vendas || vendas.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📈</div>
+                <h3>Nenhuma venda extra encontrada</h3>
+                <p>Não há vendas extras (E) no período selecionado.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+
+    vendas.forEach(venda => {
+        const element = createRelatorioExtraItem(venda);
+        container.appendChild(element);
+    });
+}
+
+function createRelatorioExtraItem(venda) {
+    const element = document.createElement('div');
+    element.className = 'mobile-list-item relatorio-extra-item tipo-e';
+
+    element.innerHTML = `
+        <div class="item-header">
+            <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
+            <span class="item-code">${venda.codigoPoste || 'N/A'}</span>
+        </div>
+        
+        <div class="item-content">
+            <div class="item-value">${window.AppUtils.formatCurrency(venda.valorVenda || 0)}</div>
+            <div class="item-title">${venda.descricaoPoste || 'Produto não especificado'}</div>
+            <div class="item-details">
+                <small>Quantidade: ${venda.quantidade || 1}</small>
+            </div>
+            ${venda.observacoes ? `
+                <div class="item-details">
+                    <small>Obs: ${venda.observacoes}</small>
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    return element;
 }
 
 function displayRelatorioVendasNormais(relatorio) {
@@ -342,6 +425,8 @@ function updatePeriodoInfo() {
     let tipo = '';
     if (tipoVenda === 'V') {
         tipo = ' - Vendas Normais';
+    } else if (tipoVenda === 'E') {
+        tipo = ' - Vendas Extras';
     } else if (tipoVenda === 'L') {
         tipo = ' - Vendas Loja';
     }
@@ -357,8 +442,10 @@ function limparRelatorio() {
 
     // Esconder seções
     document.getElementById('resumo-section').style.display = 'none';
+    document.getElementById('resumo-extras-section').style.display = 'none';
     document.getElementById('resumo-loja-section').style.display = 'none';
     document.getElementById('relatorio-section').style.display = 'none';
+    document.getElementById('vendas-extras-section').style.display = 'none';
     document.getElementById('vendas-loja-section').style.display = 'none';
     document.getElementById('periodo-info').style.display = 'none';
 
@@ -380,6 +467,10 @@ async function exportarRelatorio() {
 
     if (!tipoVenda || tipoVenda === 'V') {
         exportarRelatorioVendasNormais();
+    }
+
+    if (!tipoVenda || tipoVenda === 'E') {
+        exportarRelatorioVendasExtras();
     }
 
     if (!tipoVenda || tipoVenda === 'L') {
@@ -422,6 +513,26 @@ function exportarRelatorioVendasNormais() {
 
     const { dataInicio, dataFim } = relatoriosData.filtros;
     const filename = `relatorio_vendas_normais_branco_${dataInicio}_${dataFim}`;
+
+    window.AppUtils.exportToCSV(dadosExportar, filename);
+}
+
+function exportarRelatorioVendasExtras() {
+    const vendasE = relatoriosData.vendas.filter(v => v.tipoVenda === 'E');
+
+    if (vendasE.length === 0) return;
+
+    const dadosExportar = vendasE.map(venda => ({
+        'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
+        'Código Poste': venda.codigoPoste || 'N/A',
+        'Descrição': venda.descricaoPoste || 'Produto não especificado',
+        'Quantidade': venda.quantidade || 1,
+        'Valor Venda': venda.valorVenda || 0,
+        'Observações': venda.observacoes || '-'
+    }));
+
+    const { dataInicio, dataFim } = relatoriosData.filtros;
+    const filename = `relatorio_vendas_extras_branco_${dataInicio}_${dataFim}`;
 
     window.AppUtils.exportToCSV(dadosExportar, filename);
 }
