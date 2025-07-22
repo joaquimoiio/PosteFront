@@ -201,6 +201,7 @@ function gerarRelatorioVendasNormais() {
     document.getElementById('relatorio-section').style.display = 'block';
 }
 
+// ✅ CORREÇÃO: gerarRelatorioVendasExtras - usando valorExtra
 function gerarRelatorioVendasExtras() {
     const vendasE = relatoriosData.vendas.filter(v => v.tipoVenda === 'E');
 
@@ -215,8 +216,10 @@ function gerarRelatorioVendasExtras() {
 
     // Atualizar resumo extras
     const totalVendasExtras = vendasE.length;
-    const totalPostesExtras = vendasE.reduce((sum, v) => sum + (v.quantidade || 0), 0);
-    const totalValorExtras = vendasE.reduce((sum, v) => sum + (v.valorVenda || 0), 0);
+    const totalPostesExtras = vendasE.reduce((sum, v) => sum + (v.quantidade || 1), 0);
+    
+    // ✅ PRINCIPAL CORREÇÃO: Usar valorExtra ao invés de valorVenda
+    const totalValorExtras = vendasE.reduce((sum, v) => sum + (v.valorExtra || 0), 0);
 
     window.AppUtils.updateElement('total-vendas-extras', totalVendasExtras);
     window.AppUtils.updateElement('total-postes-extras', totalPostesExtras);
@@ -253,6 +256,7 @@ function displayRelatorioVendasExtras(vendas) {
     });
 }
 
+// ✅ CORREÇÃO: createRelatorioExtraItem - usando valorExtra
 function createRelatorioExtraItem(venda) {
     const element = document.createElement('div');
     element.className = 'mobile-list-item relatorio-extra-item tipo-e';
@@ -260,12 +264,12 @@ function createRelatorioExtraItem(venda) {
     element.innerHTML = `
         <div class="item-header">
             <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
-            <span class="item-code">${venda.codigoPoste || 'N/A'}</span>
+            <span class="item-code">${venda.codigoPoste || 'Extra'}</span>
         </div>
         
         <div class="item-content">
-            <div class="item-value">${window.AppUtils.formatCurrency(venda.valorVenda || 0)}</div>
-            <div class="item-title">${venda.descricaoPoste || 'Produto não especificado'}</div>
+            <div class="item-value">${window.AppUtils.formatCurrency(venda.valorExtra || 0)}</div>
+            <div class="item-title">${venda.descricaoPoste || 'Venda Extra'}</div>
             <div class="item-details">
                 <small>Quantidade: ${venda.quantidade || 1}</small>
             </div>
@@ -517,6 +521,7 @@ function exportarRelatorioVendasNormais() {
     window.AppUtils.exportToCSV(dadosExportar, filename);
 }
 
+// ✅ CORREÇÃO: exportarRelatorioVendasExtras - usando valorExtra
 function exportarRelatorioVendasExtras() {
     const vendasE = relatoriosData.vendas.filter(v => v.tipoVenda === 'E');
 
@@ -525,9 +530,9 @@ function exportarRelatorioVendasExtras() {
     const dadosExportar = vendasE.map(venda => ({
         'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
         'Código Poste': venda.codigoPoste || 'N/A',
-        'Descrição': venda.descricaoPoste || 'Produto não especificado',
+        'Descrição': venda.descricaoPoste || 'Venda Extra',
         'Quantidade': venda.quantidade || 1,
-        'Valor Venda': venda.valorVenda || 0,
+        'Valor Extra': venda.valorExtra || 0,  // ✅ CORREÇÃO: valorExtra ao invés de valorVenda
         'Observações': venda.observacoes || '-'
     }));
 
