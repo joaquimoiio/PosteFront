@@ -1,9 +1,11 @@
 // despesas.js - Caminhão Vermelho Multi-Tenant
 // Sistema de Postes com suporte específico para Caminhão Vermelho
+// Resumo das despesas atualizado conforme filtros aplicados
 
 // Estado local específico para o Caminhão Vermelho
 let despesasData = {
     despesas: [],
+    despesasFiltradas: [], // Nova propriedade para armazenar despesas filtradas
     currentEditId: null,
     filters: { tipo: '', dataInicio: '', dataFim: '', descricao: '' }
 };
@@ -65,8 +67,9 @@ async function loadData() {
         
         const despesas = await fetchDespesas();
         despesasData.despesas = despesas || [];
+        despesasData.despesasFiltradas = [...despesasData.despesas]; // Inicializar com todas as despesas
         
-        updateResumo();
+        updateResumo(); // Atualizar resumo com todas as despesas inicialmente
         applyFilters();
         
     } catch (error) {
@@ -78,12 +81,8 @@ async function loadData() {
 }
 
 async function fetchDespesas() {
-    const params = new URLSearchParams();
-    if (despesasData.filters.dataInicio) params.append('dataInicio', despesasData.filters.dataInicio);
-    if (despesasData.filters.dataFim) params.append('dataFim', despesasData.filters.dataFim);
-    
-    const endpoint = params.toString() ? `/despesas?${params}` : '/despesas';
-    return await window.AppUtils.apiRequest(endpoint);
+    // Sempre buscar todas as despesas para permitir filtragem local
+    return await window.AppUtils.apiRequest('/despesas');
 }
 
 async function handleDespesaSubmit(e) {
@@ -331,7 +330,10 @@ function applyFilters() {
         );
     }
     
+    // Atualizar despesas filtradas e resumo
+    despesasData.despesasFiltradas = filtered;
     displayDespesas(filtered);
+    updateResumo(); // Atualizar resumo com despesas filtradas
     updateFilterIndicator();
 }
 
@@ -369,14 +371,16 @@ function updateFilterIndicator() {
     }
 }
 
+// FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO DO RESUMO - AGORA BASEADA EM FILTROS
 function updateResumo() {
-    const despesas = despesasData.despesas;
+    // Usar despesas filtradas para o resumo
+    const despesasParaResumo = despesasData.despesasFiltradas;
     
-    const despesasFuncionario = despesas
+    const despesasFuncionario = despesasParaResumo
         .filter(d => d.tipo === 'FUNCIONARIO')
         .reduce((sum, d) => sum + (d.valor || 0), 0);
         
-    const outrasDespesas = despesas
+    const outrasDespesas = despesasParaResumo
         .filter(d => d.tipo === 'OUTRAS')
         .reduce((sum, d) => sum + (d.valor || 0), 0);
         
@@ -385,6 +389,17 @@ function updateResumo() {
     window.AppUtils.updateElement('total-despesas-funcionario', window.AppUtils.formatCurrency(despesasFuncionario));
     window.AppUtils.updateElement('total-outras-despesas', window.AppUtils.formatCurrency(outrasDespesas));
     window.AppUtils.updateElement('total-despesas-geral', window.AppUtils.formatCurrency(totalGeral));
+    
+    // Atualizar título da seção do resumo para indicar se há filtros
+    const resumoTitle = document.querySelector('.summary-section h2');
+    if (resumoTitle) {
+        const hasFilters = Object.values(despesasData.filters).some(filter => filter);
+        if (hasFilters) {
+            resumoTitle.textContent = '📊 Resumo das Despesas (Filtrado) - Caminhão Vermelho';
+        } else {
+            resumoTitle.textContent = '📊 Resumo das Despesas - Caminhão Vermelho';
+        }
+    }
 }
 
 function resetForm() {
@@ -413,24 +428,31 @@ function limparFiltros() {
     document.getElementById('filtro-descricao').value = '';
     
     despesasData.filters = { tipo: '', dataInicio: '', dataFim: '', descricao: '' };
+    despesasData.despesasFiltradas = [...despesasData.despesas]; // Resetar para todas as despesas
     applyFilters();
     window.AppUtils.showAlert('Filtros limpos', 'success');
 }
 
 async function exportarDespesas() {
-    if (!despesasData.despesas || despesasData.despesas.length === 0) {
+    // Exportar apenas as despesas filtradas
+    const despesasParaExportar = despesasData.despesasFiltradas;
+    
+    if (!despesasParaExportar || despesasParaExportar.length === 0) {
         window.AppUtils.showAlert('Nenhuma despesa para exportar', 'warning');
         return;
     }
     
-    const dadosExportar = despesasData.despesas.map(despesa => ({
+    const dadosExportar = despesasParaExportar.map(despesa => ({
         'Data': window.AppUtils.formatDateBRFixed(despesa.dataDespesa),
         'Descrição': despesa.descricao,
         'Valor': despesa.valor,
         'Tipo': despesa.tipo === 'FUNCIONARIO' ? 'Funcionário' : 'Outras'
     }));
     
-    window.AppUtils.exportToCSV(dadosExportar, `despesas_vermelho_${new Date().toISOString().split('T')[0]}`);
+    const hasFilters = Object.values(despesasData.filters).some(filter => filter);
+    const suffix = hasFilters ? 'filtrado' : 'completo';
+    
+    window.AppUtils.exportToCSV(dadosExportar, `despesas_vermelho_${suffix}_${new Date().toISOString().split('T')[0]}`);
 }
 
 async function loadDespesas() {
