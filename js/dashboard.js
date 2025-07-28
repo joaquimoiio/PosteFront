@@ -161,7 +161,7 @@ function calcularLucrosCaminhaoVermelho(resumoVendas, despesas) {
             despesasFuncionario: 0, outrasDespesas: 0, lucroTotal: 0,
             parteCicero: 0, parteGilberto: 0, parteJefferson: 0,
             valorTotalExtras: 0, totalFreteEletrons: 0,
-            totalVendasE: 0, totalVendasV: 0, totalVendasL: 0
+            totalVendasE: 0, totalVendasV: 0, totalVendasL: 0, totalArrecadado: 0
         };
     }
 
@@ -181,6 +181,8 @@ function calcularLucrosCaminhaoVermelho(resumoVendas, despesas) {
     const valorTotalExtras = parseFloat(resumoVendas.valorTotalExtras) || 0;
 
     const lucroTotal = valorTotalVendas + valorTotalExtras + totalFreteEletrons - outrasDespesas - totalVendaPostes;
+    const totalArrecadado = valorTotalVendas + valorTotalExtras + totalFreteEletrons;
+    
 
     // Divisão específica do Caminhão Vermelho: 50% Cícero, 25% G&J
     const metadeCicero = lucroTotal / 2;
@@ -197,7 +199,7 @@ function calcularLucrosCaminhaoVermelho(resumoVendas, despesas) {
     return {
         totalVendaPostes, valorTotalVendas, custoEletronsL,
         despesasFuncionario, outrasDespesas, lucroTotal,
-        parteCicero: metadeCicero, parteGilberto, parteJefferson,
+        parteCicero: metadeCicero, parteGilberto,totalArrecadado, parteJefferson,
         valorTotalExtras, totalFreteEletrons,
         totalVendasE: resumoVendas.totalVendasE || 0,
         totalVendasV: resumoVendas.totalVendasV || 0,
@@ -216,7 +218,7 @@ function updateInterface(lucros) {
     window.AppUtils.updateElement('total-vendas', dashboardData.vendas.length);
 
     // Cards de valores
-    window.AppUtils.updateElement('valor-total-vendas', window.AppUtils.formatCurrency(lucros.valorTotalVendas));
+    window.AppUtils.updateElement('valor-total-vendas', window.AppUtils.formatCurrency(lucros.totalArrecadado));
     window.AppUtils.updateElement('total-venda-postes', window.AppUtils.formatCurrency(lucros.totalVendaPostes));
     window.AppUtils.updateElement('custo-eletrons-l', window.AppUtils.formatCurrency(lucros.custoEletronsL));
     window.AppUtils.updateElement('total-despesas', window.AppUtils.formatCurrency(lucros.outrasDespesas));

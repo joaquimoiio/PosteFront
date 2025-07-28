@@ -103,6 +103,7 @@ function calcularLucrosCaminhaoBranco(resumoVendas, despesas) {
             parteCicero: 0,
             parteJefferson: 0,
             valorTotalExtras: 0,
+            totalArrecadado: 0,
             totalFreteEletrons: 0,
             totalVendasE: 0,
             totalVendasV: 0,
@@ -124,6 +125,7 @@ function calcularLucrosCaminhaoBranco(resumoVendas, despesas) {
     const valorTotalVendas = parseFloat(resumoVendas.valorTotalVendas) || 0;
     const totalFreteEletrons = parseFloat(resumoVendas.totalFreteEletrons) || 0;
     const valorTotalExtras = parseFloat(resumoVendas.valorTotalExtras) || 0;
+    const totalArrecadado = valorTotalVendas + valorTotalExtras + totalFreteEletrons;
 
     const lucroTotal = valorTotalVendas + valorTotalExtras + totalFreteEletrons - outrasDespesas - totalVendaPostes;
 
@@ -142,6 +144,7 @@ function calcularLucrosCaminhaoBranco(resumoVendas, despesas) {
         custoEletronsL,
         despesasFuncionario,
         outrasDespesas,
+        totalArrecadado,
         lucroTotal,
         parteCicero: metadeCicero,
         parteJefferson: parteJeffersonLiquida,
@@ -161,7 +164,7 @@ function updateInterface(lucros) {
     window.AppUtils.updateElement('total-vendas', dashboardData.vendas.length);
 
     // Cards de valores
-    window.AppUtils.updateElement('valor-total-vendas', window.AppUtils.formatCurrency(lucros.valorTotalVendas));
+    window.AppUtils.updateElement('valor-total-vendas', window.AppUtils.formatCurrency(lucros.totalArrecadado));
     window.AppUtils.updateElement('total-venda-postes', window.AppUtils.formatCurrency(lucros.totalVendaPostes));
     window.AppUtils.updateElement('custo-eletrons-l', window.AppUtils.formatCurrency(lucros.custoEletronsL));
     window.AppUtils.updateElement('total-despesas', window.AppUtils.formatCurrency(lucros.outrasDespesas));
@@ -233,6 +236,7 @@ async function fetchResumoVendas() {
             valorTotalVendas: 0,
             totalFreteEletrons: 0,
             valorTotalExtras: 0,
+            totalArrecadado: 0,
             totalVendasE: 0,
             totalVendasV: 0,
             totalVendasL: 0
