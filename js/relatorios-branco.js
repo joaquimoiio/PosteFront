@@ -1,570 +1,744 @@
-// Estado local específico para o Caminhão Branco
-let relatoriosData = {
-    vendas: [],
-    postes: [],
-    relatorioGerado: false,
-    filtros: { dataInicio: '', dataFim: '', tipoVenda: '' }
-};
+// ================================
+// RELATÓRIOS CAMINHÃO VERMELHO - REFATORADO COMPLETO
+// Sistema com cálculo de lucro integrado
+// ================================
 
-// Verificar autenticação específica do Caminhão Branco
-document.addEventListener('DOMContentLoaded', () => {
-    const userType = localStorage.getItem('poste-system-user-type');
-    if (userType !== 'branco') {
-        window.location.href = 'index.html';
-        return;
+class RelatoriosVermelho {
+    constructor() {
+        this.data = {
+            vendas: [],
+            postes: [],
+            relatorioGerado: false,
+            filtros: { dataInicio: '', dataFim: '', tipoVenda: '' }
+        };
+        
+        this.init();
     }
 
-    if (!window.AppUtils) {
-        console.error('AppUtils não carregado! Verifique se utils.js foi incluído.');
-        return;
+    // ================================
+    // INICIALIZAÇÃO
+    // ================================
+    async init() {
+        if (!this.validateAuth()) return;
+        if (!this.validateDependencies()) return;
+
+        console.log('🎯 Inicializando Relatórios Caminhão Vermelho...');
+
+        try {
+            this.setupEventListeners();
+            this.setDefaultPeriod();
+            await this.loadPostes();
+            console.log('✅ Relatórios Caminhão Vermelho carregado');
+        } catch (error) {
+            console.error('❌ Erro ao carregar:', error);
+            window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
+        }
     }
 
-    initRelatorios();
-});
-
-async function initRelatorios() {
-    console.log('🎯 Inicializando Relatórios Caminhão Branco...');
-
-    try {
-        setupEventListeners();
-        setDefaultPeriod();
-        await loadPostes();
-        console.log('✅ Relatórios Caminhão Branco carregado');
-    } catch (error) {
-        console.error('❌ Erro ao carregar:', error);
-        window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
+    validateAuth() {
+        const userType = localStorage.getItem('poste-system-user-type');
+        if (userType !== 'vermelho') {
+            window.location.href = 'index.html';
+            return false;
+        }
+        return true;
     }
-}
 
-function setupEventListeners() {
-    const relatorioForm = document.getElementById('relatorio-form');
-    if (relatorioForm) {
-        relatorioForm.addEventListener('submit', handleRelatorioSubmit);
+    validateDependencies() {
+        if (!window.AppUtils) {
+            console.error('AppUtils não carregado!');
+            return false;
+        }
+        return true;
     }
-}
 
-function setDefaultPeriod() {
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-    document.getElementById('data-inicio').value = window.AppUtils.dateToInputValue(firstDayOfMonth);
-    document.getElementById('data-fim').value = window.AppUtils.dateToInputValue(today);
-}
-
-async function loadPostes() {
-    try {
-        const postes = await window.AppUtils.apiRequest('/postes');
-        relatoriosData.postes = postes || [];
-    } catch (error) {
-        console.error('Erro ao carregar postes:', error);
-        relatoriosData.postes = [];
+    setupEventListeners() {
+        const relatorioForm = document.getElementById('relatorio-form');
+        if (relatorioForm) {
+            relatorioForm.addEventListener('submit', (e) => this.handleRelatorioSubmit(e));
+        }
     }
-}
 
-async function handleRelatorioSubmit(e) {
-    e.preventDefault();
+    setDefaultPeriod() {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        document.getElementById('data-inicio').value = window.AppUtils.dateToInputValue(firstDayOfMonth);
+        document.getElementById('data-fim').value = window.AppUtils.dateToInputValue(today);
+    }
 
-    try {
-        const formData = buildRelatorioFilters();
+    async loadPostes() {
+        try {
+            const postes = await window.AppUtils.apiRequest('/postes');
+            this.data.postes = postes || [];
+            console.log(`📦 Carregados ${this.data.postes.length} postes do Caminhão Vermelho`);
+        } catch (error) {
+            console.error('Erro ao carregar postes:', error);
+            this.data.postes = [];
+        }
+    }
 
-        if (!validateRelatorioFilters(formData)) {
+    // ================================
+    // MANIPULAÇÃO DE EVENTOS
+    // ================================
+    async handleRelatorioSubmit(e) {
+        e.preventDefault();
+        
+        try {
+            const formData = this.buildRelatorioFilters();
+            
+            if (!this.validateRelatorioFilters(formData)) {
+                return;
+            }
+            
+            this.data.filtros = formData;
+            await this.gerarRelatorio();
+            
+        } catch (error) {
+            console.error('Erro ao gerar relatório:', error);
+            window.AppUtils.showAlert('Erro ao gerar relatório: ' + error.message, 'error');
+        }
+    }
+
+    buildRelatorioFilters() {
+        return {
+            dataInicio: document.getElementById('data-inicio').value,
+            dataFim: document.getElementById('data-fim').value,
+            tipoVenda: document.getElementById('tipo-venda').value
+        };
+    }
+
+    validateRelatorioFilters(data) {
+        if (!window.AppUtils.validateRequired(data.dataInicio, 'Data início') ||
+            !window.AppUtils.validateRequired(data.dataFim, 'Data fim')) {
+            return false;
+        }
+        
+        const inicio = new Date(data.dataInicio);
+        const fim = new Date(data.dataFim);
+        
+        if (inicio > fim) {
+            window.AppUtils.showAlert('Data início não pode ser maior que data fim', 'warning');
+            return false;
+        }
+        
+        return true;
+    }
+
+    // ================================
+    // GERAÇÃO DE RELATÓRIOS
+    // ================================
+    async gerarRelatorio() {
+        try {
+            window.AppUtils.showLoading(true);
+            
+            const vendas = await this.fetchVendasPeriodo();
+            this.data.vendas = vendas || [];
+            
+            console.log(`📊 Processando ${this.data.vendas.length} vendas do Caminhão Vermelho`);
+            
+            const { tipoVenda } = this.data.filtros;
+            
+            // Gerar relatórios baseado no tipo selecionado
+            if (!tipoVenda || tipoVenda === 'V') {
+                await this.gerarRelatorioVendasNormais();
+            }
+            
+            if (!tipoVenda || tipoVenda === 'E') {
+                this.gerarRelatorioVendasExtras();
+            }
+            
+            if (!tipoVenda || tipoVenda === 'L') {
+                this.gerarRelatorioVendasLoja();
+            }
+            
+            this.updatePeriodoInfo();
+            this.data.relatorioGerado = true;
+            
+            window.AppUtils.showAlert('Relatório gerado com sucesso!', 'success');
+            
+        } catch (error) {
+            console.error('Erro ao gerar relatório:', error);
+            window.AppUtils.showAlert('Erro ao gerar relatório. Tente novamente.', 'error');
+        } finally {
+            window.AppUtils.showLoading(false);
+        }
+    }
+
+    async fetchVendasPeriodo() {
+        const { dataInicio, dataFim } = this.data.filtros;
+        const params = new URLSearchParams();
+        
+        if (dataInicio) params.append('dataInicio', dataInicio);
+        if (dataFim) params.append('dataFim', dataFim);
+        
+        const endpoint = `/vendas?${params}`;
+        return await window.AppUtils.apiRequest(endpoint);
+    }
+
+    // ================================
+    // VENDAS NORMAIS COM LUCRO
+    // ================================
+    async gerarRelatorioVendasNormais() {
+        const vendasV = this.data.vendas.filter(v => v.tipoVenda === 'V');
+        
+        console.log(`📈 Processando ${vendasV.length} vendas normais (V)`);
+        
+        if (vendasV.length === 0) {
+            this.hideSection('resumo-section');
+            this.hideSection('relatorio-section');
             return;
         }
-
-        relatoriosData.filtros = formData;
-        await gerarRelatorio();
-
-    } catch (error) {
-        console.error('Erro ao gerar relatório:', error);
-        window.AppUtils.showAlert('Erro ao gerar relatório: ' + error.message, 'error');
-    }
-}
-
-function buildRelatorioFilters() {
-    return {
-        dataInicio: document.getElementById('data-inicio').value,
-        dataFim: document.getElementById('data-fim').value,
-        tipoVenda: document.getElementById('tipo-venda').value
-    };
-}
-
-function validateRelatorioFilters(data) {
-    if (!window.AppUtils.validateRequired(data.dataInicio, 'Data início') ||
-        !window.AppUtils.validateRequired(data.dataFim, 'Data fim')) {
-        return false;
+        
+        const vendasAgrupadas = this.agruparVendasPorPoste(vendasV);
+        const relatorioArray = this.calcularLucrosVendas(vendasAgrupadas);
+        const resumoGeral = this.calcularResumoGeral(relatorioArray);
+        
+        this.updateResumoVendasNormais(resumoGeral);
+        this.displayRelatorioVendasNormais(relatorioArray);
+        
+        this.showSection('resumo-section');
+        this.showSection('relatorio-section');
+        
+        console.log('📊 Relatório vendas normais Caminhão Vermelho com lucro:', resumoGeral);
     }
 
-    const inicio = new Date(data.dataInicio);
-    const fim = new Date(data.dataFim);
-
-    if (inicio > fim) {
-        window.AppUtils.showAlert('Data início não pode ser maior que data fim', 'warning');
-        return false;
+    agruparVendasPorPoste(vendas) {
+        const agrupadas = {};
+        
+        vendas.forEach(venda => {
+            const key = venda.posteId;
+            if (!agrupadas[key]) {
+                agrupadas[key] = {
+                    posteId: venda.posteId,
+                    codigoPoste: venda.codigoPoste,
+                    descricaoPoste: venda.descricaoPoste,
+                    quantidadeTotal: 0,
+                    valorTotalVendas: 0,
+                    custoTotalPostes: 0,
+                    vendas: []
+                };
+            }
+            
+            agrupadas[key].quantidadeTotal += venda.quantidade || 0;
+            agrupadas[key].valorTotalVendas += venda.valorVenda || 0;
+            agrupadas[key].vendas.push(venda);
+            
+            // Calcular custo baseado no preço do poste
+            const poste = this.data.postes.find(p => p.id === venda.posteId);
+            if (poste && venda.quantidade) {
+                agrupadas[key].custoTotalPostes += (poste.preco * venda.quantidade);
+            }
+        });
+        
+        return agrupadas;
     }
 
-    return true;
-}
+    calcularLucrosVendas(vendasAgrupadas) {
+        return Object.values(vendasAgrupadas).map(item => {
+            // Fórmula: valorTotalVendas - custoTotalPostes
+            item.lucroTotal = item.valorTotalVendas - item.custoTotalPostes;
+            item.margemLucro = item.valorTotalVendas > 0 ? 
+                (item.lucroTotal / item.valorTotalVendas * 100) : 0;
+            return item;
+        }).sort((a, b) => b.quantidadeTotal - a.quantidadeTotal);
+    }
 
-async function gerarRelatorio() {
-    try {
-        window.AppUtils.showLoading(true);
+    calcularResumoGeral(relatorioArray) {
+        const totalTipos = relatorioArray.length;
+        const totalVendas = this.data.vendas.filter(v => v.tipoVenda === 'V').length;
+        const quantidadeTotal = relatorioArray.reduce((sum, item) => sum + item.quantidadeTotal, 0);
+        const valorTotalArrecadado = relatorioArray.reduce((sum, item) => sum + item.valorTotalVendas, 0);
+        const custoTotalGeral = relatorioArray.reduce((sum, item) => sum + item.custoTotalPostes, 0);
+        const lucroTotalGeral = valorTotalArrecadado - custoTotalGeral;
+        const margemLucroGeral = valorTotalArrecadado > 0 ? (lucroTotalGeral / valorTotalArrecadado * 100) : 0;
 
-        const vendas = await fetchVendasPeriodo();
-        relatoriosData.vendas = vendas || [];
+        return {
+            totalTipos,
+            totalVendas,
+            quantidadeTotal,
+            valorTotalArrecadado,
+            custoTotalGeral,
+            lucroTotalGeral,
+            margemLucroGeral
+        };
+    }
 
-        const { tipoVenda } = relatoriosData.filtros;
+    updateResumoVendasNormais(resumo) {
+        window.AppUtils.updateElement('total-tipos-postes', resumo.totalTipos);
+        window.AppUtils.updateElement('total-vendas-periodo', resumo.totalVendas);
+        window.AppUtils.updateElement('quantidade-total', resumo.quantidadeTotal);
+        window.AppUtils.updateElement('valor-total', window.AppUtils.formatCurrency(resumo.valorTotalArrecadado));
+        
+        // Elementos de lucro
+        this.updateOrCreateElement('custo-total', window.AppUtils.formatCurrency(resumo.custoTotalGeral));
+        this.updateOrCreateElement('lucro-total-vendas', window.AppUtils.formatCurrency(resumo.lucroTotalGeral));
+        this.updateOrCreateElement('margem-lucro-vendas', `${resumo.margemLucroGeral.toFixed(1)}%`);
+    }
 
-        if (!tipoVenda || tipoVenda === 'V') {
-            gerarRelatorioVendasNormais();
+    displayRelatorioVendasNormais(relatorio) {
+        const container = document.getElementById('relatorio-list');
+        if (!container) return;
+        
+        if (!relatorio || relatorio.length === 0) {
+            container.innerHTML = this.getEmptyStateHTML('📈', 'Nenhuma venda normal encontrada', 'Não há vendas normais (V) no período selecionado.');
+            return;
         }
-
-        if (!tipoVenda || tipoVenda === 'E') {
-            gerarRelatorioVendasExtras();
-        }
-
-        if (!tipoVenda || tipoVenda === 'L') {
-            gerarRelatorioVendasLoja();
-        }
-
-        updatePeriodoInfo();
-        relatoriosData.relatorioGerado = true;
-
-        window.AppUtils.showAlert('Relatório gerado com sucesso!', 'success');
-
-    } catch (error) {
-        console.error('Erro ao gerar relatório:', error);
-        throw error;
-    } finally {
-        window.AppUtils.showLoading(false);
-    }
-}
-
-async function fetchVendasPeriodo() {
-    const { dataInicio, dataFim } = relatoriosData.filtros;
-    const params = new URLSearchParams();
-
-    if (dataInicio) params.append('dataInicio', dataInicio);
-    if (dataFim) params.append('dataFim', dataFim);
-
-    const endpoint = `/vendas?${params}`;
-    return await window.AppUtils.apiRequest(endpoint);
-}
-
-function gerarRelatorioVendasNormais() {
-    const vendasV = relatoriosData.vendas.filter(v => v.tipoVenda === 'V');
-
-    if (vendasV.length === 0) {
-        document.getElementById('resumo-section').style.display = 'none';
-        document.getElementById('relatorio-section').style.display = 'none';
-        return;
+        
+        container.innerHTML = '';
+        relatorio.forEach(item => {
+            container.appendChild(this.createRelatorioItemComLucro(item));
+        });
     }
 
-    // Agrupar vendas por poste
-    const vendasPorPoste = {};
-    vendasV.forEach(venda => {
-        const key = venda.posteId;
-        if (!vendasPorPoste[key]) {
-            vendasPorPoste[key] = {
-                posteId: venda.posteId,
-                codigoPoste: venda.codigoPoste,
-                descricaoPoste: venda.descricaoPoste,
-                quantidadeTotal: 0,
-                valorTotal: 0,
-                vendas: []
-            };
-        }
-
-        vendasPorPoste[key].quantidadeTotal += venda.quantidade || 0;
-        vendasPorPoste[key].valorTotal += venda.valorVenda || 0;
-        vendasPorPoste[key].vendas.push(venda);
-    });
-
-    const relatorioArray = Object.values(vendasPorPoste)
-        .sort((a, b) => b.quantidadeTotal - a.quantidadeTotal);
-
-    // Atualizar resumo
-    const totalTipos = relatorioArray.length;
-    const totalVendas = vendasV.length;
-    const quantidadeTotal = relatorioArray.reduce((sum, item) => sum + item.quantidadeTotal, 0);
-    const valorTotal = relatorioArray.reduce((sum, item) => sum + item.valorTotal, 0);
-
-    window.AppUtils.updateElement('total-tipos-postes', totalTipos);
-    window.AppUtils.updateElement('total-vendas-periodo', totalVendas);
-    window.AppUtils.updateElement('quantidade-total', quantidadeTotal);
-    window.AppUtils.updateElement('valor-total', window.AppUtils.formatCurrency(valorTotal));
-
-    // Mostrar seção
-    document.getElementById('resumo-section').style.display = 'block';
-
-    // Gerar lista
-    displayRelatorioVendasNormais(relatorioArray);
-    document.getElementById('relatorio-section').style.display = 'block';
-}
-
-// ✅ CORREÇÃO: gerarRelatorioVendasExtras - usando valorExtra
-function gerarRelatorioVendasExtras() {
-    const vendasE = relatoriosData.vendas.filter(v => v.tipoVenda === 'E');
-
-    if (vendasE.length === 0) {
-        document.getElementById('resumo-extras-section').style.display = 'none';
-        document.getElementById('vendas-extras-section').style.display = 'none';
-        return;
-    }
-
-    // Ordenar vendas por data (mais recentes primeiro)
-    const vendasOrdenadas = vendasE.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
-
-    // Atualizar resumo extras
-    const totalVendasExtras = vendasE.length;
-    const totalPostesExtras = vendasE.reduce((sum, v) => sum + (v.quantidade || 1), 0);
-    
-    // ✅ PRINCIPAL CORREÇÃO: Usar valorExtra ao invés de valorVenda
-    const totalValorExtras = vendasE.reduce((sum, v) => sum + (v.valorExtra || 0), 0);
-
-    window.AppUtils.updateElement('total-vendas-extras', totalVendasExtras);
-    window.AppUtils.updateElement('total-postes-extras', totalPostesExtras);
-    window.AppUtils.updateElement('total-valor-extras', window.AppUtils.formatCurrency(totalValorExtras));
-
-    // Mostrar seção
-    document.getElementById('resumo-extras-section').style.display = 'block';
-
-    // Gerar lista
-    displayRelatorioVendasExtras(vendasOrdenadas);
-    document.getElementById('vendas-extras-section').style.display = 'block';
-}
-
-function displayRelatorioVendasExtras(vendas) {
-    const container = document.getElementById('vendas-extras-list');
-    if (!container) return;
-
-    if (!vendas || vendas.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">📈</div>
-                <h3>Nenhuma venda extra encontrada</h3>
-                <p>Não há vendas extras (E) no período selecionado.</p>
+    createRelatorioItemComLucro(item) {
+        const element = document.createElement('div');
+        element.className = 'mobile-list-item relatorio-item';
+        
+        const precoUnitario = item.quantidadeTotal > 0 ? item.valorTotalVendas / item.quantidadeTotal : 0;
+        const custoUnitario = item.quantidadeTotal > 0 ? item.custoTotalPostes / item.quantidadeTotal : 0;
+        const margemClass = this.getMargemClass(item.margemLucro);
+        
+        element.innerHTML = `
+            <div class="item-header">
+                <span class="item-code">${item.codigoPoste}</span>
+                <span class="item-quantidade">${item.quantidadeTotal} unidades</span>
+            </div>
+            
+            <div class="item-content">
+                <div class="item-value">${window.AppUtils.formatCurrency(item.valorTotalVendas)}</div>
+                <div class="item-title">${item.descricaoPoste}</div>
+                
+                <div class="item-details">
+                    <small>Preço médio venda: ${window.AppUtils.formatCurrency(precoUnitario)}</small>
+                </div>
+                <div class="item-details">
+                    <small>Custo médio: ${window.AppUtils.formatCurrency(custoUnitario)}</small>
+                </div>
+                <div class="item-details">
+                    <small>${item.vendas.length} venda(s) realizadas</small>
+                </div>
+                
+                <div class="lucro-info ${margemClass}">
+                    <div class="lucro-valor">
+                        <strong>Lucro: ${window.AppUtils.formatCurrency(item.lucroTotal)}</strong>
+                    </div>
+                    <div class="margem-valor">
+                        <strong>Margem: ${item.margemLucro.toFixed(1)}%</strong>
+                    </div>
+                </div>
             </div>
         `;
-        return;
-    }
-
-    container.innerHTML = '';
-
-    vendas.forEach(venda => {
-        const element = createRelatorioExtraItem(venda);
-        container.appendChild(element);
-    });
-}
-
-// ✅ CORREÇÃO: createRelatorioExtraItem - usando valorExtra
-function createRelatorioExtraItem(venda) {
-    const element = document.createElement('div');
-    element.className = 'mobile-list-item relatorio-extra-item tipo-e';
-
-    element.innerHTML = `
-        <div class="item-header">
-            <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
-            <span class="item-code">${venda.codigoPoste || 'Extra'}</span>
-        </div>
         
-        <div class="item-content">
-            <div class="item-value">${window.AppUtils.formatCurrency(venda.valorExtra || 0)}</div>
-            <div class="item-title">${venda.descricaoPoste || 'Venda Extra'}</div>
-            <div class="item-details">
-                <small>Quantidade: ${venda.quantidade || 1}</small>
-            </div>
-            ${venda.observacoes ? `
-                <div class="item-details">
-                    <small>Obs: ${venda.observacoes}</small>
-                </div>
-            ` : ''}
-        </div>
-    `;
-
-    return element;
-}
-
-function displayRelatorioVendasNormais(relatorio) {
-    const container = document.getElementById('relatorio-list');
-    if (!container) return;
-
-    if (!relatorio || relatorio.length === 0) {
-        container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">📈</div>
-                        <h3>Nenhuma venda normal encontrada</h3>
-                        <p>Não há vendas normais (V) no período selecionado.</p>
-                    </div>
-                `;
-        return;
+        return element;
     }
 
-    container.innerHTML = '';
-
-    relatorio.forEach(item => {
-        const element = createRelatorioItem(item);
-        container.appendChild(element);
-    });
-}
-
-function createRelatorioItem(item) {
-    const element = document.createElement('div');
-    element.className = 'mobile-list-item relatorio-item';
-
-    const precoUnitario = item.quantidadeTotal > 0 ?
-        item.valorTotal / item.quantidadeTotal : 0;
-
-    element.innerHTML = `
-                <div class="item-header">
-                    <span class="item-code">${item.codigoPoste}</span>
-                    <span class="item-quantidade">${item.quantidadeTotal} unidades</span>
-                </div>
-                
-                <div class="item-content">
-                    <div class="item-value">${window.AppUtils.formatCurrency(item.valorTotal)}</div>
-                    <div class="item-title">${item.descricaoPoste}</div>
-                    <div class="item-details">
-                        <small>Preço médio: ${window.AppUtils.formatCurrency(precoUnitario)}</small>
-                    </div>
-                    <div class="item-details">
-                        <small>${item.vendas.length} venda(s) realizadas</small>
-                    </div>
-                </div>
-            `;
-
-    return element;
-}
-
-function gerarRelatorioVendasLoja() {
-    const vendasL = relatoriosData.vendas.filter(v => v.tipoVenda === 'L');
-
-    if (vendasL.length === 0) {
-        document.getElementById('resumo-loja-section').style.display = 'none';
-        document.getElementById('vendas-loja-section').style.display = 'none';
-        return;
-    }
-
-    // Ordenar vendas por data (mais recentes primeiro)
-    const vendasOrdenadas = vendasL.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
-
-    // Atualizar resumo loja
-    const totalVendasLoja = vendasL.length;
-    const totalPostesLoja = vendasL.reduce((sum, v) => sum + (v.quantidade || 0), 0);
-    const totalFreteLoja = vendasL.reduce((sum, v) => sum + (v.freteEletrons || 0), 0);
-
-    window.AppUtils.updateElement('total-vendas-loja', totalVendasLoja);
-    window.AppUtils.updateElement('total-postes-loja', totalPostesLoja);
-    window.AppUtils.updateElement('total-frete-loja', window.AppUtils.formatCurrency(totalFreteLoja));
-
-    // Mostrar seção
-    document.getElementById('resumo-loja-section').style.display = 'block';
-
-    // Gerar lista
-    displayRelatorioVendasLoja(vendasOrdenadas);
-    document.getElementById('vendas-loja-section').style.display = 'block';
-}
-
-function displayRelatorioVendasLoja(vendas) {
-    const container = document.getElementById('vendas-loja-list');
-    if (!container) return;
-
-    if (!vendas || vendas.length === 0) {
-        container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">🏪</div>
-                        <h3>Nenhuma venda loja encontrada</h3>
-                        <p>Não há vendas loja (L) no período selecionado.</p>
-                    </div>
-                `;
-        return;
-    }
-
-    container.innerHTML = '';
-
-    vendas.forEach(venda => {
-        const element = createRelatorioLojaItem(venda);
-        container.appendChild(element);
-    });
-}
-
-function createRelatorioLojaItem(venda) {
-    const element = document.createElement('div');
-    element.className = 'mobile-list-item relatorio-loja-item tipo-l';
-
-    element.innerHTML = `
-                <div class="item-header">
-                    <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
-                    <span class="item-code">${venda.codigoPoste || 'N/A'}</span>
-                </div>
-                
-                <div class="item-content">
-                    <div class="item-value">${window.AppUtils.formatCurrency(venda.freteEletrons || 0)}</div>
-                    <div class="item-title">${venda.descricaoPoste || 'Produto não especificado'}</div>
-                    <div class="item-details">
-                        <small>Quantidade: ${venda.quantidade || 1}</small>
-                    </div>
-                    ${venda.observacoes ? `
-                        <div class="item-details">
-                            <small>Obs: ${venda.observacoes}</small>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-
-    return element;
-}
-
-function updatePeriodoInfo() {
-    const { dataInicio, dataFim, tipoVenda } = relatoriosData.filtros;
-    const indicator = document.getElementById('periodo-info');
-    const text = document.getElementById('periodo-texto');
-
-    let periodo = '';
-    if (dataInicio && dataFim) {
-        const inicio = window.AppUtils.formatDateBR(dataInicio);
-        const fim = window.AppUtils.formatDateBR(dataFim);
-        periodo = `${inicio} até ${fim}`;
-    }
-
-    let tipo = '';
-    if (tipoVenda === 'V') {
-        tipo = ' - Vendas Normais';
-    } else if (tipoVenda === 'E') {
-        tipo = ' - Vendas Extras';
-    } else if (tipoVenda === 'L') {
-        tipo = ' - Vendas Loja';
-    }
-
-    text.textContent = `Período: ${periodo}${tipo}`;
-    indicator.style.display = 'flex';
-}
-
-function limparRelatorio() {
-    // Limpar formulário
-    document.getElementById('relatorio-form').reset();
-    setDefaultPeriod();
-
-    // Esconder seções
-    document.getElementById('resumo-section').style.display = 'none';
-    document.getElementById('resumo-extras-section').style.display = 'none';
-    document.getElementById('resumo-loja-section').style.display = 'none';
-    document.getElementById('relatorio-section').style.display = 'none';
-    document.getElementById('vendas-extras-section').style.display = 'none';
-    document.getElementById('vendas-loja-section').style.display = 'none';
-    document.getElementById('periodo-info').style.display = 'none';
-
-    // Limpar dados
-    relatoriosData.vendas = [];
-    relatoriosData.relatorioGerado = false;
-    relatoriosData.filtros = { dataInicio: '', dataFim: '', tipoVenda: '' };
-
-    window.AppUtils.showAlert('Relatório limpo', 'success');
-}
-
-async function exportarRelatorio() {
-    if (!relatoriosData.relatorioGerado || relatoriosData.vendas.length === 0) {
-        window.AppUtils.showAlert('Nenhum relatório para exportar', 'warning');
-        return;
-    }
-
-    const { tipoVenda } = relatoriosData.filtros;
-
-    if (!tipoVenda || tipoVenda === 'V') {
-        exportarRelatorioVendasNormais();
-    }
-
-    if (!tipoVenda || tipoVenda === 'E') {
-        exportarRelatorioVendasExtras();
-    }
-
-    if (!tipoVenda || tipoVenda === 'L') {
-        exportarRelatorioVendasLoja();
-    }
-}
-
-function exportarRelatorioVendasNormais() {
-    const vendasV = relatoriosData.vendas.filter(v => v.tipoVenda === 'V');
-
-    if (vendasV.length === 0) return;
-
-    // Agrupar por poste
-    const vendasPorPoste = {};
-    vendasV.forEach(venda => {
-        const key = venda.posteId;
-        if (!vendasPorPoste[key]) {
-            vendasPorPoste[key] = {
-                codigoPoste: venda.codigoPoste,
-                descricaoPoste: venda.descricaoPoste,
-                quantidadeTotal: 0,
-                valorTotal: 0,
-                vendas: 0
-            };
+    // ================================
+    // VENDAS EXTRAS
+    // ================================
+    gerarRelatorioVendasExtras() {
+        const vendasE = this.data.vendas.filter(v => v.tipoVenda === 'E');
+        
+        console.log(`📈 Processando ${vendasE.length} vendas extras (E)`);
+        
+        if (vendasE.length === 0) {
+            this.hideSection('resumo-extras-section');
+            this.hideSection('vendas-extras-section');
+            return;
         }
+        
+        const vendasOrdenadas = vendasE.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
+        const resumoExtras = this.calcularResumoExtras(vendasE);
+        
+        this.updateResumoExtras(resumoExtras);
+        this.displayRelatorioVendasExtras(vendasOrdenadas);
+        
+        this.showSection('resumo-extras-section');
+        this.showSection('vendas-extras-section');
+    }
 
-        vendasPorPoste[key].quantidadeTotal += venda.quantidade || 0;
-        vendasPorPoste[key].valorTotal += venda.valorVenda || 0;
-        vendasPorPoste[key].vendas += 1;
-    });
+    calcularResumoExtras(vendas) {
+        return {
+            totalVendasExtras: vendas.length,
+            totalPostesExtras: vendas.reduce((sum, v) => sum + (v.quantidade || 1), 0),
+            totalValorExtras: vendas.reduce((sum, v) => sum + (v.valorExtra || 0), 0)
+        };
+    }
 
-    const dadosExportar = Object.values(vendasPorPoste).map(item => ({
-        'Código': item.codigoPoste,
-        'Descrição': item.descricaoPoste,
-        'Quantidade Total': item.quantidadeTotal,
-        'Valor Total': item.valorTotal,
-        'Preço Médio': (item.valorTotal / item.quantidadeTotal).toFixed(2),
-        'Número de Vendas': item.vendas
-    }));
+    updateResumoExtras(resumo) {
+        window.AppUtils.updateElement('total-vendas-extras', resumo.totalVendasExtras);
+        window.AppUtils.updateElement('total-postes-extras', resumo.totalPostesExtras);
+        window.AppUtils.updateElement('total-valor-extras', window.AppUtils.formatCurrency(resumo.totalValorExtras));
+    }
 
-    const { dataInicio, dataFim } = relatoriosData.filtros;
-    const filename = `relatorio_vendas_normais_branco_${dataInicio}_${dataFim}`;
+    displayRelatorioVendasExtras(vendas) {
+        const container = document.getElementById('vendas-extras-list');
+        if (!container) return;
+        
+        if (!vendas || vendas.length === 0) {
+            container.innerHTML = this.getEmptyStateHTML('📈', 'Nenhuma venda extra encontrada', 'Não há vendas extras (E) no período selecionado.');
+            return;
+        }
+        
+        container.innerHTML = '';
+        vendas.forEach(venda => {
+            container.appendChild(this.createRelatorioExtraItem(venda));
+        });
+    }
 
-    window.AppUtils.exportToCSV(dadosExportar, filename);
+    createRelatorioExtraItem(venda) {
+        const element = document.createElement('div');
+        element.className = 'mobile-list-item relatorio-extra-item tipo-e';
+        
+        element.innerHTML = `
+            <div class="item-header">
+                <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
+                <span class="item-code">${venda.codigoPoste || 'Extra'}</span>
+            </div>
+            
+            <div class="item-content">
+                <div class="item-value">${window.AppUtils.formatCurrency(venda.valorExtra || 0)}</div>
+                <div class="item-title">${venda.descricaoPoste || 'Venda Extra'}</div>
+                <div class="item-details">
+                    <small>Quantidade: ${venda.quantidade || 1}</small>
+                </div>
+                ${venda.observacoes ? `
+                    <div class="item-details">
+                        <small>Obs: ${venda.observacoes}</small>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        return element;
+    }
+
+    // ================================
+    // VENDAS LOJA
+    // ================================
+    gerarRelatorioVendasLoja() {
+        const vendasL = this.data.vendas.filter(v => v.tipoVenda === 'L');
+        
+        console.log(`🏪 Processando ${vendasL.length} vendas loja (L)`);
+        
+        if (vendasL.length === 0) {
+            this.hideSection('resumo-loja-section');
+            this.hideSection('vendas-loja-section');
+            return;
+        }
+        
+        const vendasOrdenadas = vendasL.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
+        const resumoLoja = this.calcularResumoLoja(vendasL);
+        
+        this.updateResumoLoja(resumoLoja);
+        this.displayRelatorioVendasLoja(vendasOrdenadas);
+        
+        this.showSection('resumo-loja-section');
+        this.showSection('vendas-loja-section');
+    }
+
+    calcularResumoLoja(vendas) {
+        return {
+            totalVendasLoja: vendas.length,
+            totalPostesLoja: vendas.reduce((sum, v) => sum + (v.quantidade || 0), 0),
+            totalFreteLoja: vendas.reduce((sum, v) => sum + (v.freteEletrons || 0), 0)
+        };
+    }
+
+    updateResumoLoja(resumo) {
+        window.AppUtils.updateElement('total-vendas-loja', resumo.totalVendasLoja);
+        window.AppUtils.updateElement('total-postes-loja', resumo.totalPostesLoja);
+        window.AppUtils.updateElement('total-frete-loja', window.AppUtils.formatCurrency(resumo.totalFreteLoja));
+    }
+
+    displayRelatorioVendasLoja(vendas) {
+        const container = document.getElementById('vendas-loja-list');
+        if (!container) return;
+        
+        if (!vendas || vendas.length === 0) {
+            container.innerHTML = this.getEmptyStateHTML('🏪', 'Nenhuma venda loja encontrada', 'Não há vendas loja (L) no período selecionado.');
+            return;
+        }
+        
+        container.innerHTML = '';
+        vendas.forEach(venda => {
+            container.appendChild(this.createRelatorioLojaItem(venda));
+        });
+    }
+
+    createRelatorioLojaItem(venda) {
+        const element = document.createElement('div');
+        element.className = 'mobile-list-item relatorio-loja-item tipo-l';
+        
+        element.innerHTML = `
+            <div class="item-header">
+                <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
+                <span class="item-code">${venda.codigoPoste || 'N/A'}</span>
+            </div>
+            
+            <div class="item-content">
+                <div class="item-value">${window.AppUtils.formatCurrency(venda.freteEletrons || 0)}</div>
+                <div class="item-title">${venda.descricaoPoste || 'Produto não especificado'}</div>
+                <div class="item-details">
+                    <small>Quantidade: ${venda.quantidade || 1}</small>
+                </div>
+                ${venda.observacoes ? `
+                    <div class="item-details">
+                        <small>Obs: ${venda.observacoes}</small>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        return element;
+    }
+
+    // ================================
+    // EXPORTAÇÃO
+    // ================================
+    exportarRelatorio() {
+        if (!this.data.relatorioGerado || this.data.vendas.length === 0) {
+            window.AppUtils.showAlert('Nenhum relatório para exportar', 'warning');
+            return;
+        }
+        
+        const { tipoVenda } = this.data.filtros;
+        
+        if (!tipoVenda || tipoVenda === 'V') {
+            this.exportarRelatorioVendasNormaisComLucro();
+        }
+        
+        if (!tipoVenda || tipoVenda === 'E') {
+            this.exportarRelatorioVendasExtras();
+        }
+        
+        if (!tipoVenda || tipoVenda === 'L') {
+            this.exportarRelatorioVendasLoja();
+        }
+    }
+
+    exportarRelatorioVendasNormaisComLucro() {
+        const vendasV = this.data.vendas.filter(v => v.tipoVenda === 'V');
+        if (vendasV.length === 0) return;
+        
+        const vendasAgrupadas = this.agruparVendasPorPoste(vendasV);
+        const dadosExportar = Object.values(vendasAgrupadas).map(item => {
+            const lucroTotal = item.valorTotalVendas - item.custoTotalPostes;
+            const margemLucro = item.valorTotalVendas > 0 ? (lucroTotal / item.valorTotalVendas * 100) : 0;
+            
+            return {
+                'Código': item.codigoPoste,
+                'Descrição': item.descricaoPoste,
+                'Quantidade Total': item.quantidadeTotal,
+                'Valor Arrecadado': item.valorTotalVendas.toFixed(2),
+                'Custo Total': item.custoTotalPostes.toFixed(2),
+                'Lucro Total': lucroTotal.toFixed(2),
+                'Margem Lucro (%)': margemLucro.toFixed(1),
+                'Preço Médio Venda': (item.valorTotalVendas / item.quantidadeTotal).toFixed(2),
+                'Custo Médio': (item.custoTotalPostes / item.quantidadeTotal).toFixed(2),
+                'Número de Vendas': item.vendas.length
+            };
+        });
+        
+        const { dataInicio, dataFim } = this.data.filtros;
+        const filename = `relatorio_vendas_normais_lucro_vermelho_${dataInicio}_${dataFim}`;
+        
+        window.AppUtils.exportToCSV(dadosExportar, filename);
+        window.AppUtils.showAlert('Relatório de vendas normais exportado!', 'success');
+    }
+
+    exportarRelatorioVendasExtras() {
+        const vendasE = this.data.vendas.filter(v => v.tipoVenda === 'E');
+        if (vendasE.length === 0) return;
+        
+        const dadosExportar = vendasE.map(venda => ({
+            'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
+            'Código Poste': venda.codigoPoste || 'N/A',
+            'Descrição': venda.descricaoPoste || 'Venda Extra',
+            'Quantidade': venda.quantidade || 1,
+            'Valor Extra': venda.valorExtra || 0,
+            'Observações': venda.observacoes || '-'
+        }));
+        
+        const { dataInicio, dataFim } = this.data.filtros;
+        const filename = `relatorio_vendas_extras_vermelho_${dataInicio}_${dataFim}`;
+        
+        window.AppUtils.exportToCSV(dadosExportar, filename);
+        window.AppUtils.showAlert('Relatório de vendas extras exportado!', 'success');
+    }
+
+    exportarRelatorioVendasLoja() {
+        const vendasL = this.data.vendas.filter(v => v.tipoVenda === 'L');
+        if (vendasL.length === 0) return;
+        
+        const dadosExportar = vendasL.map(venda => ({
+            'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
+            'Código Poste': venda.codigoPoste || 'N/A',
+            'Descrição': venda.descricaoPoste || 'Produto não especificado',
+            'Quantidade': venda.quantidade || 1,
+            'Frete Eletrons': venda.freteEletrons || 0,
+            'Observações': venda.observacoes || '-'
+        }));
+        
+        const { dataInicio, dataFim } = this.data.filtros;
+        const filename = `relatorio_vendas_loja_vermelho_${dataInicio}_${dataFim}`;
+        
+        window.AppUtils.exportToCSV(dadosExportar, filename);
+        window.AppUtils.showAlert('Relatório de vendas loja exportado!', 'success');
+    }
+
+    // ================================
+    // FUNÇÕES AUXILIARES
+    // ================================
+    updatePeriodoInfo() {
+        const { dataInicio, dataFim, tipoVenda } = this.data.filtros;
+        const indicator = document.getElementById('periodo-info');
+        const text = document.getElementById('periodo-texto');
+        
+        if (!indicator || !text) return;
+        
+        let periodo = '';
+        if (dataInicio && dataFim) {
+            const inicio = window.AppUtils.formatDateBR(dataInicio);
+            const fim = window.AppUtils.formatDateBR(dataFim);
+            periodo = `${inicio} até ${fim}`;
+        }
+        
+        const tipos = { 
+            'V': ' - Vendas Normais', 
+            'E': ' - Vendas Extras', 
+            'L': ' - Vendas Loja' 
+        };
+        const tipo = tipos[tipoVenda] || '';
+        
+        text.textContent = `Período: ${periodo}${tipo}`;
+        indicator.style.display = 'flex';
+    }
+
+    limparRelatorio() {
+        try {
+            document.getElementById('relatorio-form').reset();
+            this.setDefaultPeriod();
+            
+            const sections = [
+                'resumo-section', 'resumo-extras-section', 'resumo-loja-section',
+                'relatorio-section', 'vendas-extras-section', 'vendas-loja-section', 'periodo-info'
+            ];
+            
+            sections.forEach(section => this.hideSection(section));
+            
+            this.data.vendas = [];
+            this.data.relatorioGerado = false;
+            this.data.filtros = { dataInicio: '', dataFim: '', tipoVenda: '' };
+            
+            window.AppUtils.showAlert('Relatório limpo', 'success');
+        } catch (error) {
+            console.error('Erro ao limpar relatório:', error);
+        }
+    }
+
+    updateOrCreateElement(id, value) {
+        let element = document.getElementById(id);
+        if (!element) {
+            element = this.createElement(id);
+        }
+        
+        if (element) {
+            element.textContent = value;
+        }
+    }
+
+    createElement(id) {
+        const resumoSection = document.getElementById('resumo-section');
+        if (!resumoSection) return null;
+        
+        const statsGrid = resumoSection.querySelector('.stats-grid');
+        if (!statsGrid || statsGrid.querySelector(`#${id}`)) return null;
+        
+        const configs = {
+            'custo-total': { icon: '📦', label: 'Custo Total' },
+            'lucro-total-vendas': { icon: '💎', label: 'Lucro Total' },
+            'margem-lucro-vendas': { icon: '📊', label: 'Margem Lucro' }
+        };
+        
+        const config = configs[id] || { icon: '💰', label: 'Valor' };
+        
+        const statItem = document.createElement('div');
+        statItem.className = 'stat-item';
+        statItem.innerHTML = `
+            <div class="stat-icon">${config.icon}</div>
+            <div class="stat-number" id="${id}">-</div>
+            <div class="stat-label">${config.label}</div>
+        `;
+        
+        statsGrid.appendChild(statItem);
+        return document.getElementById(id);
+    }
+
+    getMargemClass(margem) {
+        if (margem > 20) return 'margem-alta';
+        if (margem > 10) return 'margem-media';
+        if (margem < 0) return 'margem-negativa';
+        return 'margem-neutra';
+    }
+
+    getEmptyStateHTML(icon, title, message) {
+        return `
+            <div class="empty-state">
+                <div class="empty-icon">${icon}</div>
+                <h3>${title}</h3>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+
+    showSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (section) {
+            section.style.display = 'block';
+        }
+    }
+
+    hideSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (section) {
+            section.style.display = 'none';
+        }
+    }
 }
 
-// ✅ CORREÇÃO: exportarRelatorioVendasExtras - usando valorExtra
-function exportarRelatorioVendasExtras() {
-    const vendasE = relatoriosData.vendas.filter(v => v.tipoVenda === 'E');
+// ================================
+// INICIALIZAÇÃO E FUNÇÕES GLOBAIS
+// ================================
+let relatoriosVermelho;
 
-    if (vendasE.length === 0) return;
+document.addEventListener('DOMContentLoaded', () => {
+    relatoriosVermelho = new RelatoriosVermelho();
+});
 
-    const dadosExportar = vendasE.map(venda => ({
-        'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
-        'Código Poste': venda.codigoPoste || 'N/A',
-        'Descrição': venda.descricaoPoste || 'Venda Extra',
-        'Quantidade': venda.quantidade || 1,
-        'Valor Extra': venda.valorExtra || 0,  // ✅ CORREÇÃO: valorExtra ao invés de valorVenda
-        'Observações': venda.observacoes || '-'
-    }));
+// Funções globais para compatibilidade com o HTML
+window.gerarRelatorio = () => {
+    if (relatoriosVermelho) {
+        relatoriosVermelho.gerarRelatorio();
+    } else {
+        console.error('RelatoriosVermelho não inicializado');
+    }
+};
 
-    const { dataInicio, dataFim } = relatoriosData.filtros;
-    const filename = `relatorio_vendas_extras_branco_${dataInicio}_${dataFim}`;
+window.limparRelatorio = () => {
+    if (relatoriosVermelho) {
+        relatoriosVermelho.limparRelatorio();
+    } else {
+        console.error('RelatoriosVermelho não inicializado');
+    }
+};
 
-    window.AppUtils.exportToCSV(dadosExportar, filename);
-}
+window.exportarRelatorio = () => {
+    if (relatoriosVermelho) {
+        relatoriosVermelho.exportarRelatorio();
+    } else {
+        console.error('RelatoriosVermelho não inicializado');
+    }
+};
 
-function exportarRelatorioVendasLoja() {
-    const vendasL = relatoriosData.vendas.filter(v => v.tipoVenda === 'L');
-
-    if (vendasL.length === 0) return;
-
-    const dadosExportar = vendasL.map(venda => ({
-        'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
-        'Código Poste': venda.codigoPoste || 'N/A',
-        'Descrição': venda.descricaoPoste || 'Produto não especificado',
-        'Quantidade': venda.quantidade || 1,
-        'Frete Eletrons': venda.freteEletrons || 0,
-        'Observações': venda.observacoes || '-'
-    }));
-
-    const { dataInicio, dataFim } = relatoriosData.filtros;
-    const filename = `relatorio_vendas_loja_branco_${dataInicio}_${dataFim}`;
-
-    window.AppUtils.exportToCSV(dadosExportar, filename);
-}
-
-// Disponibilizar funções globalmente
-window.gerarRelatorio = gerarRelatorio;
-window.limparRelatorio = limparRelatorio;
-window.exportarRelatorio = exportarRelatorio;
-
-console.log('✅ Relatórios Caminhão Branco carregado');
+console.log('✅ Relatórios Caminhão Vermelho refatorado completo carregado');

@@ -487,7 +487,7 @@ function updateFilters() {
     };
 }
 
-function applyFilters() {
+function getFilteredVendas() {
     updateFilters();
     const { tipo, dataInicio, dataFim } = vendasData.filters;
     
@@ -504,6 +504,11 @@ function applyFilters() {
         });
     }
     
+    return filtered;
+}
+
+function applyFilters() {
+    const filtered = getFilteredVendas();
     displayVendas(filtered);
     updateFilterIndicator();
 }
@@ -584,12 +589,15 @@ function limparFiltros() {
 }
 
 async function exportarVendas() {
-    if (!vendasData.vendas || vendasData.vendas.length === 0) {
-        window.AppUtils.showAlert('Nenhuma venda para exportar', 'warning');
+    // Obter dados filtrados em vez de todos os dados
+    const vendasFiltradas = getFilteredVendas();
+    
+    if (!vendasFiltradas || vendasFiltradas.length === 0) {
+        window.AppUtils.showAlert('Nenhuma venda encontrada para exportar com os filtros aplicados', 'warning');
         return;
     }
     
-    const dadosExportar = vendasData.vendas.map(venda => ({
+    const dadosExportar = vendasFiltradas.map(venda => ({
         'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
         'Tipo': venda.tipoVenda,
         'Poste': venda.codigoPoste || '-',
@@ -600,7 +608,33 @@ async function exportarVendas() {
         'Observações': venda.observacoes || '-'
     }));
     
-    window.AppUtils.exportToCSV(dadosExportar, `vendas_vermelho_${new Date().toISOString().split('T')[0]}`);
+    // Adicionar informação dos filtros no nome do arquivo
+    const { tipo, dataInicio, dataFim } = vendasData.filters;
+    let sufixoFiltro = '';
+    
+    if (tipo) {
+        sufixoFiltro += `_${tipo}`;
+    }
+    
+    if (dataInicio && dataFim) {
+        sufixoFiltro += `_${dataInicio}_a_${dataFim}`;
+    } else if (dataInicio) {
+        sufixoFiltro += `_apartir_${dataInicio}`;
+    } else if (dataFim) {
+        sufixoFiltro += `_ate_${dataFim}`;
+    }
+    
+    const nomeArquivo = `vendas_vermelho${sufixoFiltro}_${new Date().toISOString().split('T')[0]}`;
+    
+    window.AppUtils.exportToCSV(dadosExportar, nomeArquivo);
+    
+    // Mostrar mensagem informativa sobre o que foi exportado
+    let mensagem = `${vendasFiltradas.length} venda(s) exportada(s)`;
+    if (sufixoFiltro) {
+        mensagem += ' com filtros aplicados';
+    }
+    
+    window.AppUtils.showAlert(mensagem, 'success');
 }
 
 async function loadVendas() {

@@ -9,13 +9,15 @@
 </head>
 
 <body>
+    <!-- Header Principal -->
     <header class="header">
         <div class="header-content">
             <h1>🚚 Relatórios - Caminhão Branco</h1>
-            <p>Análise de Vendas</p>
+            <p>Análise Completa de Vendas e Lucratividade</p>
         </div>
     </header>
 
+    <!-- Navegação Principal -->
     <nav class="main-nav">
         <div class="nav-container branco">
             <a href="dashboard-branco.html" class="nav-item">
@@ -41,40 +43,57 @@
         </div>
     </nav>
 
+    <!-- Conteúdo Principal -->
     <main class="main-content">
+        
+        <!-- Seção de Filtros -->
         <section class="form-section">
-            <h2>📅 Período do Relatório</h2>
-            <form id="relatorio-form">
-                <div class="form-group">
-                    <label for="data-inicio">Data Início *</label>
-                    <input type="date" id="data-inicio" required>
-                </div>
+            <h2>📅 Configuração do Relatório</h2>
+            <form id="relatorio-form" class="relatorio-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data-inicio">
+                            <span class="label-icon">📅</span>
+                            Data Início *
+                        </label>
+                        <input type="date" id="data-inicio" required>
+                    </div>
 
-                <div class="form-group">
-                    <label for="data-fim">Data Fim *</label>
-                    <input type="date" id="data-fim" required>
-                </div>
+                    <div class="form-group">
+                        <label for="data-fim">
+                            <span class="label-icon">📅</span>
+                            Data Fim *
+                        </label>
+                        <input type="date" id="data-fim" required>
+                    </div>
 
-                <div class="form-group">
-                    <label for="tipo-venda">Tipo de Venda</label>
-                    <select id="tipo-venda">
-                        <option value="">Todos os tipos</option>
-                        <option value="V">🛒 Vendas Normais (V)</option>
-                        <option value="E">📈 Vendas Extras (E)</option>
-                        <option value="L">🏪 Vendas Loja (L)</option>
-                    </select>
+                    <div class="form-group">
+                        <label for="tipo-venda">
+                            <span class="label-icon">🏷️</span>
+                            Tipo de Venda
+                        </label>
+                        <select id="tipo-venda">
+                            <option value="">📊 Todos os tipos</option>
+                            <option value="V">🛒 Vendas Normais (V)</option>
+                            <option value="E">📈 Vendas Extras (E)</option>
+                            <option value="L">🏪 Vendas Loja (L)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">
-                        📊 Gerar Relatório
+                        <span class="btn-icon">📊</span>
+                        Gerar Relatório
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="limparRelatorio()">
-                        🧹 Limpar
+                        <span class="btn-icon">🧹</span>
+                        Limpar Filtros
                     </button>
                 </div>
             </form>
 
+            <!-- Indicador de Período -->
             <div id="periodo-info" class="period-indicator" style="display: none;">
                 <span class="period-icon">📊</span>
                 <span id="periodo-texto">Período selecionado</span>
@@ -83,85 +102,125 @@
 
         <!-- Resumo Vendas Normais -->
         <section class="summary-section" id="resumo-section" style="display: none;">
-            <h2>📊 Resumo das Vendas Normais (V) - Caminhão Branco</h2>
-            <div class="stats-grid">
-                <div class="stat-item total">
+            <div class="section-header">
+                <h2>📊 Resumo das Vendas Normais (V)</h2>
+                <span class="section-subtitle">Caminhão Branco - Análise de Lucratividade</span>
+            </div>
+            
+            <div class="stats-grid stats-grid-4">
+                <div class="stat-item stat-primary">
                     <div class="stat-icon">⚡</div>
-                    <div class="stat-number" id="total-tipos-postes">0</div>
-                    <div class="stat-label">Tipos de Postes Vendidos</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-tipos-postes">0</div>
+                        <div class="stat-label">Tipos de Postes</div>
+                    </div>
                 </div>
-                <div class="stat-item">
+                
+                <div class="stat-item stat-info">
                     <div class="stat-icon">📋</div>
-                    <div class="stat-number" id="total-vendas-periodo">0</div>
-                    <div class="stat-label">Total de Vendas</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-vendas-periodo">0</div>
+                        <div class="stat-label">Total de Vendas</div>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-icon">📦</div>
-                    <div class="stat-number" id="quantidade-total">0</div>
-                    <div class="stat-label">Postes Vendidos</div>
-                </div>
-                <div class="stat-item">
+                
+                <div class="stat-item stat-success">
                     <div class="stat-icon">💰</div>
-                    <div class="stat-number" id="valor-total">R$ 0,00</div>
-                    <div class="stat-label">Faturamento</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="lucro-total">R$ 0,00</div>
+                        <div class="stat-label">Lucro Total</div>
+                    </div>
+                </div>
+                
+                <div class="stat-item stat-warning">
+                    <div class="stat-icon">💵</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="valor-total">R$ 0,00</div>
+                        <div class="stat-label">Faturamento</div>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Resumo Vendas Extras -->
         <section class="summary-section" id="resumo-extras-section" style="display: none;">
-            <h2>📈 Resumo das Vendas Extras (E) - Caminhão Branco</h2>
-            <div class="stats-grid">
-                <div class="stat-item tipo-e">
+            <div class="section-header">
+                <h2>📈 Resumo das Vendas Extras (E)</h2>
+                <span class="section-subtitle">Caminhão Branco - Serviços Adicionais</span>
+            </div>
+            
+            <div class="stats-grid stats-grid-3">
+                <div class="stat-item stat-extra">
                     <div class="stat-icon">📈</div>
-                    <div class="stat-number" id="total-vendas-extras">0</div>
-                    <div class="stat-label">Total de Vendas Extras</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-vendas-extras">0</div>
+                        <div class="stat-label">Vendas Extras</div>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-icon">📦</div>
-                    <div class="stat-number" id="total-postes-extras">0</div>
-                    <div class="stat-label">Serviço Extra</div>
+                
+                <div class="stat-item stat-info">
+                    <div class="stat-icon">🔧</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-postes-extras">0</div>
+                        <div class="stat-label">Serviços Extras</div>
+                    </div>
                 </div>
-                <div class="stat-item">
+                
+                <div class="stat-item stat-success">
                     <div class="stat-icon">💰</div>
-                    <div class="stat-number" id="total-valor-extras">R$ 0,00</div>
-                    <div class="stat-label">Valor Total</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-valor-extras">R$ 0,00</div>
+                        <div class="stat-label">Valor Total</div>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Resumo Vendas Loja -->
         <section class="summary-section" id="resumo-loja-section" style="display: none;">
-            <h2>🏪 Resumo das Vendas Loja (L) - Caminhão Branco</h2>
-            <div class="stats-grid">
-                <div class="stat-item tipo-l">
+            <div class="section-header">
+                <h2>🏪 Resumo das Vendas Loja (L)</h2>
+                <span class="section-subtitle">Caminhão Branco - Vendas na Loja</span>
+            </div>
+            
+            <div class="stats-grid stats-grid-3">
+                <div class="stat-item stat-loja">
                     <div class="stat-icon">🏪</div>
-                    <div class="stat-number" id="total-vendas-loja">0</div>
-                    <div class="stat-label">Total de Vendas Loja</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-vendas-loja">0</div>
+                        <div class="stat-label">Vendas Loja</div>
+                    </div>
                 </div>
-                <div class="stat-item">
+                
+                <div class="stat-item stat-info">
                     <div class="stat-icon">📦</div>
-                    <div class="stat-number" id="total-postes-loja">0</div>
-                    <div class="stat-label">Postes Vendidos</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-postes-loja">0</div>
+                        <div class="stat-label">Postes Vendidos</div>
+                    </div>
                 </div>
-                <div class="stat-item">
+                
+                <div class="stat-item stat-warning">
                     <div class="stat-icon">🚚</div>
-                    <div class="stat-number" id="total-frete-loja">R$ 0,00</div>
-                    <div class="stat-label">Total Frete</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-frete-loja">R$ 0,00</div>
+                        <div class="stat-label">Total Frete</div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Relatório Vendas Normais -->
+        <!-- Relatório Detalhado - Vendas Normais -->
         <section class="table-section" id="relatorio-section" style="display: none;">
             <div class="section-header">
-                <h2>📈 Postes Vendidos (Vendas Normais) - Caminhão Branco</h2>
+                <h2>📈 Detalhamento das Vendas Normais</h2>
+                <span class="section-subtitle">Análise por Tipo de Poste - Caminhão Branco</span>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="gerarRelatorio()">
-                        🔄
+                    <button class="btn btn-small btn-refresh" onclick="gerarRelatorio()" title="Atualizar Relatório">
+                        <span class="btn-icon">🔄</span>
                     </button>
-                    <button class="btn btn-small" onclick="exportarRelatorio()">
-                        📊
+                    <button class="btn btn-small btn-export" onclick="exportarRelatorio()" title="Exportar para CSV">
+                        <span class="btn-icon">📊</span>
                     </button>
                 </div>
             </div>
@@ -173,16 +232,17 @@
             </div>
         </section>
 
-        <!-- Relatório Vendas Extras -->
+        <!-- Relatório Detalhado - Vendas Extras -->
         <section class="table-section" id="vendas-extras-section" style="display: none;">
             <div class="section-header">
-                <h2>📈 Vendas Extras por Data - Caminhão Branco</h2>
+                <h2>📈 Detalhamento das Vendas Extras</h2>
+                <span class="section-subtitle">Listagem Cronológica - Caminhão Branco</span>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="gerarRelatorio()">
-                        🔄
+                    <button class="btn btn-small btn-refresh" onclick="gerarRelatorio()" title="Atualizar Relatório">
+                        <span class="btn-icon">🔄</span>
                     </button>
-                    <button class="btn btn-small" onclick="exportarRelatorio()">
-                        📊
+                    <button class="btn btn-small btn-export" onclick="exportarRelatorio()" title="Exportar para CSV">
+                        <span class="btn-icon">📊</span>
                     </button>
                 </div>
             </div>
@@ -194,16 +254,17 @@
             </div>
         </section>
 
-        <!-- Relatório Vendas Loja -->
+        <!-- Relatório Detalhado - Vendas Loja -->
         <section class="table-section" id="vendas-loja-section" style="display: none;">
             <div class="section-header">
-                <h2>🏪 Vendas Loja por Data - Caminhão Branco</h2>
+                <h2>🏪 Detalhamento das Vendas Loja</h2>
+                <span class="section-subtitle">Listagem Cronológica - Caminhão Branco</span>
                 <div class="section-actions">
-                    <button class="btn btn-small" onclick="gerarRelatorio()">
-                        🔄
+                    <button class="btn btn-small btn-refresh" onclick="gerarRelatorio()" title="Atualizar Relatório">
+                        <span class="btn-icon">🔄</span>
                     </button>
-                    <button class="btn btn-small" onclick="exportarRelatorio()">
-                        📊
+                    <button class="btn btn-small btn-export" onclick="exportarRelatorio()" title="Exportar para CSV">
+                        <span class="btn-icon">📊</span>
                     </button>
                 </div>
             </div>
@@ -214,15 +275,22 @@
                 </div>
             </div>
         </section>
+
     </main>
 
+    <!-- Loading Overlay -->
     <div id="loading" class="loading-overlay" style="display: none;">
-        <div class="spinner"></div>
-        <p>Gerando relatório...</p>
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p class="loading-text">Gerando relatório...</p>
+            <small class="loading-subtitle">Processando dados de vendas</small>
+        </div>
     </div>
 
+    <!-- Alert Container -->
     <div id="alert-container" class="alert-container"></div>
 
+    <!-- Scripts -->
     <script src="js/relatorios-branco.js"></script>
 </body>
 </html>
