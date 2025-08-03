@@ -1,38 +1,21 @@
 // ================================
-// RELATÓRIOS CAMINHÃO VERMELHO - REFATORADO
-// Sistema com cálculo de lucro integrado
+// RELATÓRIOS CAMINHÃO VERMELHO - OTIMIZADO
 // ================================
 
 class RelatoriosVermelho {
     constructor() {
-        this.data = {
-            vendas: [],
-            postes: [],
-            relatorioGerado: false,
-            filtros: { dataInicio: '', dataFim: '', tipoVenda: '' }
-        };
-        
+        this.data = { vendas: [], postes: [], filtros: {} };
         this.init();
     }
 
-    // ================================
-    // INICIALIZAÇÃO
-    // ================================
     async init() {
         if (!this.validateAuth()) return;
-        if (!this.validateDependencies()) return;
-
-        console.log('🎯 Inicializando Relatórios Caminhão Vermelho...');
-
-        try {
-            this.setupEventListeners();
-            this.setDefaultPeriod();
-            await this.loadPostes();
-            console.log('✅ Relatórios Caminhão Vermelho carregado');
-        } catch (error) {
-            console.error('❌ Erro ao carregar:', error);
-            window.AppUtils.showAlert('Erro ao carregar dados. Verifique sua conexão.', 'error');
-        }
+        
+        this.setupEvents();
+        this.setDefaultPeriod();
+        await this.loadPostes();
+        
+        console.log('✅ Relatórios Vermelho carregado');
     }
 
     validateAuth() {
@@ -44,79 +27,49 @@ class RelatoriosVermelho {
         return true;
     }
 
-    validateDependencies() {
-        if (!window.AppUtils) {
-            console.error('AppUtils não carregado!');
-            return false;
-        }
-        return true;
-    }
-
-    setupEventListeners() {
-        const relatorioForm = document.getElementById('relatorio-form');
-        if (relatorioForm) {
-            relatorioForm.addEventListener('submit', (e) => this.handleRelatorioSubmit(e));
-        }
+    setupEvents() {
+        document.getElementById('relatorio-form').addEventListener('submit', (e) => this.handleSubmit(e));
     }
 
     setDefaultPeriod() {
         const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         
-        document.getElementById('data-inicio').value = window.AppUtils.dateToInputValue(firstDayOfMonth);
+        document.getElementById('data-inicio').value = window.AppUtils.dateToInputValue(firstDay);
         document.getElementById('data-fim').value = window.AppUtils.dateToInputValue(today);
     }
 
     async loadPostes() {
         try {
-            const postes = await window.AppUtils.apiRequest('/postes');
-            this.data.postes = postes || [];
+            this.data.postes = await window.AppUtils.apiRequest('/postes') || [];
         } catch (error) {
             console.error('Erro ao carregar postes:', error);
             this.data.postes = [];
         }
     }
 
-    // ================================
-    // MANIPULAÇÃO DE EVENTOS
-    // ================================
-    async handleRelatorioSubmit(e) {
+    async handleSubmit(e) {
         e.preventDefault();
         
-        try {
-            const formData = this.buildRelatorioFilters();
-            
-            if (!this.validateRelatorioFilters(formData)) {
-                return;
-            }
-            
-            this.data.filtros = formData;
-            await this.gerarRelatorio();
-            
-        } catch (error) {
-            console.error('Erro ao gerar relatório:', error);
-            window.AppUtils.showAlert('Erro ao gerar relatório: ' + error.message, 'error');
-        }
-    }
-
-    buildRelatorioFilters() {
-        return {
+        const filtros = {
             dataInicio: document.getElementById('data-inicio').value,
             dataFim: document.getElementById('data-fim').value,
             tipoVenda: document.getElementById('tipo-venda').value
         };
+
+        if (!this.validateFilters(filtros)) return;
+        
+        this.data.filtros = filtros;
+        await this.gerarRelatorio();
     }
 
-    validateRelatorioFilters(data) {
-        if (!window.AppUtils.validateRequired(data.dataInicio, 'Data início') ||
-            !window.AppUtils.validateRequired(data.dataFim, 'Data fim')) {
+    validateFilters(filtros) {
+        if (!filtros.dataInicio || !filtros.dataFim) {
+            window.AppUtils.showAlert('Datas são obrigatórias', 'warning');
             return false;
         }
         
-        const inicio = new Date(data.dataInicio);
-        const fim = new Date(data.dataFim);
-        
-        if (inicio > fim) {
+        if (new Date(filtros.dataInicio) > new Date(filtros.dataFim)) {
             window.AppUtils.showAlert('Data início não pode ser maior que data fim', 'warning');
             return false;
         }
@@ -124,534 +77,308 @@ class RelatoriosVermelho {
         return true;
     }
 
-    // ================================
-    // GERAÇÃO DE RELATÓRIOS
-    // ================================
     async gerarRelatorio() {
         try {
             window.AppUtils.showLoading(true);
             
-            const vendas = await this.fetchVendasPeriodo();
-            this.data.vendas = vendas || [];
+            // Buscar vendas
+            const params = new URLSearchParams();
+            if (this.data.filtros.dataInicio) params.append('dataInicio', this.data.filtros.dataInicio);
+            if (this.data.filtros.dataFim) params.append('dataFim', this.data.filtros.dataFim);
             
-            const { tipoVenda } = this.data.filtros;
-            
-            // Gerar relatórios baseado no tipo selecionado
-            if (!tipoVenda || tipoVenda === 'V') {
-                await this.gerarRelatorioVendasNormais();
-            }
-            
-            if (!tipoVenda || tipoVenda === 'E') {
-                this.gerarRelatorioVendasExtras();
-            }
-            
-            if (!tipoVenda || tipoVenda === 'L') {
-                this.gerarRelatorioVendasLoja();
-            }
+            this.data.vendas = await window.AppUtils.apiRequest(`/vendas?${params}`) || [];
             
             this.updatePeriodoInfo();
-            this.data.relatorioGerado = true;
+            this.processarRelatorios();
             
-            window.AppUtils.showAlert('Relatório gerado com sucesso!', 'success');
+            window.AppUtils.showAlert('Relatório gerado!', 'success');
             
         } catch (error) {
-            console.error('Erro ao gerar relatório:', error);
-            throw error;
+            console.error('Erro:', error);
+            window.AppUtils.showAlert('Erro ao gerar relatório', 'error');
         } finally {
             window.AppUtils.showLoading(false);
         }
     }
 
-    async fetchVendasPeriodo() {
-        const { dataInicio, dataFim } = this.data.filtros;
-        const params = new URLSearchParams();
+    processarRelatorios() {
+        const { tipoVenda } = this.data.filtros;
         
-        if (dataInicio) params.append('dataInicio', dataInicio);
-        if (dataFim) params.append('dataFim', dataFim);
+        this.hideAllSections();
         
-        const endpoint = `/vendas?${params}`;
-        return await window.AppUtils.apiRequest(endpoint);
+        if (!tipoVenda || tipoVenda === 'V') this.processarVendasNormais();
+        if (!tipoVenda || tipoVenda === 'E') this.processarVendasExtras();
+        if (!tipoVenda || tipoVenda === 'L') this.processarVendasLoja();
     }
 
-    // ================================
-    // VENDAS NORMAIS COM LUCRO
-    // ================================
-    async gerarRelatorioVendasNormais() {
-        const vendasV = this.data.vendas.filter(v => v.tipoVenda === 'V');
-        
-        if (vendasV.length === 0) {
-            this.hideSection('resumo-section');
-            this.hideSection('relatorio-section');
-            return;
-        }
-        
-        const vendasAgrupadas = this.agruparVendasPorPoste(vendasV);
-        const relatorioArray = this.calcularLucrosVendas(vendasAgrupadas);
-        const resumoGeral = this.calcularResumoGeral(relatorioArray);
-        
-        this.updateResumoVendasNormais(resumoGeral);
-        this.displayRelatorioVendasNormais(relatorioArray);
-        
-        this.showSection('resumo-section');
-        this.showSection('relatorio-section');
-        
-        console.log('📊 Relatório vendas normais com lucro:', resumoGeral);
+    processarVendasNormais() {
+        const vendas = this.data.vendas.filter(v => v.tipoVenda === 'V');
+        if (!vendas.length) return;
+
+        // Agrupar por poste
+        const agrupadas = this.agruparPorPoste(vendas);
+        const relatorio = this.calcularLucros(agrupadas);
+        const resumo = this.calcularResumo(relatorio);
+
+        this.renderResumoVendas(resumo);
+        this.renderDetalhesVendas(relatorio);
+        this.showSection('resumo-vendas');
+        this.showSection('detalhes-vendas');
     }
 
-    agruparVendasPorPoste(vendas) {
-        const agrupadas = {};
+    processarVendasExtras() {
+        const vendas = this.data.vendas.filter(v => v.tipoVenda === 'E');
+        if (!vendas.length) return;
+
+        const resumo = {
+            total: vendas.length,
+            quantidade: vendas.reduce((sum, v) => sum + (v.quantidade || 1), 0),
+            valor: vendas.reduce((sum, v) => sum + (v.valorExtra || 0), 0)
+        };
+
+        this.renderResumoExtras(resumo);
+        this.renderListaExtras(vendas.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda)));
+        this.showSection('resumo-extras');
+        this.showSection('detalhes-extras');
+    }
+
+    processarVendasLoja() {
+        const vendas = this.data.vendas.filter(v => v.tipoVenda === 'L');
+        if (!vendas.length) return;
+
+        const resumo = {
+            total: vendas.length,
+            quantidade: vendas.reduce((sum, v) => sum + (v.quantidade || 0), 0),
+            frete: vendas.reduce((sum, v) => sum + (v.freteEletrons || 0), 0)
+        };
+
+        this.renderResumoLoja(resumo);
+        this.renderListaLoja(vendas.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda)));
+        this.showSection('resumo-loja');
+        this.showSection('detalhes-loja');
+    }
+
+    agruparPorPoste(vendas) {
+        const grupos = {};
         
         vendas.forEach(venda => {
             const key = venda.posteId;
-            if (!agrupadas[key]) {
-                agrupadas[key] = {
+            if (!grupos[key]) {
+                grupos[key] = {
                     posteId: venda.posteId,
-                    codigoPoste: venda.codigoPoste,
-                    descricaoPoste: venda.descricaoPoste,
-                    quantidadeTotal: 0,
-                    valorTotalVendas: 0,
-                    custoTotalPostes: 0,
+                    codigo: venda.codigoPoste,
+                    descricao: venda.descricaoPoste,
+                    quantidade: 0,
+                    valorVendas: 0,
+                    custo: 0,
                     vendas: []
                 };
             }
             
-            agrupadas[key].quantidadeTotal += venda.quantidade || 0;
-            agrupadas[key].valorTotalVendas += venda.valorVenda || 0;
-            agrupadas[key].vendas.push(venda);
+            grupos[key].quantidade += venda.quantidade || 0;
+            grupos[key].valorVendas += venda.valorVenda || 0;
+            grupos[key].vendas.push(venda);
             
-            // Calcular custo baseado no preço do poste
+            // Calcular custo
             const poste = this.data.postes.find(p => p.id === venda.posteId);
             if (poste && venda.quantidade) {
-                agrupadas[key].custoTotalPostes += (poste.preco * venda.quantidade);
+                grupos[key].custo += poste.preco * venda.quantidade;
             }
         });
         
-        return agrupadas;
+        return grupos;
     }
 
-    calcularLucrosVendas(vendasAgrupadas) {
-        return Object.values(vendasAgrupadas).map(item => {
-            item.lucroTotal = item.valorTotalVendas - item.custoTotalPostes;
-            item.margemLucro = item.valorTotalVendas > 0 ? 
-                (item.lucroTotal / item.valorTotalVendas * 100) : 0;
+    calcularLucros(grupos) {
+        return Object.values(grupos).map(item => {
+            item.lucro = item.valorVendas - item.custo;
+            item.margem = item.valorVendas > 0 ? (item.lucro / item.valorVendas * 100) : 0;
             return item;
-        }).sort((a, b) => b.quantidadeTotal - a.quantidadeTotal);
+        }).sort((a, b) => b.quantidade - a.quantidade);
     }
 
-    calcularResumoGeral(relatorioArray) {
-        const totalTipos = relatorioArray.length;
-        const totalVendas = this.data.vendas.filter(v => v.tipoVenda === 'V').length;
-        const quantidadeTotal = relatorioArray.reduce((sum, item) => sum + item.quantidadeTotal, 0);
-        const valorTotalArrecadado = relatorioArray.reduce((sum, item) => sum + item.valorTotalVendas, 0);
-        const custoTotalGeral = relatorioArray.reduce((sum, item) => sum + item.custoTotalPostes, 0);
-        const lucroTotalGeral = valorTotalArrecadado - custoTotalGeral;
-        const margemLucroGeral = valorTotalArrecadado > 0 ? (lucroTotalGeral / valorTotalArrecadado * 100) : 0;
-
+    calcularResumo(relatorio) {
         return {
-            totalTipos,
-            totalVendas,
-            quantidadeTotal,
-            valorTotalArrecadado,
-            custoTotalGeral,
-            lucroTotalGeral,
-            margemLucroGeral
+            tipos: relatorio.length,
+            vendas: this.data.vendas.filter(v => v.tipoVenda === 'V').length,
+            quantidade: relatorio.reduce((sum, item) => sum + item.quantidade, 0),
+            faturamento: relatorio.reduce((sum, item) => sum + item.valorVendas, 0),
+            custo: relatorio.reduce((sum, item) => sum + item.custo, 0),
+            lucro: relatorio.reduce((sum, item) => sum + item.lucro, 0)
         };
     }
 
-    updateResumoVendasNormais(resumo) {
-        window.AppUtils.updateElement('total-tipos-postes', resumo.totalTipos);
-        window.AppUtils.updateElement('total-vendas-periodo', resumo.totalVendas);
-        window.AppUtils.updateElement('quantidade-total', resumo.quantidadeTotal);
-        window.AppUtils.updateElement('valor-total', window.AppUtils.formatCurrency(resumo.valorTotalArrecadado));
-        
-        // Elementos de lucro
-        this.updateOrCreateElement('custo-total', window.AppUtils.formatCurrency(resumo.custoTotalGeral));
-        this.updateOrCreateElement('lucro-total-vendas', window.AppUtils.formatCurrency(resumo.lucroTotalGeral));
-        this.updateOrCreateElement('margem-lucro-vendas', `${resumo.margemLucroGeral.toFixed(1)}%`);
+    renderResumoVendas(dados) {
+        const container = document.getElementById('stats-vendas');
+        container.innerHTML = `
+            <div class="stat-item stat-primary">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-content">
+                    <div class="stat-number">${dados.tipos}</div>
+                    <div class="stat-label">Tipos de Postes</div>
+                </div>
+            </div>
+            <div class="stat-item stat-info">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                    <div class="stat-number">${dados.vendas}</div>
+                    <div class="stat-label">Total de Vendas</div>
+                </div>
+            </div>
+            <div class="stat-item stat-success">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-number">${window.AppUtils.formatCurrency(dados.lucro)}</div>
+                    <div class="stat-label">Lucro Total</div>
+                </div>
+            </div>
+            <div class="stat-item stat-warning">
+                <div class="stat-icon">💵</div>
+                <div class="stat-content">
+                    <div class="stat-number">${window.AppUtils.formatCurrency(dados.faturamento)}</div>
+                    <div class="stat-label">Faturamento</div>
+                </div>
+            </div>
+        `;
     }
 
-    displayRelatorioVendasNormais(relatorio) {
-        const container = document.getElementById('relatorio-list');
-        if (!container) return;
-        
-        if (!relatorio || relatorio.length === 0) {
-            container.innerHTML = this.getEmptyStateHTML('📈', 'Nenhuma venda normal encontrada', 'Não há vendas normais (V) no período selecionado.');
-            return;
-        }
-        
+    renderResumoExtras(dados) {
+        const container = document.getElementById('stats-extras');
+        container.innerHTML = `
+            <div class="stat-item stat-extra">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-number">${dados.total}</div>
+                    <div class="stat-label">Vendas Extras</div>
+                </div>
+            </div>
+            <div class="stat-item stat-info">
+                <div class="stat-icon">🔧</div>
+                <div class="stat-content">
+                    <div class="stat-number">${dados.quantidade}</div>
+                    <div class="stat-label">Serviços Extras</div>
+                </div>
+            </div>
+            <div class="stat-item stat-success">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-number">${window.AppUtils.formatCurrency(dados.valor)}</div>
+                    <div class="stat-label">Valor Total</div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderResumoLoja(dados) {
+        const container = document.getElementById('stats-loja');
+        container.innerHTML = `
+            <div class="stat-item stat-loja">
+                <div class="stat-icon">🏪</div>
+                <div class="stat-content">
+                    <div class="stat-number">${dados.total}</div>
+                    <div class="stat-label">Vendas Loja</div>
+                </div>
+            </div>
+            <div class="stat-item stat-info">
+                <div class="stat-icon">📦</div>
+                <div class="stat-content">
+                    <div class="stat-number">${dados.quantidade}</div>
+                    <div class="stat-label">Postes Vendidos</div>
+                </div>
+            </div>
+            <div class="stat-item stat-warning">
+                <div class="stat-icon">🚚</div>
+                <div class="stat-content">
+                    <div class="stat-number">${window.AppUtils.formatCurrency(dados.frete)}</div>
+                    <div class="stat-label">Total Frete</div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderDetalhesVendas(dados) {
+        const container = document.getElementById('lista-vendas');
         container.innerHTML = '';
-        relatorio.forEach(item => {
-            container.appendChild(this.createRelatorioItemComLucro(item));
+
+        dados.forEach(item => {
+            const precoMedio = item.quantidade > 0 ? item.valorVendas / item.quantidade : 0;
+            const custoMedio = item.quantidade > 0 ? item.custo / item.quantidade : 0;
+            const margemClass = this.getMargemClass(item.margem);
+
+            container.innerHTML += `
+                <div class="mobile-list-item">
+                    <div class="item-header">
+                        <span class="item-code">${item.codigo}</span>
+                        <span class="item-quantidade">${item.quantidade} unidades</span>
+                    </div>
+                    <div class="item-content">
+                        <div class="item-value">${window.AppUtils.formatCurrency(item.valorVendas)}</div>
+                        <div class="item-title">${item.descricao}</div>
+                        <div class="item-details">
+                            <small>Preço médio: ${window.AppUtils.formatCurrency(precoMedio)}</small><br>
+                            <small>Custo médio: ${window.AppUtils.formatCurrency(custoMedio)}</small><br>
+                            <small>${item.vendas.length} venda(s)</small>
+                        </div>
+                        <div class="lucro-info ${margemClass}">
+                            <div class="lucro-valor">
+                                <strong>Lucro: ${window.AppUtils.formatCurrency(item.lucro)}</strong>
+                            </div>
+                            <div class="margem-valor">
+                                <strong>Margem: ${item.margem.toFixed(1)}%</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         });
     }
 
-    createRelatorioItemComLucro(item) {
-        const element = document.createElement('div');
-        element.className = 'mobile-list-item relatorio-item';
-        
-        const precoUnitario = item.quantidadeTotal > 0 ? item.valorTotalVendas / item.quantidadeTotal : 0;
-        const custoUnitario = item.quantidadeTotal > 0 ? item.custoTotalPostes / item.quantidadeTotal : 0;
-        const margemClass = this.getMargemClass(item.margemLucro);
-        
-        element.innerHTML = `
-            <div class="item-header">
-                <span class="item-code">${item.codigoPoste}</span>
-                <span class="item-quantidade">${item.quantidadeTotal} unidades</span>
-            </div>
-            
-            <div class="item-content">
-                <div class="item-value">${window.AppUtils.formatCurrency(item.valorTotalVendas)}</div>
-                <div class="item-title">${item.descricaoPoste}</div>
-                
-                <div class="item-details">
-                    <small>Preço médio venda: ${window.AppUtils.formatCurrency(precoUnitario)}</small>
-                </div>
-                <div class="item-details">
-                    <small>Custo médio: ${window.AppUtils.formatCurrency(custoUnitario)}</small>
-                </div>
-                <div class="item-details">
-                    <small>${item.vendas.length} venda(s) realizadas</small>
-                </div>
-                
-                <div class="lucro-info ${margemClass}">
-                    <div class="lucro-valor">
-                        <strong>Lucro: ${window.AppUtils.formatCurrency(item.lucroTotal)}</strong>
-                    </div>
-                    <div class="margem-valor">
-                        <strong>Margem: ${item.margemLucro.toFixed(1)}%</strong>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        return element;
-    }
-
-    // ================================
-    // VENDAS EXTRAS
-    // ================================
-    gerarRelatorioVendasExtras() {
-        const vendasE = this.data.vendas.filter(v => v.tipoVenda === 'E');
-        
-        if (vendasE.length === 0) {
-            this.hideSection('resumo-extras-section');
-            this.hideSection('vendas-extras-section');
-            return;
-        }
-        
-        const vendasOrdenadas = vendasE.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
-        const resumoExtras = this.calcularResumoExtras(vendasE);
-        
-        this.updateResumoExtras(resumoExtras);
-        this.displayRelatorioVendasExtras(vendasOrdenadas);
-        
-        this.showSection('resumo-extras-section');
-        this.showSection('vendas-extras-section');
-    }
-
-    calcularResumoExtras(vendas) {
-        return {
-            totalVendasExtras: vendas.length,
-            totalPostesExtras: vendas.reduce((sum, v) => sum + (v.quantidade || 1), 0),
-            totalValorExtras: vendas.reduce((sum, v) => sum + (v.valorExtra || 0), 0)
-        };
-    }
-
-    updateResumoExtras(resumo) {
-        window.AppUtils.updateElement('total-vendas-extras', resumo.totalVendasExtras);
-        window.AppUtils.updateElement('total-postes-extras', resumo.totalPostesExtras);
-        window.AppUtils.updateElement('total-valor-extras', window.AppUtils.formatCurrency(resumo.totalValorExtras));
-    }
-
-    displayRelatorioVendasExtras(vendas) {
-        const container = document.getElementById('vendas-extras-list');
-        if (!container) return;
-        
-        if (!vendas || vendas.length === 0) {
-            container.innerHTML = this.getEmptyStateHTML('📈', 'Nenhuma venda extra encontrada', 'Não há vendas extras (E) no período selecionado.');
-            return;
-        }
-        
+    renderListaExtras(dados) {
+        const container = document.getElementById('lista-extras');
         container.innerHTML = '';
-        vendas.forEach(venda => {
-            container.appendChild(this.createRelatorioExtraItem(venda));
+
+        dados.forEach(venda => {
+            container.innerHTML += `
+                <div class="mobile-list-item relatorio-extra-item tipo-e">
+                    <div class="item-header">
+                        <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
+                        <span class="item-code">${venda.codigoPoste || 'Extra'}</span>
+                    </div>
+                    <div class="item-content">
+                        <div class="item-value">${window.AppUtils.formatCurrency(venda.valorExtra || 0)}</div>
+                        <div class="item-title">${venda.descricaoPoste || 'Venda Extra'}</div>
+                        <div class="item-details">
+                            <small>Quantidade: ${venda.quantidade || 1}</small>
+                            ${venda.observacoes ? `<br><small>Obs: ${venda.observacoes}</small>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
         });
     }
 
-    createRelatorioExtraItem(venda) {
-        const element = document.createElement('div');
-        element.className = 'mobile-list-item relatorio-extra-item tipo-e';
-        
-        element.innerHTML = `
-            <div class="item-header">
-                <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
-                <span class="item-code">${venda.codigoPoste || 'Extra'}</span>
-            </div>
-            
-            <div class="item-content">
-                <div class="item-value">${window.AppUtils.formatCurrency(venda.valorExtra || 0)}</div>
-                <div class="item-title">${venda.descricaoPoste || 'Venda Extra'}</div>
-                <div class="item-details">
-                    <small>Quantidade: ${venda.quantidade || 1}</small>
-                </div>
-                ${venda.observacoes ? `
-                    <div class="item-details">
-                        <small>Obs: ${venda.observacoes}</small>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-        
-        return element;
-    }
-
-    // ================================
-    // VENDAS LOJA
-    // ================================
-    gerarRelatorioVendasLoja() {
-        const vendasL = this.data.vendas.filter(v => v.tipoVenda === 'L');
-        
-        if (vendasL.length === 0) {
-            this.hideSection('resumo-loja-section');
-            this.hideSection('vendas-loja-section');
-            return;
-        }
-        
-        const vendasOrdenadas = vendasL.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
-        const resumoLoja = this.calcularResumoLoja(vendasL);
-        
-        this.updateResumoLoja(resumoLoja);
-        this.displayRelatorioVendasLoja(vendasOrdenadas);
-        
-        this.showSection('resumo-loja-section');
-        this.showSection('vendas-loja-section');
-    }
-
-    calcularResumoLoja(vendas) {
-        return {
-            totalVendasLoja: vendas.length,
-            totalPostesLoja: vendas.reduce((sum, v) => sum + (v.quantidade || 0), 0),
-            totalFreteLoja: vendas.reduce((sum, v) => sum + (v.freteEletrons || 0), 0)
-        };
-    }
-
-    updateResumoLoja(resumo) {
-        window.AppUtils.updateElement('total-vendas-loja', resumo.totalVendasLoja);
-        window.AppUtils.updateElement('total-postes-loja', resumo.totalPostesLoja);
-        window.AppUtils.updateElement('total-frete-loja', window.AppUtils.formatCurrency(resumo.totalFreteLoja));
-    }
-
-    displayRelatorioVendasLoja(vendas) {
-        const container = document.getElementById('vendas-loja-list');
-        if (!container) return;
-        
-        if (!vendas || vendas.length === 0) {
-            container.innerHTML = this.getEmptyStateHTML('🏪', 'Nenhuma venda loja encontrada', 'Não há vendas loja (L) no período selecionado.');
-            return;
-        }
-        
+    renderListaLoja(dados) {
+        const container = document.getElementById('lista-loja');
         container.innerHTML = '';
-        vendas.forEach(venda => {
-            container.appendChild(this.createRelatorioLojaItem(venda));
-        });
-    }
 
-    createRelatorioLojaItem(venda) {
-        const element = document.createElement('div');
-        element.className = 'mobile-list-item relatorio-loja-item tipo-l';
-        
-        element.innerHTML = `
-            <div class="item-header">
-                <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
-                <span class="item-code">${venda.codigoPoste || 'N/A'}</span>
-            </div>
-            
-            <div class="item-content">
-                <div class="item-value">${window.AppUtils.formatCurrency(venda.freteEletrons || 0)}</div>
-                <div class="item-title">${venda.descricaoPoste || 'Produto não especificado'}</div>
-                <div class="item-details">
-                    <small>Quantidade: ${venda.quantidade || 1}</small>
-                </div>
-                ${venda.observacoes ? `
-                    <div class="item-details">
-                        <small>Obs: ${venda.observacoes}</small>
+        dados.forEach(venda => {
+            container.innerHTML += `
+                <div class="mobile-list-item relatorio-loja-item tipo-l">
+                    <div class="item-header">
+                        <span class="item-date">${window.AppUtils.formatDateBR(venda.dataVenda, true)}</span>
+                        <span class="item-code">${venda.codigoPoste || 'N/A'}</span>
                     </div>
-                ` : ''}
-            </div>
-        `;
-        
-        return element;
-    }
-
-    // ================================
-    // EXPORTAÇÃO
-    // ================================
-    exportarRelatorio() {
-        if (!this.data.relatorioGerado || this.data.vendas.length === 0) {
-            window.AppUtils.showAlert('Nenhum relatório para exportar', 'warning');
-            return;
-        }
-        
-        const { tipoVenda } = this.data.filtros;
-        
-        if (!tipoVenda || tipoVenda === 'V') {
-            this.exportarRelatorioVendasNormaisComLucro();
-        }
-        
-        if (!tipoVenda || tipoVenda === 'E') {
-            this.exportarRelatorioVendasExtras();
-        }
-        
-        if (!tipoVenda || tipoVenda === 'L') {
-            this.exportarRelatorioVendasLoja();
-        }
-    }
-
-    exportarRelatorioVendasNormaisComLucro() {
-        const vendasV = this.data.vendas.filter(v => v.tipoVenda === 'V');
-        if (vendasV.length === 0) return;
-        
-        const vendasAgrupadas = this.agruparVendasPorPoste(vendasV);
-        const dadosExportar = Object.values(vendasAgrupadas).map(item => {
-            const lucroTotal = item.valorTotalVendas - item.custoTotalPostes;
-            const margemLucro = item.valorTotalVendas > 0 ? (lucroTotal / item.valorTotalVendas * 100) : 0;
-            
-            return {
-                'Código': item.codigoPoste,
-                'Descrição': item.descricaoPoste,
-                'Quantidade Total': item.quantidadeTotal,
-                'Valor Arrecadado': item.valorTotalVendas.toFixed(2),
-                'Custo Total': item.custoTotalPostes.toFixed(2),
-                'Lucro Total': lucroTotal.toFixed(2),
-                'Margem Lucro (%)': margemLucro.toFixed(1),
-                'Preço Médio Venda': (item.valorTotalVendas / item.quantidadeTotal).toFixed(2),
-                'Custo Médio': (item.custoTotalPostes / item.quantidadeTotal).toFixed(2),
-                'Número de Vendas': item.vendas.length
-            };
+                    <div class="item-content">
+                        <div class="item-value">${window.AppUtils.formatCurrency(venda.freteEletrons || 0)}</div>
+                        <div class="item-title">${venda.descricaoPoste || 'Produto não especificado'}</div>
+                        <div class="item-details">
+                            <small>Quantidade: ${venda.quantidade || 1}</small>
+                            ${venda.observacoes ? `<br><small>Obs: ${venda.observacoes}</small>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
         });
-        
-        const { dataInicio, dataFim } = this.data.filtros;
-        const filename = `relatorio_vendas_normais_lucro_vermelho_${dataInicio}_${dataFim}`;
-        
-        window.AppUtils.exportToCSV(dadosExportar, filename);
-    }
-
-    exportarRelatorioVendasExtras() {
-        const vendasE = this.data.vendas.filter(v => v.tipoVenda === 'E');
-        if (vendasE.length === 0) return;
-        
-        const dadosExportar = vendasE.map(venda => ({
-            'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
-            'Código Poste': venda.codigoPoste || 'N/A',
-            'Descrição': venda.descricaoPoste || 'Venda Extra',
-            'Quantidade': venda.quantidade || 1,
-            'Valor Extra': venda.valorExtra || 0,
-            'Observações': venda.observacoes || '-'
-        }));
-        
-        const { dataInicio, dataFim } = this.data.filtros;
-        const filename = `relatorio_vendas_extras_vermelho_${dataInicio}_${dataFim}`;
-        
-        window.AppUtils.exportToCSV(dadosExportar, filename);
-    }
-
-    exportarRelatorioVendasLoja() {
-        const vendasL = this.data.vendas.filter(v => v.tipoVenda === 'L');
-        if (vendasL.length === 0) return;
-        
-        const dadosExportar = vendasL.map(venda => ({
-            'Data': window.AppUtils.formatDateBR(venda.dataVenda, true),
-            'Código Poste': venda.codigoPoste || 'N/A',
-            'Descrição': venda.descricaoPoste || 'Produto não especificado',
-            'Quantidade': venda.quantidade || 1,
-            'Frete Eletrons': venda.freteEletrons || 0,
-            'Observações': venda.observacoes || '-'
-        }));
-        
-        const { dataInicio, dataFim } = this.data.filtros;
-        const filename = `relatorio_vendas_loja_vermelho_${dataInicio}_${dataFim}`;
-        
-        window.AppUtils.exportToCSV(dadosExportar, filename);
-    }
-
-    // ================================
-    // FUNÇÕES AUXILIARES
-    // ================================
-    updatePeriodoInfo() {
-        const { dataInicio, dataFim, tipoVenda } = this.data.filtros;
-        const indicator = document.getElementById('periodo-info');
-        const text = document.getElementById('periodo-texto');
-        
-        if (!indicator || !text) return;
-        
-        let periodo = '';
-        if (dataInicio && dataFim) {
-            const inicio = window.AppUtils.formatDateBR(dataInicio);
-            const fim = window.AppUtils.formatDateBR(dataFim);
-            periodo = `${inicio} até ${fim}`;
-        }
-        
-        const tipos = { 'V': ' - Vendas Normais', 'E': ' - Vendas Extras', 'L': ' - Vendas Loja' };
-        const tipo = tipos[tipoVenda] || '';
-        
-        text.textContent = `Período: ${periodo}${tipo}`;
-        indicator.style.display = 'flex';
-    }
-
-    limparRelatorio() {
-        document.getElementById('relatorio-form').reset();
-        this.setDefaultPeriod();
-        
-        const sections = [
-            'resumo-section', 'resumo-extras-section', 'resumo-loja-section',
-            'relatorio-section', 'vendas-extras-section', 'vendas-loja-section', 'periodo-info'
-        ];
-        
-        sections.forEach(section => this.hideSection(section));
-        
-        this.data.vendas = [];
-        this.data.relatorioGerado = false;
-        this.data.filtros = { dataInicio: '', dataFim: '', tipoVenda: '' };
-        
-        window.AppUtils.showAlert('Relatório limpo', 'success');
-    }
-
-    updateOrCreateElement(id, value) {
-        let element = document.getElementById(id);
-        if (!element) {
-            element = this.createElement(id);
-        }
-        
-        if (element) {
-            element.textContent = value;
-        }
-    }
-
-    createElement(id) {
-        const resumoSection = document.getElementById('resumo-section');
-        if (!resumoSection) return null;
-        
-        const statsGrid = resumoSection.querySelector('.stats-grid');
-        if (!statsGrid || statsGrid.querySelector(`#${id}`)) return null;
-        
-        const configs = {
-            'custo-total': { icon: '📦', label: 'Custo Total' },
-            'lucro-total-vendas': { icon: '💎', label: 'Lucro Total' },
-            'margem-lucro-vendas': { icon: '📊', label: 'Margem Lucro' }
-        };
-        
-        const config = configs[id] || { icon: '💰', label: 'Valor' };
-        
-        const statItem = document.createElement('div');
-        statItem.className = 'stat-item';
-        statItem.innerHTML = `
-            <div class="stat-icon">${config.icon}</div>
-            <div class="stat-number" id="${id}">-</div>
-            <div class="stat-label">${config.label}</div>
-        `;
-        
-        statsGrid.appendChild(statItem);
-        return document.getElementById(id);
     }
 
     getMargemClass(margem) {
@@ -661,39 +388,103 @@ class RelatoriosVermelho {
         return 'margem-neutra';
     }
 
-    getEmptyStateHTML(icon, title, message) {
-        return `
-            <div class="empty-state">
-                <div class="empty-icon">${icon}</div>
-                <h3>${title}</h3>
-                <p>${message}</p>
-            </div>
-        `;
+    updatePeriodoInfo() {
+        const { dataInicio, dataFim, tipoVenda } = this.data.filtros;
+        const elemento = document.getElementById('periodo-texto');
+        
+        let texto = `${window.AppUtils.formatDateBR(dataInicio)} até ${window.AppUtils.formatDateBR(dataFim)}`;
+        if (tipoVenda) {
+            const tipos = { V: 'Vendas Normais', E: 'Vendas Extras', L: 'Vendas Loja' };
+            texto += ` - ${tipos[tipoVenda]}`;
+        }
+        
+        elemento.textContent = texto;
+        document.getElementById('periodo-info').style.display = 'flex';
     }
 
-    showSection(sectionId) {
-        const section = document.getElementById(sectionId);
-        if (section) section.style.display = 'block';
+    limparRelatorio() {
+        document.getElementById('relatorio-form').reset();
+        this.setDefaultPeriod();
+        this.hideAllSections();
+        this.data.vendas = [];
+        window.AppUtils.showAlert('Relatório limpo', 'success');
     }
 
-    hideSection(sectionId) {
-        const section = document.getElementById(sectionId);
-        if (section) section.style.display = 'none';
+    exportarRelatorio(tipo = null) {
+        const { tipoVenda } = this.data.filtros;
+        const tipoExport = tipo || tipoVenda;
+        
+        if (!tipoExport) {
+            window.AppUtils.showAlert('Selecione um tipo específico para exportar', 'warning');
+            return;
+        }
+
+        const vendas = this.data.vendas.filter(v => v.tipoVenda === tipoExport);
+        if (!vendas.length) {
+            window.AppUtils.showAlert('Nenhum dado para exportar', 'warning');
+            return;
+        }
+
+        let dados, filename;
+        const { dataInicio, dataFim } = this.data.filtros;
+
+        if (tipoExport === 'V') {
+            const agrupadas = this.agruparPorPoste(vendas);
+            dados = Object.values(agrupadas).map(item => ({
+                'Código': item.codigo,
+                'Descrição': item.descricao,
+                'Quantidade': item.quantidade,
+                'Faturamento': item.valorVendas.toFixed(2),
+                'Custo': item.custo.toFixed(2),
+                'Lucro': (item.valorVendas - item.custo).toFixed(2),
+                'Margem (%)': ((item.valorVendas - item.custo) / item.valorVendas * 100).toFixed(1),
+                'Vendas': item.vendas.length
+            }));
+            filename = `vendas_normais_vermelho_${dataInicio}_${dataFim}`;
+        } else {
+            dados = vendas.map(v => ({
+                'Data': window.AppUtils.formatDateBR(v.dataVenda, true),
+                'Código': v.codigoPoste || 'N/A',
+                'Descrição': v.descricaoPoste || '-',
+                'Quantidade': v.quantidade || 1,
+                'Valor': tipoExport === 'E' ? (v.valorExtra || 0) : (v.freteEletrons || 0),
+                'Observações': v.observacoes || '-'
+            }));
+            const tipoNome = tipoExport === 'E' ? 'extras' : 'loja';
+            filename = `vendas_${tipoNome}_vermelho_${dataInicio}_${dataFim}`;
+        }
+
+        window.AppUtils.exportToCSV(dados, filename);
+        window.AppUtils.showAlert('Relatório exportado!', 'success');
+    }
+
+    hideAllSections() {
+        ['resumo-vendas', 'resumo-extras', 'resumo-loja', 
+         'detalhes-vendas', 'detalhes-extras', 'detalhes-loja', 'periodo-info']
+         .forEach(id => this.hideSection(id));
+    }
+
+    showSection(id) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'block';
+    }
+
+    hideSection(id) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
     }
 }
 
-// ================================
-// INICIALIZAÇÃO E FUNÇÕES GLOBAIS
-// ================================
+// Inicialização
 let relatoriosVermelho;
 
 document.addEventListener('DOMContentLoaded', () => {
     relatoriosVermelho = new RelatoriosVermelho();
 });
 
-// Funções globais para compatibilidade
+// Funções globais
 window.gerarRelatorio = () => relatoriosVermelho?.gerarRelatorio();
 window.limparRelatorio = () => relatoriosVermelho?.limparRelatorio();
-window.exportarRelatorio = () => relatoriosVermelho?.exportarRelatorio();
+window.exportarRelatorio = (tipo) => relatoriosVermelho?.exportarRelatorio(tipo);
 
-console.log('✅ Relatórios Caminhão Vermelho refatorado carregado');
+console.log('✅ Relatórios Vermelho otimizado carregado');
