@@ -70,7 +70,7 @@ export default function NavBar() {
   return (
     <>
       {/* Sidebar desktop */}
-      <aside className="hidden md:flex flex-col w-60 min-h-screen
+      <aside className="hidden md:flex flex-col w-60 h-screen sticky top-0
                         bg-white dark:bg-gray-900
                         border-r border-gray-100 dark:border-gray-800
                         flex-shrink-0">
@@ -83,7 +83,7 @@ export default function NavBar() {
           </div>
         </div>
 
-        <nav className="flex-1 p-2 space-y-0.5 mt-1">
+        <nav className="flex-1 p-2 space-y-0.5 mt-1 overflow-y-auto">
           {items.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
