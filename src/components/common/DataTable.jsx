@@ -88,7 +88,7 @@ export default function DataTable({
               sorted.map((row, i) => (
                 <tr key={row.id ?? i} className="hover:bg-blue-50/30 dark:hover:bg-gray-700/40 transition-colors">
                   {columns.map(col => (
-                    <td key={col.key + col.label} className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    <td key={col.key + col.label} className="px-4 py-3 text-gray-700 dark:text-gray-300">
                       {col.render ? col.render(row[col.key], row) : (row[col.key] ?? '—')}
                     </td>
                   ))}
