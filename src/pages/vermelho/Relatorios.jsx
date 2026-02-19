@@ -17,7 +17,8 @@ import {
   getMetodoPagamentoLabel,
   getTipoVendaLabel,
 } from '../../utils/formatters';
-import { METODOS_PAGAMENTO } from '../../utils/constants';
+import { METODOS_PAGAMENTO, TENANT_LABELS } from '../../utils/constants';
+import { useAuth } from '../../contexts/AuthContext';
 
 const TIPO_BADGE = {
   V: 'bg-blue-100 text-blue-700',
@@ -54,6 +55,7 @@ function exportCSV(vendas) {
 }
 
 export default function Relatorios() {
+  const { user } = useAuth();
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('');
@@ -241,7 +243,7 @@ export default function Relatorios() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Relatórios</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Caminhão Vermelho</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{TENANT_LABELS[user?.tenant] || 'Caminhão Vermelho'}</p>
         </div>
         {gerado && vendasFiltradas.length > 0 && (
           <Button variant="secondary" onClick={() => exportCSV(vendasFiltradas)} className="shrink-0">
