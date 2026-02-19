@@ -144,7 +144,16 @@ export default function Vendas() {
     {
       key: 'codigoPoste',
       label: 'Poste',
-      render: (val) => val || '-',
+      render: (val, row) => val ? (
+        <div className="min-w-0">
+          <span className="font-mono font-semibold text-xs text-gray-800 dark:text-gray-100">{val}</span>
+          {row.descricaoPoste && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]" title={row.descricaoPoste}>
+              {row.descricaoPoste}
+            </p>
+          )}
+        </div>
+      ) : '-',
     },
     {
       key: 'quantidade',

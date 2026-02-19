@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   FileDown, Search, ShoppingCart, Zap, Store, TrendingUp,
-  TrendingDown, SlidersHorizontal, X, PieChart, Users,
+  TrendingDown, SlidersHorizontal, X, PieChart, Users, Package,
 } from 'lucide-react';
 import { vendasApi } from '../../api/vendas';
 import { despesasApi } from '../../api/despesas';
@@ -138,6 +138,27 @@ export default function Relatorios() {
       .sort((a, b) => b.valor - a.valor);
   }, [vendasFiltradas]);
 
+  // Agrupamento por poste
+  const porPoste = useMemo(() => {
+    const mapa = {};
+    vendasFiltradas
+      .filter(v => v.codigoPoste)
+      .forEach(v => {
+        const key = v.codigoPoste;
+        if (!mapa[key]) {
+          mapa[key] = {
+            codigo: v.codigoPoste,
+            descricao: v.descricaoPoste || '-',
+            qtd: 0,
+            total: 0,
+          };
+        }
+        mapa[key].qtd   += (v.quantidade || 0);
+        mapa[key].total += (parseFloat(v.valorVenda) || 0);
+      });
+    return Object.values(mapa).sort((a, b) => b.total - a.total);
+  }, [vendasFiltradas]);
+
   const filtrosAtivos = [tipoFiltro, metodoPgto, busca].filter(Boolean).length;
 
   function limparFiltros() {
@@ -165,7 +186,16 @@ export default function Relatorios() {
     {
       key: 'codigoPoste',
       label: 'Poste',
-      render: (val) => val || '-',
+      render: (val, row) => val ? (
+        <div className="min-w-0">
+          <span className="font-mono font-semibold text-xs text-gray-800 dark:text-gray-100">{val}</span>
+          {row.descricaoPoste && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]" title={row.descricaoPoste}>
+              {row.descricaoPoste}
+            </p>
+          )}
+        </div>
+      ) : '-',
     },
     {
       key: 'quantidade',
@@ -407,6 +437,54 @@ export default function Relatorios() {
             </div>
           )}
         </>
+      )}
+
+      {/* Relatório por poste */}
+      {gerado && porPoste.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Package size={16} className="text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Vendas por Poste</h2>
+            <span className="text-xs text-gray-400">({porPoste.length} postes)</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-700">
+                  <th className="text-left py-2 px-3 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Código</th>
+                  <th className="text-left py-2 px-3 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Nome do Poste</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Qtd</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total (R$)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {porPoste.map(item => (
+                  <tr key={item.codigo} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="py-2.5 px-3">
+                      <span className="font-mono font-semibold text-xs text-gray-800 dark:text-gray-100">{item.codigo}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-sm text-gray-600 dark:text-gray-300 max-w-[240px]">
+                      <span className="truncate block" title={item.descricao}>{item.descricao}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-semibold text-gray-800 dark:text-gray-100">{item.qtd}</td>
+                    <td className="py-2.5 px-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(item.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-gray-200 dark:border-gray-600">
+                  <td colSpan={2} className="py-2.5 px-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Total</td>
+                  <td className="py-2.5 px-3 text-right font-bold text-gray-800 dark:text-gray-100">
+                    {porPoste.reduce((acc, i) => acc + i.qtd, 0)}
+                  </td>
+                  <td className="py-2.5 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(porPoste.reduce((acc, i) => acc + i.total, 0))}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* Tabela de resultados */}
