@@ -11,7 +11,10 @@ export function useDespesas(params = {}) {
     setError(null);
     try {
       const result = await despesasApi.listar(params);
-      setData(Array.isArray(result) ? result : []);
+      const sorted = Array.isArray(result)
+        ? result.sort((a, b) => new Date(b.dataDespesa) - new Date(a.dataDespesa))
+        : [];
+      setData(sorted);
     } catch (e) {
       setError(e.message);
     } finally {
