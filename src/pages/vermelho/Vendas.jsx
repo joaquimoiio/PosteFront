@@ -19,7 +19,8 @@ import {
   getMetodoPagamentoLabel,
   getTipoVendaLabel,
 } from '../../utils/formatters';
-import { METODOS_PAGAMENTO } from '../../utils/constants';
+import { METODOS_PAGAMENTO, TENANT_LABELS } from '../../utils/constants';
+import { useAuth } from '../../contexts/AuthContext';
 
 const TIPO_BADGE = {
   V: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
@@ -28,6 +29,7 @@ const TIPO_BADGE = {
 };
 
 export default function Vendas() {
+  const { user } = useAuth();
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('');
@@ -209,7 +211,7 @@ export default function Vendas() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Vendas</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Caminhão Vermelho</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{TENANT_LABELS[user?.tenant] || 'Caminhão Vermelho'}</p>
         </div>
         <Button onClick={handleNovaVenda} className="shrink-0">
           <Plus size={16} />

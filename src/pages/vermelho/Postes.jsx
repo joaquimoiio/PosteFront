@@ -12,8 +12,11 @@ import StatCard from '../../components/common/StatCard';
 import DataTable from '../../components/common/DataTable';
 import PosteForm from '../../components/forms/PosteForm';
 import { formatCurrency } from '../../utils/formatters';
+import { useAuth } from '../../contexts/AuthContext';
+import { TENANT_LABELS } from '../../utils/constants';
 
 export default function Postes() {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');   // '' | 'ativo' | 'inativo'
   const [precoMin, setPrecoMin] = useState('');
@@ -170,7 +173,7 @@ export default function Postes() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Postes</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Caminhão Vermelho</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{TENANT_LABELS[user?.tenant] || 'Caminhão Vermelho'}</p>
         </div>
         <Button onClick={handleNovoPoste} className="shrink-0">
           <Plus size={16} />

@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { TENANT_LABELS } from '../../utils/constants';
 import {
   Edit, Trash2, Plus, Wallet, Receipt, TrendingDown,
   Search, X, SlidersHorizontal,
@@ -24,6 +26,7 @@ const TIPO_BADGE = {
 };
 
 export default function Despesas() {
+  const { user } = useAuth();
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('');
@@ -170,7 +173,7 @@ export default function Despesas() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Despesas</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Caminhão Vermelho</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{TENANT_LABELS[user?.tenant] || 'Caminhão Vermelho'}</p>
         </div>
         <Button onClick={handleNovaDespesa} className="shrink-0">
           <Plus size={16} />
