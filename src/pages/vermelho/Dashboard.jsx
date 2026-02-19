@@ -8,7 +8,7 @@ import DateRangeFilter from '../../components/common/DateRangeFilter';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { formatCurrency, getCurrentDateInput } from '../../utils/formatters';
 import { TENANT_LABELS } from '../../utils/constants';
-import { DollarSign, TrendingUp, Package, Users, Truck, Zap, ShoppingCart } from 'lucide-react';
+import { DollarSign, Package, Users, Truck, Zap, ShoppingCart } from 'lucide-react';
 
 const today = getCurrentDateInput();
 const firstOfMonth = today.slice(0, 7) + '-01';
@@ -87,26 +87,6 @@ export default function Dashboard() {
             <MetricCard label="Custo Eletrons"  value={formatCurrency(custoPostes)}               icon={Package}      color="yellow" />
             <MetricCard label="Custo - Frete L" value={formatCurrency(totalFrete)}                icon={Zap}          color="purple" />
             <MetricCard label="Despesas"         value={formatCurrency(totalDespesas)}             icon={ShoppingCart} color="red" />
-          </div>
-
-          {/* Lucro líquido em destaque */}
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/30 p-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-xl">
-                <TrendingUp size={20} className="text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Lucro Líquido</p>
-                <p className={`text-2xl font-bold ${lucroTotal >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-600 dark:text-red-400'}`}>
-                  {formatCurrency(lucroTotal)}
-                </p>
-              </div>
-            </div>
-            <div className="text-right text-xs text-emerald-700 dark:text-emerald-500 space-y-0.5 shrink-0">
-              <p>V: <span className="font-semibold">{resumo?.totalVendasV || 0}</span></p>
-              <p>E: <span className="font-semibold">{resumo?.totalVendasE || 0}</span></p>
-              <p>L: <span className="font-semibold">{resumo?.totalVendasL || 0}</span></p>
-            </div>
           </div>
 
           {/* Distribuição de lucros */}
