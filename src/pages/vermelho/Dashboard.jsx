@@ -56,6 +56,8 @@ export default function Dashboard() {
 
   const lucroTotal = totalVendas + totalExtras + totalFrete - custoPostes - despOutras;
 
+  const custoFreteL = custoPostes - totalFrete;
+
   const cicero    = lucroTotal * 0.50;
   const gilberto  = lucroTotal * 0.25 - despFuncionario * 0.5;
   const jefferson = lucroTotal * 0.25 - despFuncionario * 0.5;
@@ -85,7 +87,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <MetricCard label="Arrecadado"      value={formatCurrency(totalVendas + totalExtras)} icon={DollarSign}   color="blue" />
             <MetricCard label="Custo Eletrons"  value={formatCurrency(custoPostes)}               icon={Package}      color="yellow" />
-            <MetricCard label="Custo - Frete L" value={formatCurrency(totalFrete)}                icon={Zap}          color="purple" />
+            <MetricCard label="Custo - Frete L" value={formatCurrency(custoFreteL)}                icon={Zap}          color="purple" />
             <MetricCard label="Despesas"         value={formatCurrency(despOutras)}             icon={ShoppingCart} color="red" />
           </div>
 

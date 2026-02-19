@@ -54,6 +54,8 @@ export default function Dashboard() {
   const despOutras      = despesas.filter(d => d.tipo === 'OUTRAS').reduce((s, d) => s + parseFloat(d.valor || 0), 0);
   const totalDespesas   = despFuncionario + despOutras;
 
+  const custoFreteL = custoPostes - totalFrete;
+
   const lucroTotal = totalVendas + totalExtras + totalFrete - custoPostes - despOutras;
 
   // Branco: Gilberto 50% (sem desconto), Jefferson 50% (menos despesas de funcionário)
@@ -85,7 +87,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <MetricCard label="Arrecadado"      value={formatCurrency(totalVendas + totalExtras)} icon={DollarSign}   color="blue" />
             <MetricCard label="Custo Eletrons"  value={formatCurrency(custoPostes)}               icon={Package}      color="yellow" />
-            <MetricCard label="Custo - Frete L" value={formatCurrency(totalFrete)}                icon={Zap}          color="purple" />
+            <MetricCard label="Custo - Frete L" value={formatCurrency(custoFreteL)}                icon={Zap}          color="purple" />
             <MetricCard label="Despesas"         value={formatCurrency(despOutras)}             icon={ShoppingCart} color="red" />
           </div>
 
