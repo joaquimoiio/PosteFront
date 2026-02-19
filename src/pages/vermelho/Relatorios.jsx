@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   FileDown, Search, ShoppingCart, Zap, Store, TrendingUp,
-  TrendingDown, SlidersHorizontal, X, PieChart, Users, Package,
+  TrendingDown, SlidersHorizontal, X, PieChart, Package,
 } from 'lucide-react';
 import { vendasApi } from '../../api/vendas';
 import { despesasApi } from '../../api/despesas';
@@ -25,13 +25,6 @@ const TIPO_BADGE = {
   E: 'bg-amber-100 text-amber-700',
   L: 'bg-emerald-100 text-emerald-700',
 };
-
-// Distribuição de lucro: Vermelho = Cicero 50%, Gilberto 25%, Jefferson 25%
-const DISTRIBUICAO = [
-  { nome: 'Cícero', pct: 0.50, cor: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800' },
-  { nome: 'Gilberto', pct: 0.25, cor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800' },
-  { nome: 'Jefferson', pct: 0.25, cor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800' },
-];
 
 function exportCSV(vendas) {
   const header = ['Data', 'Tipo', 'Poste', 'Qtd', 'Valor Venda', 'Valor Extra', 'Frete', 'Pagamento', 'Obs'];
@@ -192,7 +185,7 @@ export default function Relatorios() {
         <div className="min-w-0">
           <span className="font-mono font-semibold text-xs text-gray-800 dark:text-gray-100">{val}</span>
           {row.descricaoPoste && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]" title={row.descricaoPoste}>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {row.descricaoPoste}
             </p>
           )}
@@ -388,28 +381,6 @@ export default function Relatorios() {
             />
           </div>
 
-          {/* Distribuição de lucro */}
-          {lucroLiquido > 0 && (
-            <div className="card">
-              <div className="flex items-center gap-2 mb-4">
-                <Users size={16} className="text-gray-400" />
-                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Distribuição do Lucro Líquido</h2>
-                <span className="text-xs text-gray-400">({formatCurrency(lucroLiquido)})</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {DISTRIBUICAO.map(d => (
-                  <div key={d.nome} className={`border rounded-xl p-4 ${d.bg}`}>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{d.nome}</p>
-                    <p className={`text-xl font-bold mt-1 ${d.cor}`}>
-                      {formatCurrency(lucroLiquido * d.pct)}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{(d.pct * 100).toFixed(0)}% do lucro</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Breakdown por pagamento */}
           {porMetodo.length > 0 && (
             <div className="card">
@@ -465,8 +436,8 @@ export default function Relatorios() {
                     <td className="py-2.5 px-3">
                       <span className="font-mono font-semibold text-xs text-gray-800 dark:text-gray-100">{item.codigo}</span>
                     </td>
-                    <td className="py-2.5 px-3 text-sm text-gray-600 dark:text-gray-300 max-w-[240px]">
-                      <span className="truncate block" title={item.descricao}>{item.descricao}</span>
+                    <td className="py-2.5 px-3 text-sm text-gray-600 dark:text-gray-300">
+                      {item.descricao}
                     </td>
                     <td className="py-2.5 px-3 text-right font-semibold text-gray-800 dark:text-gray-100">{item.qtd}</td>
                     <td className="py-2.5 px-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(item.total)}</td>
