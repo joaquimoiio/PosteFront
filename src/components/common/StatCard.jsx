@@ -19,7 +19,7 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'blue'
           {sub && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{sub}</p>}
         </div>
         {Icon && (
-          <div className={`hidden sm:flex p-2.5 rounded-lg ${c.bg} flex-shrink-0 ml-3`}>
+          <div className={`flex p-2.5 rounded-lg ${c.bg} flex-shrink-0 ml-3`}>
             <Icon size={20} className={c.icon} />
           </div>
         )}
