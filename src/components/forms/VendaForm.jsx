@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { TIPOS_VENDA, METODOS_PAGAMENTO } from '../../utils/constants';
-import { getCurrentDateTimeInput, formatDateTimeInput } from '../../utils/formatters';
+import { getCurrentDateTimeInput, formatDateTimeInput, formatCurrency } from '../../utils/formatters';
 import Button from '../common/Button';
 
 export default function VendaForm({ onSubmit, onCancel, postes = [], initialData = null, loading = false }) {
@@ -31,7 +31,8 @@ export default function VendaForm({ onSubmit, onCancel, postes = [], initialData
         },
   });
 
-  const tipo = watch('tipoVenda');
+  const tipo    = watch('tipoVenda');
+  const posteId = watch('posteId');
 
   useEffect(() => {
     if (initialData) {
@@ -70,7 +71,8 @@ export default function VendaForm({ onSubmit, onCancel, postes = [], initialData
     onSubmit(payload);
   }
 
-  const postesAtivos = postes.filter(p => p.ativo !== false);
+  const postesAtivos    = postes.filter(p => p.ativo !== false);
+  const posteSelecionado = postesAtivos.find(p => String(p.id) === String(posteId));
 
   return (
     <form onSubmit={handleSubmit(onValid)} className="space-y-4">
@@ -103,10 +105,20 @@ export default function VendaForm({ onSubmit, onCancel, postes = [], initialData
             <select className="input" {...register('posteId', { required: 'Poste obrigatório' })}>
               <option value="">Selecione...</option>
               {postesAtivos.map(p => (
-                <option key={p.id} value={p.id}>{p.codigo} — {p.descricao}</option>
+                <option key={p.id} value={p.id}>
+                  {p.codigo} — {p.descricao} ({formatCurrency(p.preco)})
+                </option>
               ))}
             </select>
             {errors.posteId && <p className="text-xs text-red-500 mt-1">{errors.posteId.message}</p>}
+            {posteSelecionado && (
+              <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                Preço unitário:{' '}
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(posteSelecionado.preco)}
+                </span>
+              </p>
+            )}
           </div>
           <div>
             <label className="label">Quantidade *</label>

@@ -148,7 +148,7 @@ export default function Vendas() {
         <div className="min-w-0">
           <span className="font-mono font-semibold text-xs text-gray-800 dark:text-gray-100">{val}</span>
           {row.descricaoPoste && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]" title={row.descricaoPoste}>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {row.descricaoPoste}
             </p>
           )}
@@ -187,7 +187,7 @@ export default function Vendas() {
       key: 'observacoes',
       label: 'Obs',
       render: (val) => val ? (
-        <span className="text-xs text-gray-500 truncate max-w-[120px] block" title={val}>{val}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">{val}</span>
       ) : '-',
     },
     {
