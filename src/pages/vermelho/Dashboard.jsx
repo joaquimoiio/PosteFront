@@ -86,7 +86,42 @@ export default function Dashboard() {
             <MetricCard label="Arrecadado"      value={formatCurrency(totalVendas + totalExtras)} icon={DollarSign}   color="blue" />
             <MetricCard label="Custo Eletrons"  value={formatCurrency(custoPostes)}               icon={Package}      color="yellow" />
             <MetricCard label="Custo - Frete L" value={formatCurrency(totalFrete)}                icon={Zap}          color="purple" />
-            <MetricCard label="Despesas"         value={formatCurrency(totalDespesas)}             icon={ShoppingCart} color="red" />
+            <MetricCard label="Despesas"         value={formatCurrency(despOutras)}             icon={ShoppingCart} color="red" />
+          </div>
+
+          {/* Resumo de vendas por tipo */}
+          <div className="card">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Resumo de Vendas</h2>
+            <div className="divide-y divide-gray-50 dark:divide-gray-700/60">
+              <div className="flex items-center justify-between py-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">V</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Vendas Normais</span>
+                  <span className="text-xs text-gray-400">({resumo?.totalVendasV || 0})</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(totalVendas)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">E</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Extras</span>
+                  <span className="text-xs text-gray-400">({resumo?.totalVendasE || 0})</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(totalExtras)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">L</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Loja</span>
+                  <span className="text-xs text-gray-400">({resumo?.totalVendasL || 0})</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(totalFrete)}</span>
+              </div>
+              <div className="flex items-center justify-between pt-3 pb-1">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Total</span>
+                <span className="text-base font-bold text-gray-900 dark:text-gray-50">{formatCurrency(totalVendas + totalExtras + totalFrete)}</span>
+              </div>
+            </div>
           </div>
 
           {/* Distribuição de lucros */}
