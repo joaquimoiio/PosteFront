@@ -108,20 +108,20 @@ export default function Postes() {
       label: 'Código',
       sortable: true,
       render: (val) => (
-        <span className="font-mono font-semibold text-gray-800 text-sm">{val}</span>
+        <span className="font-mono font-semibold text-gray-800 dark:text-gray-100 text-sm">{val}</span>
       ),
     },
     {
       key: 'descricao',
       label: 'Descrição',
-      render: (val) => <span className="text-sm text-gray-600">{val || '-'}</span>,
+      render: (val) => <span className="text-sm text-gray-600 dark:text-gray-300">{val || '-'}</span>,
     },
     {
       key: 'preco',
       label: 'Preço',
       sortable: true,
       render: (val) => (
-        <span className="font-semibold text-gray-800">{formatCurrency(val)}</span>
+        <span className="font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(val)}</span>
       ),
     },
     {
@@ -129,12 +129,12 @@ export default function Postes() {
       label: 'Status',
       render: (val) =>
         val !== false ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
             <CheckCircle size={11} />
             Ativo
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
             <XCircle size={11} />
             Inativo
           </span>
@@ -147,14 +147,14 @@ export default function Postes() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => handleEditar(row)}
-            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
             title="Editar"
           >
             <Edit size={15} />
           </button>
           <button
             onClick={() => handleDeletar(row)}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
             title="Excluir"
           >
             <Trash2 size={15} />
@@ -179,37 +179,9 @@ export default function Postes() {
         </Button>
       </div>
 
-      {/* Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard
-          label="Total"
-          value={postes.length.toString()}
-          icon={Package}
-          color="blue"
-        />
-        <StatCard
-          label="Ativos"
-          value={totalAtivos.toString()}
-          icon={CheckCircle}
-          color="green"
-        />
-        <StatCard
-          label="Inativos"
-          value={totalInativos.toString()}
-          icon={XCircle}
-          color="red"
-        />
-        <StatCard
-          label="Preço Médio"
-          value={formatCurrency(precoMedio)}
-          icon={DollarSign}
-          color="yellow"
-        />
-      </div>
-
       {/* Filtros */}
       <div className="panel">
-        <div className="flex items-center justify-between p-4 border-b border-gray-50">
+        <div className="flex items-center justify-between p-4 border-b border-gray-50 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <SlidersHorizontal size={16} className="text-gray-400" />
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Filtros</span>
@@ -261,7 +233,7 @@ export default function Postes() {
 
           {/* Filtros avançados */}
           {showFiltros && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-gray-50">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-gray-50 dark:border-gray-700">
               {/* Status */}
               <div>
                 <label className="label">Status</label>
@@ -318,7 +290,7 @@ export default function Postes() {
 
       {/* Tabela */}
       <div className="panel">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-gray-700">
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
             {postesFiltrados.length} poste{postesFiltrados.length !== 1 ? 's' : ''}
             {filtrosAtivos > 0 && <span className="text-gray-400 font-normal"> (filtrado)</span>}

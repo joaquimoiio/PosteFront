@@ -22,9 +22,9 @@ import {
 import { METODOS_PAGAMENTO } from '../../utils/constants';
 
 const TIPO_BADGE = {
-  V: 'bg-blue-100 text-blue-700',
-  E: 'bg-amber-100 text-amber-700',
-  L: 'bg-emerald-100 text-emerald-700',
+  V: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+  E: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+  L: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
 };
 
 export default function Vendas() {
@@ -169,7 +169,7 @@ export default function Vendas() {
       key: 'metodoPagamento',
       label: 'Pagamento',
       render: (val) => (
-        <span className="text-xs font-medium text-gray-600">{getMetodoPagamentoLabel(val)}</span>
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{getMetodoPagamentoLabel(val)}</span>
       ),
     },
     {
@@ -186,14 +186,14 @@ export default function Vendas() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => handleEditar(row)}
-            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
             title="Editar"
           >
             <Edit size={15} />
           </button>
           <button
             onClick={() => handleDeletar(row)}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
             title="Excluir"
           >
             <Trash2 size={15} />
@@ -218,41 +218,10 @@ export default function Vendas() {
         </Button>
       </div>
 
-      {/* Cards de resumo */}
-      {vendas.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard
-            label="Vendas"
-            value={vendasFiltradas.length.toString()}
-            icon={ShoppingCart}
-            color="blue"
-            sub="registros"
-          />
-          <StatCard
-            label="Valor Total"
-            value={formatCurrency(totalValorVenda)}
-            icon={DollarSign}
-            color="green"
-          />
-          <StatCard
-            label="Extras + Frete"
-            value={formatCurrency(totalExtra + totalFrete)}
-            icon={TrendingUp}
-            color="yellow"
-          />
-          <StatCard
-            label="Total Geral"
-            value={formatCurrency(totalGeral)}
-            icon={TrendingUp}
-            color="red"
-          />
-        </div>
-      )}
-
       {/* Filtros */}
       <div className="panel">
         {/* Cabeçalho dos filtros */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-50">
+        <div className="flex items-center justify-between p-4 border-b border-gray-50 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <SlidersHorizontal size={16} className="text-gray-400" />
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Filtros</span>
@@ -292,7 +261,7 @@ export default function Vendas() {
 
           {/* Filtros expandidos */}
           {showFiltros && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t border-gray-50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t border-gray-50 dark:border-gray-700">
               {/* Busca */}
               <div className="relative">
                 <label className="label">Busca</label>
@@ -360,7 +329,7 @@ export default function Vendas() {
 
       {/* Tabela */}
       <div className="panel">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-gray-700">
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
             {vendasFiltradas.length} venda{vendasFiltradas.length !== 1 ? 's' : ''}
             {filtrosAtivos > 0 && <span className="text-gray-400 font-normal"> (filtrado)</span>}

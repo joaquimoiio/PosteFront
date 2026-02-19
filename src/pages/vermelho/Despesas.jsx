@@ -19,8 +19,8 @@ import {
 } from '../../utils/formatters';
 
 const TIPO_BADGE = {
-  FUNCIONARIO: 'bg-purple-100 text-purple-700',
-  OUTRAS: 'bg-gray-100 text-gray-600',
+  FUNCIONARIO: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+  OUTRAS: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
 };
 
 export default function Despesas() {
@@ -130,14 +130,14 @@ export default function Despesas() {
     {
       key: 'descricao',
       label: 'Descrição',
-      render: (val) => <span className="text-sm text-gray-700">{val || '-'}</span>,
+      render: (val) => <span className="text-sm text-gray-700 dark:text-gray-200">{val || '-'}</span>,
     },
     {
       key: 'valor',
       label: 'Valor',
       sortable: true,
       render: (val) => (
-        <span className="font-semibold text-gray-800">{formatCurrency(val)}</span>
+        <span className="font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(val)}</span>
       ),
     },
     {
@@ -147,14 +147,14 @@ export default function Despesas() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => handleEditar(row)}
-            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
             title="Editar"
           >
             <Edit size={15} />
           </button>
           <button
             onClick={() => handleDeletar(row)}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
             title="Excluir"
           >
             <Trash2 size={15} />
@@ -179,31 +179,9 @@ export default function Despesas() {
         </Button>
       </div>
 
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard
-          label="Funcionários"
-          value={formatCurrency(totalFuncionario)}
-          icon={Wallet}
-          color="purple"
-        />
-        <StatCard
-          label="Outras"
-          value={formatCurrency(totalOutras)}
-          icon={Receipt}
-          color="gray"
-        />
-        <StatCard
-          label="Total Geral"
-          value={formatCurrency(totalFuncionario + totalOutras)}
-          icon={TrendingDown}
-          color="red"
-        />
-      </div>
-
       {/* Filtros */}
       <div className="panel">
-        <div className="flex items-center justify-between p-4 border-b border-gray-50">
+        <div className="flex items-center justify-between p-4 border-b border-gray-50 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <SlidersHorizontal size={16} className="text-gray-400" />
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Filtros</span>
@@ -241,7 +219,7 @@ export default function Despesas() {
           />
 
           {showFiltros && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-gray-50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-gray-50 dark:border-gray-700">
               {/* Busca por descrição */}
               <div className="sm:col-span-2">
                 <label className="label">Buscar na descrição</label>
@@ -297,14 +275,14 @@ export default function Despesas() {
 
       {/* Tabela */}
       <div className="panel">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-gray-700">
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
             {despesasFiltradas.length} despesa{despesasFiltradas.length !== 1 ? 's' : ''}
             {filtrosAtivos > 0 && <span className="text-gray-400 font-normal"> (filtrado)</span>}
           </span>
           {despesasFiltradas.length > 0 && (
             <span className="text-xs text-gray-500">
-              Total: <span className="font-semibold text-gray-800">{formatCurrency(totalFiltrado)}</span>
+              Total: <span className="font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(totalFiltrado)}</span>
             </span>
           )}
         </div>
