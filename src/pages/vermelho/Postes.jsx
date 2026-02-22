@@ -29,7 +29,7 @@ export default function Postes() {
 
   const showAlert = useAlert();
 
-  const { data: postes, loading, error, criar, atualizar, deletar } = usePostes();
+  const { data: postes, loading, error, refetch, criar, atualizar, deletar } = usePostes();
 
   const postesFiltrados = useMemo(() => {
     let lista = postes;

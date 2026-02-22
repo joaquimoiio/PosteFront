@@ -46,7 +46,7 @@ export default function Despesas() {
     [dataInicio, dataFim]
   );
 
-  const { data: despesas, loading, error, criar, atualizar, deletar } = useDespesas(params);
+  const { data: despesas, loading, error, refetch, criar, atualizar, deletar } = useDespesas(params);
 
   const despesasFiltradas = useMemo(() => {
     let lista = despesas;

@@ -8,7 +8,16 @@ export function formatCurrency(value) {
 export function formatDate(dateString, includeTime = false) {
   if (!dateString) return '-';
   try {
-    const date = new Date(dateString);
+    let date;
+    // Strings só com data (YYYY-MM-DD) são tratadas pelo JS como UTC meia-noite.
+    // No Brasil (UTC-3) isso causa um recuo de 1 dia na exibição.
+    // Forçamos parse como horário local para evitar o shift.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [y, m, d] = dateString.split('-').map(Number);
+      date = new Date(y, m - 1, d);
+    } else {
+      date = new Date(dateString);
+    }
     if (isNaN(date.getTime())) return '-';
     const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
     if (includeTime) { options.hour = '2-digit'; options.minute = '2-digit'; }
@@ -33,7 +42,12 @@ export function formatDateTimeInput(dateString) {
 }
 
 export function getCurrentDateInput() {
-  return new Date().toISOString().split('T')[0];
+  // Usa data local, não UTC — evita retornar o dia seguinte em fusos negativos.
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function getCurrentDateTimeInput() {

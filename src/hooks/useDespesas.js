@@ -24,21 +24,23 @@ export function useDespesas(params = {}) {
 
   useEffect(() => { fetch(); }, [fetch]);
 
+  // Após criar/atualizar/deletar: executa a ação e dispara o refetch em background.
+  // O modal fecha imediatamente após a ação principal, sem aguardar o recarregamento da lista.
   const criar = useCallback(async (dto) => {
     const result = await despesasApi.criar(dto);
-    await fetch();
+    fetch(); // background — não bloqueia
     return result;
   }, [fetch]);
 
   const atualizar = useCallback(async (id, dto) => {
     const result = await despesasApi.atualizar(id, dto);
-    await fetch();
+    fetch(); // background — não bloqueia
     return result;
   }, [fetch]);
 
   const deletar = useCallback(async (id) => {
     await despesasApi.deletar(id);
-    await fetch();
+    fetch(); // background — não bloqueia
   }, [fetch]);
 
   return { data, loading, error, refetch: fetch, criar, atualizar, deletar };

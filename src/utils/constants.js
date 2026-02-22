@@ -1,12 +1,14 @@
 export const API_BASE = 'https://posteback.onrender.com/api';
 
 export const METODOS_PAGAMENTO = [
-  { value: 'PIX_JEFF',     label: 'Pix do Jeff' },
-  { value: 'PIX_ELETRONS', label: 'Pix Eletrons' },
-  { value: 'DINHEIRO',     label: 'Dinheiro' },
-  { value: 'CARTAO',       label: 'Cartão' },
-  { value: 'CHEQUE',       label: 'Cheque' },
-  { value: 'BOLETO',       label: 'Boleto' },
+  { value: 'PIX_JEFF',      label: 'Pix do Jeff' },
+  { value: 'PIX_ELETRONS',  label: 'Pix Eletrons' },
+  { value: 'DINHEIRO',      label: 'Dinheiro' },
+  { value: 'CARTAO',        label: 'Cartão' },
+  { value: 'CHEQUE',        label: 'Cheque' },
+  { value: 'BOLETO',        label: 'Boleto' },
+  { value: 'OUTROS',        label: 'Outros' },
+  { value: 'NAO_INFORMADO', label: 'Não Informado' },
 ];
 
 export const TIPOS_VENDA = [

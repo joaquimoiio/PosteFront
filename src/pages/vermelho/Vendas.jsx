@@ -50,7 +50,7 @@ export default function Vendas() {
     [dataInicio, dataFim]
   );
 
-  const { data: vendas, loading, error, criar, atualizar, deletar } = useVendas(params);
+  const { data: vendas, loading, error, refetch, criar, atualizar, deletar } = useVendas(params);
   const { data: postes } = usePostes();
 
   const vendasFiltradas = useMemo(() => {

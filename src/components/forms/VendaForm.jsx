@@ -17,6 +17,8 @@ export default function VendaForm({ onSubmit, onCancel, postes = [], initialData
           valorExtra:      initialData.valorExtra || '',
           observacoes:     initialData.observacoes || '',
           metodoPagamento: initialData.metodoPagamento || '',
+          vendedor:        initialData.vendedor || '',
+          numeroNota:      initialData.numeroNota || '',
         }
       : {
           dataVenda:       getCurrentDateTimeInput(),
@@ -28,6 +30,8 @@ export default function VendaForm({ onSubmit, onCancel, postes = [], initialData
           valorExtra:      '',
           observacoes:     '',
           metodoPagamento: '',
+          vendedor:        '',
+          numeroNota:      '',
         },
   });
 
@@ -46,32 +50,37 @@ export default function VendaForm({ onSubmit, onCancel, postes = [], initialData
         valorExtra:      initialData.valorExtra || '',
         observacoes:     initialData.observacoes || '',
         metodoPagamento: initialData.metodoPagamento || '',
+        vendedor:        initialData.vendedor || '',
+        numeroNota:      initialData.numeroNota || '',
       });
     }
   }, [initialData]);
 
   function onValid(data) {
     const payload = {
-      dataVenda:       data.dataVenda,
-      tipoVenda:       data.tipoVenda,
-      observacoes:     data.observacoes || null,
-      metodoPagamento: data.metodoPagamento || null,
+      dataVenda:   data.dataVenda,
+      tipoVenda:   data.tipoVenda,
+      observacoes: data.observacoes || null,
     };
     if (tipo === 'E') {
-      payload.valorExtra = parseFloat(data.valorExtra);
+      payload.valorExtra      = parseFloat(data.valorExtra);
+      payload.metodoPagamento = data.metodoPagamento || null;
     } else if (tipo === 'V') {
-      payload.posteId    = parseInt(data.posteId);
-      payload.quantidade = parseInt(data.quantidade);
-      payload.valorVenda = parseFloat(data.valorVenda);
+      payload.posteId         = parseInt(data.posteId);
+      payload.quantidade      = parseInt(data.quantidade);
+      payload.valorVenda      = parseFloat(data.valorVenda);
+      payload.metodoPagamento = data.metodoPagamento || null;
     } else if (tipo === 'L') {
-      payload.posteId      = parseInt(data.posteId);
-      payload.quantidade   = parseInt(data.quantidade);
+      payload.posteId       = parseInt(data.posteId);
+      payload.quantidade    = parseInt(data.quantidade);
       payload.freteEletrons = parseFloat(data.freteEletrons);
+      payload.vendedor      = data.vendedor || null;
+      payload.numeroNota    = data.numeroNota || null;
     }
     onSubmit(payload);
   }
 
-  const postesAtivos    = postes.filter(p => p.ativo !== false);
+  const postesAtivos     = postes.filter(p => p.ativo !== false);
   const posteSelecionado = postesAtivos.find(p => String(p.id) === String(posteId));
 
   return (
@@ -163,6 +172,32 @@ export default function VendaForm({ onSubmit, onCancel, postes = [], initialData
         </div>
       )}
 
+      {/* Vendedor + Número da Nota (somente Loja) */}
+      {tipo === 'L' && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="label">Vendedor *</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="Nome do vendedor"
+              {...register('vendedor', { required: 'Vendedor obrigatório' })}
+            />
+            {errors.vendedor && <p className="text-xs text-red-500 mt-1">{errors.vendedor.message}</p>}
+          </div>
+          <div>
+            <label className="label">Número da Nota *</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="Ex: 00001"
+              {...register('numeroNota', { required: 'Número da nota obrigatório' })}
+            />
+            {errors.numeroNota && <p className="text-xs text-red-500 mt-1">{errors.numeroNota.message}</p>}
+          </div>
+        </div>
+      )}
+
       {/* Valor Extra (E) */}
       {tipo === 'E' && (
         <div>
@@ -178,22 +213,24 @@ export default function VendaForm({ onSubmit, onCancel, postes = [], initialData
         </div>
       )}
 
-      {/* Método de Pagamento */}
-      <div>
-        <label className="label">Método de Pagamento *</label>
-        <select
-          className="input"
-          {...register('metodoPagamento', { required: 'Método de pagamento obrigatório' })}
-        >
-          <option value="">Selecione...</option>
-          {METODOS_PAGAMENTO.map(m => (
-            <option key={m.value} value={m.value}>{m.label}</option>
-          ))}
-        </select>
-        {errors.metodoPagamento && (
-          <p className="text-xs text-red-500 mt-1">{errors.metodoPagamento.message}</p>
-        )}
-      </div>
+      {/* Método de Pagamento (somente V e E) */}
+      {tipo !== 'L' && (
+        <div>
+          <label className="label">Método de Pagamento *</label>
+          <select
+            className="input"
+            {...register('metodoPagamento', { required: 'Método de pagamento obrigatório' })}
+          >
+            <option value="">Selecione...</option>
+            {METODOS_PAGAMENTO.map(m => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+          {errors.metodoPagamento && (
+            <p className="text-xs text-red-500 mt-1">{errors.metodoPagamento.message}</p>
+          )}
+        </div>
+      )}
 
       {/* Observações */}
       <div>
